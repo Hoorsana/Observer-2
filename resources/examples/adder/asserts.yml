@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+- type: AlmostEverywhereClose
+  data:
+    result: adder.sum
+    expected:
+      !TimeSeries
+      time: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      values: [[100], [125], [100], [50], [0], [100], [200], [100], [0], [0]]
+    rtol: 0.08

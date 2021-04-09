@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: adder
+    type: pylab.live.live.UsbSerialDevice.from_serial_number
+    interface:
+      ports:
+        - signal: val1
+          channel: A0
+          range: 168..852
+          flags:
+            - input
+            - analog
+        - signal: val2
+          channel: A1
+          range: 168..852
+          flags:
+            - input
+            - analog
+        - signal: sum
+          channel: DAC0
+          range: 0..255
+          flags:
+            - output
+            - analog
+    data:
+      serial_number: '55838323435351115172'
+  - name: gpio
+    type: pylab.live.plugin.controllino.controllino.PylabControllino.from_serial_number
+    interface:
+      ports:
+        - signal: out1
+          channel: DAC0
+          range: 0..255
+          flags:
+            - output
+            - analog
+        - signal: out2
+          channel: DAC1
+          range: 0..255
+          flags:
+            - output
+            - analog
+        - signal: sum
+          channel: A0
+          range: 168..852
+          flags:
+            - input
+            - analog
+    data:
+      serial_number: 857343237303510161C1
+      baudrate: 19200
+
+connections:
+  - [gpio, out1, adder, val1]
+  - [gpio, out2, adder, val2]
+  - [adder, sum, gpio, sum]

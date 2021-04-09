@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: logger
+    type: Logger
+    filename: 'new_logger_params.slx'
+    interface: ./matlab_details_logger.yml
+  - name: system_under_test
+    type: Model
+    filename: 'complex_.yml'
+    interface: ./matlab_details_device.yml
+
+connections:
+  - [logger, temp1, system_under_test, temp1]
+  - [logger, temp2, system_under_test, temp2]
+  - [system_under_test, sum, logger, sum]

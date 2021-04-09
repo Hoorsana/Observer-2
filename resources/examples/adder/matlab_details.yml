@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: adder
+    type: Model
+    interface:
+      ports:
+        - signal: val1
+          channel: 1
+          range: 0..1
+          flags:
+            - input
+            - analog
+        - signal: val2
+          channel: 2
+          range: 0..1
+          flags:
+            - input
+            - analog
+        - signal: sum
+          channel: 1
+          range: 0..2
+          flags:
+            - output
+            - analog
+    data:
+      filename: 'adder.slx'
+  - name: gpio1
+    type: MiniGenerator
+    interface: ./mini_generator.yml
+  - name: gpio2
+    type: MiniGenerator
+    interface: ./mini_generator.yml
+  - name: logger
+    type: MiniLogger
+    interface:
+      ports:
+        - signal: sum
+          channel: 1
+          range: 0..2
+          flags:
+            - input
+            - analog
+
+connections:
+  - [gpio1, value, adder, val1]
+  - [gpio2, value, adder, val2]
+  - [adder, sum, logger, sum]

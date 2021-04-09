@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+description: 'Test extreme values'
+
+duration: 4.0
+
+commands:
+  - time: 0.0
+    command: CmdSetSignal
+    target: adder
+    data:
+      signal: val1
+      value: 0
+  - time: 0.0
+    command: CmdSetSignal
+    target: adder
+    data:
+      signal: val2
+      value: 100
+  - time: 1.0
+    command: CmdSetSignal
+    target: adder
+    data:
+      signal: val1
+      value: 100
+  - time: 2.0
+    command: CmdSetSignal
+    target: adder
+    data:
+      signal: val2
+      value: 0
+  - time: 3.0
+    command: CmdSetSignal
+    target: adder
+    data:
+      signal: val1
+      value: 0

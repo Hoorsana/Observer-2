@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+targets:
+  - name: adder
+    signals:
+      - name: val1
+        # unit: W
+        flags:
+          - input
+          - analog
+        range: 0..100
+      - name: val2
+        # unit: W
+        flags:
+          - input
+          - analog
+        range: 0..100
+      - name: sum
+        # unit: W
+        flags:
+          - output
+          - analog
+        range: 0..200
+        description: 'sum of power1 and power2'
+
+logging:
+  - target: adder
+    signal: sum
+    period: 0.1
+
+phases:
+  - ./phase_mid_values.yml
+  - ./phase_extreme_values.yml

@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: monitor
+    type: Model
+    interface:
+      ports:
+        - signal: temperature
+          channel: 1
+          range: -100..100
+          flags:
+            - input
+            - analog
+        - signal: result
+          channel: 1
+          range: 0..1
+          flags:
+            - output
+            - digital
+    data:
+      filename: 'limit_monitoring.slx'
+  - name: gpio
+    type: MiniGenerator
+    interface:
+      ports:
+        - signal: value
+          channel: 1
+          range: -100..100
+          flags:
+            - output
+            - analog
+  - name: logger
+    type: MiniLogger
+    interface:
+      ports:
+        - signal: result
+          channel: 1
+          range: 0..1
+          flags:
+            - input
+            - digital
+
+connections:
+  - [gpio, value, monitor, temperature]
+  - [monitor, result, logger, result]

@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+targets:
+  - name: monitor
+    signals:
+      - name: temperature
+        # unit: Celsius
+        flags:
+          - input
+          - analog
+        range: -100..100
+      - name: result
+        # unit: bool
+        flags:
+          - output
+          - digital
+        range: 0..1
+        description: 'Return 1 if the temperature limit exceeds 80 degrees; 0 otherwise'
+
+logging:
+  - target: monitor
+    signal: result
+    period: 0.1
+
+phases:
+  # Specify seperate file
+  - ./phase_quick_pulse.yml
+  - ./phase_quick_pulse.yml
+  - ./phase_quick_pulse.yml
+  # Specify phases directly
+  - description: 'Test limit values'
+    duration: 2.0
+    commands:
+      - time: 0.0
+        command: CmdSetSignal
+        target: monitor
+        data:
+          signal: temperature
+          value: 81
+      - time: 1.0
+        command: CmdSetSignal
+        target: monitor
+        data:
+          signal: temperature
+          value: 79
+  - description: 'Test LO-HI temperature'
+    duration: 2.0
+    commands:
+      - time: 0.0
+        command: CmdSetSignal
+        target: monitor
+        data:
+          signal: temperature
+          value: -95
+      - time: 1.0
+        command: CmdSetSignal
+        target: monitor
+        data:
+          signal: temperature
+          value: 95

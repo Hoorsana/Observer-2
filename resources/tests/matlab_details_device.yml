@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+ports:
+  - name: temp1
+    channel: A0
+    range: 0..100
+    flags: input
+  - name: temp2
+    channel: A1
+    range: 0..100
+    flags: input
+  - name: sum
+    channel: DAC0
+    range: 0..200
+    flags: output
+    description: |
+      "Sum of temp1 and temp2"

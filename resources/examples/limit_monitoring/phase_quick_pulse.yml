@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+description: 'Send a short burst of high temperature to test the responsiveness of the measurement'
+
+duration: 1.0
+
+commands:
+  - time: 0.0
+    command: CmdSetSignal
+    target: monitor
+    data:
+      signal: temperature
+      value: -100
+  - time: 0.4
+    command: CmdSetSignal
+    target: monitor
+    data:
+      signal: temperature
+      value: 100
+  - time: 0.6
+    command: CmdSetSignal
+    target: monitor
+    data:
+      signal: temperature
+      value: 0
