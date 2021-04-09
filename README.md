@@ -13,8 +13,6 @@ Staging repos for pylab project
 
 ### Testing
 
-`all`, `core`, `quick`, ...
-
 Run `make` to test. Before doing so, make sure that `MATLABPATH` includes `src/pylab/simulink/_resources` if you want to test MATLAB/Simulink.
 
 Furthermore, if you must set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB installation in order for pylab to find the `setup.py` of the MATLAB engine. If you don't set the variable, the
