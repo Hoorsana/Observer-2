@@ -52,7 +52,7 @@ venv:
 		cd ${PYLAB_MATLAB_PATH}/extern/engines/python; \
 		python setup.py install; \
 	fi; \
-	pip install git+https://github.com/maltekliemann/controllino-stage; \
+	pip install git+https://github.com/maltekliemann/controllino; \
 	deactivate
 	$(PYTHON) setup.py install
 	$(PYTHON) setup.py install_scripts
