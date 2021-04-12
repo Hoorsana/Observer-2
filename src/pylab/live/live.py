@@ -96,6 +96,14 @@ class Test:
                  commands: list[AbstractCommand],
                  logging_infos: list[infos.LoggingInfo],
                  duration: float) -> None:
+        """Args:
+            test_object: The underlying test object
+            commands: The commands to execute during the test
+            logging_infos: The signals to log during the test
+            duration: The total duration of the test in seconds
+
+        Note that the list need not be sorted by time.
+        """
         self._test_object = test_object
         self._commands = commands
         self._duration = duration
@@ -289,8 +297,8 @@ class AbstractFuture(abc.ABC):
     def get_result(self) -> Any:
         """Get the result of the computation.
 
-        Shall only be called if the future is done. Calling before done
-        is undefined behavior.
+        Shall only be called if the future is done. Calling
+        ``get_result`` before done is undefined behavior.
         """
         pass
 
@@ -300,8 +308,8 @@ class AbstractFuture(abc.ABC):
         """Information on the future.
 
         This property holds information which may be gathered at any
-        point during execution. It should be used to assemble an error
-        report if the future times out.
+        point during execution in a thread-safe manner. It should be
+        used to assemble an error report if the future times out.
         """
         pass
 
@@ -318,7 +326,7 @@ class AbstractFuture(abc.ABC):
     @property
     @abc.abstractmethod
     def done(self) -> bool:
-        """Check if the future is done."""
+        """Thread-safely check if the future is done."""
         pass
 
     @abc.abstractmethod
@@ -343,9 +351,10 @@ class AbstractFuture(abc.ABC):
 class NoopFuture(AbstractFuture):
     """Class for synchronous commands or commands without callback.
 
-    This future is always done, may have any logbook entry or result.
-    The purpose of this class is to allow return values to synchronous
-    calls to devices or asynchronous calls to devices without callback.
+    This future is always done, and may have any logbook entry or
+    result. The purpose of this class is to allow return values to
+    synchronous calls to devices or asynchronous calls to devices
+    without callback.
     """
 
     def __init__(self, log: report.LogEntry, result: Optional[Any] = None) -> None:
@@ -417,6 +426,7 @@ class _Device:
 
     @property
     def name(self) -> str:
+        """The identifier of the device."""
         return self._name
 
     @property
@@ -488,11 +498,24 @@ class UsbSerialDevice(AbstractDevice):
 
 
 class _DeviceContextManager:
-    """Use to ensure graceful close of devices on panic."""
+    """Open/close devices automatically.
+
+    Use to ensure graceful close of devices on panic at any point during
+    the execution of the test.
+    """
 
     def __init__(self, test_object: _TestObject, logbook: list[LogEntry]) -> None:
+        """Args:
+            test_object: The underlying test object
+            logbook: A logbook that the manager's activity is written to
+        """
         self._test_object = test_object
         self._logbook = logbook
+
+    @property
+    def logbook(self) -> list[LogEntry]:
+        """The context manager's logbook."""
+        return self._logbook
 
     def __enter__(self):
         self._logbook += self._test_object.open()
@@ -615,7 +638,6 @@ class _TestObject:
             *args: Positional arguments passed to method
             timeout: Timeout for wait in seconds
             **kwargs: Keyworded arguments passed to method
-
         """
         futures = [getattr(each, attr)(*args, **kwargs) for each in self._devices]
         return _wait_for_all(futures, timeout)
@@ -645,7 +667,7 @@ class _TestObject:
         return self._execute_for_all_and_wait('setup', timeout=timeout)
 
     def _create_solid_connection(self, info: infos.ConnectionInfo) -> _SolidConnection:
-        """Create a solid connection from info.
+        """Create a solid connection from ``info``.
 
         Raises:
             StopIteration:
@@ -685,6 +707,9 @@ class _LoggingRequest(AbstractFuture):
     def begin(self, test_object: _TestObject) -> AbstractFuture:
         """Begin logging the signal.
 
+        Args:
+            test_object: The underlying TestObject
+
         Returns:
             A future which is done if the logging request is accepted
         """
@@ -695,6 +720,9 @@ class _LoggingRequest(AbstractFuture):
 
     def end(self, test_object: _TestObject) -> AbstractFuture:
         """End logging the signal.
+
+        Args:
+            test_object: The underlying TestObject
 
         Returns:
             A future which is done when the request for closing the
@@ -708,19 +736,14 @@ class _LoggingRequest(AbstractFuture):
         return device.execute('end_log_signal', port.channel)
 
     @property
-    def what(self):
+    def what(self) -> str:
         return self._future.what
 
     @property
-    def log(self):
+    def log(self) -> LogEntry:
         return self._future.log
 
     def wait(self, timeout: Optional[float] = None) -> None:
-        """Wait until the logging request is done.
-
-        Args:
-            timeout: Timeout in seconds
-        """
         self._future.wait(timeout)
 
     @property
@@ -736,7 +759,7 @@ class _LoggingRequest(AbstractFuture):
     def get_result(self) -> Tuple[report.LogEntry, timeseries.TimeSeries]:
         """Return logged result.
 
-        Should only be called if the logging request is done.
+        Shall only be called if the logging request is done.
         """
         assert self.done
         ts = self._future.get_result()
@@ -746,7 +769,7 @@ class _LoggingRequest(AbstractFuture):
 
 
 class _DeadlineFuture:
-    """Class for futures which may timeout.
+    """Class for futures whose underlying computation may timeout.
 
     Note that ``_DeadlineFuture`` isn't a subclass of ``AbstractFuture``,
     as ``_DeadlineFuture.log`` may be called even if the Future isn't
@@ -837,9 +860,6 @@ def _wait_for_all(futures: list[AbstractFuture],
 
     Returns:
         A list of log reports for the futures (even on timeout)
-
-    Raises:
-        ???
     """
     done = [elem.wait(timeout) for elem in futures]
     # FIXME This is incorrect. You're warning about _all_ futures, not
@@ -863,6 +883,10 @@ class _LoggingHandler:
     def __init__(self,
                  test_object: _TestObject,
                  infos: list[infos.LoggingInfo]) -> None:
+        """Args:
+            test_object: The underlying test object
+            infos: Infos for the handled logging requests
+        """
         self._test_object = test_object
         self._requests = [self._test_object.make_logging_request(each) for each in infos]
 

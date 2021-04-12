@@ -45,8 +45,7 @@ class PylabControllino:
     def from_serial_number(cls,
                            serial_number: str,
                            pin_modes: Optional[dict[str, str]] = None,
-                           **kwargs
-                          ) -> controllino_serial.PylabControllino:
+                           **kwargs) -> controllino_serial.PylabControllino:
         """Create from device serial number.
 
         Args:
@@ -134,7 +133,7 @@ class PylabControllino:
         return Future(
             self._controllino,
             self._controllino.open(),
-            f'CmdReady()'
+            'CmdReady()'
         )
 
     def close(self) -> live.AbstractFuture:
@@ -190,12 +189,8 @@ class Future(live.AbstractFuture):
 
     @property
     def log(self):
-        """
-
-        """
         # FIXME It is unclear whether or not a controllino logic error
         # should be raised here or just cause a panic.
-
         try:
             self._future.result()
         except controllino_serial.ControllinoError as e:
