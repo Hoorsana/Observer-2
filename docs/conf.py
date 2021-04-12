@@ -22,11 +22,10 @@ sys.path.insert(0, os.path.abspath('../src'))
 # -- Project information -----------------------------------------------------
 
 project = 'pylab'
-copyright = '2021, RnD Center Kiel'
-author = 'RnD Center Kiel'
+copyright = '2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.1'
+release = 'v0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
