@@ -35,8 +35,6 @@ plugin-fake: venv
 .PHONY: quick
 quick: venv core cli
 
-	# TODO Use python setup.py clean instead of build dir!
-
 .PHONY: example
 example: venv
 	$(PYTEST) -vv -s example
@@ -63,6 +61,7 @@ sphinx:
 
 .PHONY: clean
 clean:
+	python setup.py clean
 	rm -fr build
 	rm -fr .venv
 	rm -fr docs/build

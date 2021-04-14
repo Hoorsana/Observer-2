@@ -70,6 +70,7 @@ GOTO error
 	GOTO :EOF
 
 :clean
+  python setup.py clean
 	if exist build rmdir /Q /s build
 	if exist %VENV% rmdir /Q /s %VENV%
 	if exist docs\build rmdir /Q /s docs\build
