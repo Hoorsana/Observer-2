@@ -60,7 +60,6 @@ GOTO error
             python setup.py install
             POPD
         )
-	REM %VENV%\Scripts\activate && pip install git+https://github.com/maltekliemann/controllino-stage && deactivate
 	%PYTHON% setup.py install
 	%PYTHON% setup.py install_scripts
 	GOTO :EOF
@@ -71,6 +70,7 @@ GOTO error
 	GOTO :EOF
 
 :clean
+  python setup.py clean
 	if exist build rmdir /Q /s build
 	if exist %VENV% rmdir /Q /s %VENV%
 	if exist docs\build rmdir /Q /s docs\build

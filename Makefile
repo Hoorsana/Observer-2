@@ -39,8 +39,6 @@ plugin-fake: venv
 .PHONY: quick
 quick: venv core cli
 
-	# TODO Use python setup.py clean instead of build dir!
-
 .PHONY: example
 example: venv
 	$(PYTEST) -vv -s example
@@ -51,13 +49,12 @@ venv:
 	# If virtualenv doesn't exist, create it, then fetch dependencies.
 	[ -d $(VENV) ] || virtualenv $(VENV)
 	$(PIP) install -r requirements.txt
+ifdef PYLAB_MATLAB_PATH
 	. $(VENV)/bin/activate; \
-	if ! [[ -z $(PYLAB_MATLAB_PATH) ]]; then \
-		cd ${PYLAB_MATLAB_PATH}/extern/engines/python; \
-		python setup.py install; \
-	fi; \
-	pip install git+https://github.com/maltekliemann/controllino@0.1.0; \
+	cd ${PYLAB_MATLAB_PATH}/extern/engines/python; \
+	python setup.py install; \
 	deactivate
+endif
 	$(PYTHON) setup.py install
 	$(PYTHON) setup.py install_scripts
 
@@ -68,6 +65,7 @@ sphinx:
 
 .PHONY: clean
 clean:
+	python setup.py clean
 	rm -fr build
 	rm -fr .venv
 	rm -fr docs/build
