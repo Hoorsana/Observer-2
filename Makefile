@@ -14,6 +14,10 @@ default: venv
 	pytest -vv tests/; \
 	deactivate
 
+.PHONY: can
+can: venv
+	$(PYTEST) -vv tests/live/plugin/can/
+
 .PHONY: cli
 cli: venv
 	. $(VENV)/bin/activate; \

@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: dummy
+    type: pylab.live.plugin.can.basecan.BaseCan
+    interface:
+      ports: []
+    data:
+      database:
+        !DataBase
+        path: resources/test.dbc
+        encoding: utf-8
+      bustype: socketcan
+      channel: vcan0
+      bitrate: 125000
