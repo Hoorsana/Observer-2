@@ -23,27 +23,56 @@ class CanError(Exception):
 
 
 class Database:
+    """CAN database object for en- and decoding messages."""
 
     def __init__(self, path: str, encoding: Optional[str] = None) -> None:
-        """
+        """Args:
+            path: The absolute or relative path to the database file
+            encoding: The encoding of the database file
 
-        Make sure to use the correct encoding. Default encodings are found
-        in the documentation of cantools.
+        The file at ``path`` must be of type ``.arxml``, ``.dbc``,
+        ``.kcd``, ``.sym``, ``.cdd``. The type is extrapolated from the
+        file extension. For details, see the documentation of cantools.
+
+        Make sure to use the correct encoding. Default encodings are
+        based on file type and found in the documentation of cantools.
         """
         self._db = cantools.database.load_file(path, encoding=encoding)
 
     def decode(self, msg: can.Message) -> dict:
-        decoded_msg = self._db.decode_message(msg.arbitration_id, msg.data)
-        return json.dumps(decoded_msg)
+        """Decode a message to dictionary. 
+
+        Args:
+            msg: The message to decode
+
+        Returns:
+            A dict containing the data of the message
+
+        Raises:
+            ???
+        """
+        try:
+            return self._db.decode_message(msg.arbitration_id, msg.data)
+        except cantools.database.DecodeError as e:
+            raise CanError from e
 
     def encode(self, name: str, data: dict) -> can.Message:
+        """Encode a message.
+
+        Args:
+            name: The message name
+            data: The data to encode
+
+        Raises:
+            CanError: If encoding failed
+        """
         try:
             msg = self._db.get_message_by_name(name)
         except KeyError as e:
             raise CanError from e
         try:
             encoded_data = msg.encode(data)
-        except cantools.database.DecodeError as e:
+        except cantools.database.EncodeError as e:
             raise CanError from e
         return can.Message(arbitration_id=msg.frame_id, data=encoded_data)
 
@@ -126,9 +155,7 @@ class _Listener:
             self._notifier.stop(timeout)
 
     def _put(self, msg: can.Message) -> None:
-        decoded_msg = self._db.decode(msg)
-        data = json.loads(decoded_msg)
-        self._queue.append(data)
+        self._queue.append(self._db.decode(msg))
 
 
 class CmdSendMessage(live.AbstractCommand):
