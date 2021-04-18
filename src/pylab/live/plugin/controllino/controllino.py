@@ -62,7 +62,7 @@ class PylabControllino:
 
     # FIXME This method should that ``pin: PortInfo`` as arg.
     def log_signal(
-        self, pin: str, period: float) -> Tuple[live.AbstractFuture, live.AbstractFuture]:
+        self, pin: str, period: float) -> tuple[live.AbstractFuture, live.AbstractFuture]:
         """Submit a logging request.
 
         Args:

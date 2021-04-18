@@ -7,6 +7,8 @@ import time
 import can
 import pytest
 
+from pylab.core import workflow
+from pylab.live import live
 from pylab.live.plugin.can import candriver
 
 
@@ -15,11 +17,11 @@ def data():
     return {'Temperature': 30, 'Humidity': 50}
 
 
-def _create_can(channel: str) -> candriver.Can:
+def _create_can(channel: str) -> candriver.CanBus:
     db = candriver.Database(
         'resources/tests/live/plugin/can/test.dbc', encoding='utf-8')
     bus = can.interface.Bus(bustype='socketcan', channel=channel, bitrate=125000)
-    return candriver.Can(db, bus)
+    return candriver.CanBus('foo', db, bus)
 
 
 class TestDatabase:
@@ -51,7 +53,7 @@ class TestBusConfig:
     pass
 
 
-class TestCan:
+class TestCanBus:
 
     @pytest.fixture
     def vcan0(self):
@@ -75,3 +77,11 @@ class TestCan:
     @pytest.mark.skip
     def test_from_config(self):
         pass
+
+
+def test_functional():
+    report = workflow.run_from_files(
+        driver=live,
+        test='resources/tests/live/plugin/can/test.yml',
+        details='resources/tests/live/plugin/can/vcan_details.yml',
+    )

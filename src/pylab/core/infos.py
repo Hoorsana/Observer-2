@@ -130,9 +130,6 @@ class SignalInfo:
             min, max = _load_range(range)
             object.__setattr__(self, 'min', min)
             object.__setattr__(self, 'max', max)
-        if self.min is None or self.max is None:
-            raise ValueError(
-                'failed to init SignalInfo: no signal range provided.')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -190,9 +187,6 @@ class PortInfo:
             min, max = _load_range(range)
             object.__setattr__(self, 'min', min)
             object.__setattr__(self, 'max', max)
-        if self.min is None or self.max is None:
-            raise ValueError(
-                'failed to init PortInfo: no signal range provided.')
 
 
 @dataclasses.dataclass(frozen=True)

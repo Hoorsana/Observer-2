@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+targets:
+  - name: vcan0-dev
+    signals:
+      - name: vcan0-signal
+        flags:
+          - bidirectional
+          - can
+
+
+logging:
+  - target: vcan0-dev
+    signal: vcan0-signal
+
+
+phases:
+  - duration: 3.0
+    commands:
+      - time: 1.0
+        command: pylab.live.plugin.can.candriver.CmdCanMessage
+        target: vcan0-dev
+        data:
+          signal: vcan0-signal
+          name: 'Weather'
+          data:
+            Temperature: 30
+            Humidity: 50
+      - time: 2.0
+        command: pylab.live.plugin.can.candriver.CmdCanMessage
+        target: vcan0-dev
+        data:
+          signal: vcan0-signal
+          name: 'Weather'
+          data:
+            Temperature: 50
+            Humidity: 30
