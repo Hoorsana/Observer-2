@@ -14,7 +14,7 @@ devices:
             - can
     data:
       buses:
-        - !CanBus
+        - !_CanPassthruBus
           signal: vcan0
           db:
             !Database
@@ -51,8 +51,32 @@ devices:
                 bustype: socketcan
                 channel: vcan1
                 bitrate: 125000
+  - name: vcan2-dev
+    type: pylab.live.plugin.can.candriver.CanDevice
+    interface:
+      ports:
+        - signal: vcan2-signal
+          channel: vcan2
+          flags:
+            - bidirectional
+            - can
+    data:
+      buses:
+        - !CanBus
+          signal: vcan2
+          db:
+            !Database
+            path: resources/tests/live/plugin/can/test.dbc
+            encoding: utf-8
+          config:
+            !BusConfig
+            args:
+              linux:
+                bustype: socketcan
+                channel: vcan2
+                bitrate: 125000
 
 
 connections:
-  - [vcan0-dev, vcan0-signal, vcan1-dev, vcan1-signal]
   - [vcan1-dev, vcan1-signal, vcan0-dev, vcan0-signal]
+  - [vcan0-dev, vcan0-signal, vcan2-dev, vcan2-signal]

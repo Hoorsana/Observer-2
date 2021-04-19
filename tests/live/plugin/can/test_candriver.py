@@ -70,7 +70,7 @@ class TestCanBus:
     def test_functional(self, data, vcan0, vcan1):
         vcan0.send_message('Weather', data)
         time.sleep(0.01)
-        result = vcan1.take_received()
+        result = vcan1.listener.take_received()
         assert result == [data]
 
     # Won't test!
@@ -85,3 +85,5 @@ def test_functional():
         test='resources/tests/live/plugin/can/test.yml',
         details='resources/tests/live/plugin/can/vcan_details.yml',
     )
+    results = report.results['vcan0-dev.vcan0-signal']
+    assert results == [{'Temperature': 30, 'Humidity': 50}, {'Temperature': 50, 'Humidity': 30}]

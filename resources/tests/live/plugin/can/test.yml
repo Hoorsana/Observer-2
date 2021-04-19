@@ -17,9 +17,9 @@ logging:
 
 
 phases:
-  - duration: 3.0
+  - duration: 0.3
     commands:
-      - time: 1.0
+      - time: 0.1
         command: pylab.live.plugin.can.candriver.CmdCanMessage
         target: vcan0-dev
         data:
@@ -28,7 +28,7 @@ phases:
           data:
             Temperature: 30
             Humidity: 50
-      - time: 2.0
+      - time: 0.2
         command: pylab.live.plugin.can.candriver.CmdCanMessage
         target: vcan0-dev
         data:

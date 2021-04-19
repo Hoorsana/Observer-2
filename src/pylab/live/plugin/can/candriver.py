@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import abc
 import copy
 import queue
 import sys
@@ -163,7 +164,7 @@ class CanDevice:
 
     def end_log_signal(self, bus: str) -> live.AbstractFuture:
         bus_obj = next(elem for elem in self._buses if elem.name == bus)
-        result = bus_obj.take_received()
+        result = bus_obj.listener.take_received()
         self._logging_requests.pop(bus).set_result(result)
         return live.NoopFuture(report.LogEntry(report.INFO))
 
@@ -207,11 +208,15 @@ class CanBus(yaml.YAMLObject):
     def __init__(self,
                  name: str,
                  db: Database,
-                 bus: can.interface.Bus) -> None:
+                 bus: can.interface.Bus,
+                 listener: Optional[AbstractListener] = None) -> None:
         self._name = name
         self._db = db
         self._bus = bus
-        self._listener = _Listener(db, bus)
+        if listener is None:
+            self._listener = _Listener(db, bus)
+        else:
+            self._listener = listener
 
     @classmethod
     def from_yaml(cls, loader, node) -> None:
@@ -222,8 +227,9 @@ class CanBus(yaml.YAMLObject):
     def name(self) -> str:
         return self._name
 
-    def take_received(self) -> list[dict]:
-        return self._listener.take_received()
+    @property
+    def listener(self) -> AbstractListener:
+        return self._listener
 
     def kill(self, timeout: Optional[float] = None):
         self._listener.kill(timeout)
@@ -245,6 +251,14 @@ class CanBus(yaml.YAMLObject):
     # TODO (In the live driver) For synchronous execution, it may be
     # better to let ``execute`` return ``None`` and consider this as the
     # "noop future" case
+
+
+class AbstractListener:
+
+    @abc.abstractmethod
+    def kill(self) -> None:
+        """Stop listening."""
+        pass
 
 
 class _Listener:
@@ -296,3 +310,31 @@ class CmdCanMessage(live.AbstractCommand):
     def execute(self, test_object: _TestObject) -> live.AbstractFuture:
         device, port = test_object.trace_back(self._target, self._signal)
         return device.execute('send_message', port.channel, self._name, self._data)
+
+
+# TODO For testing only, should go into the corresponding test files!
+class _CanPassthruBus(CanBus):
+    yaml_tag = u'!_CanPassthruBus'
+
+    def __init__(self,
+                 name: str,
+                 db: Database,
+                 bus: can.interface.Bus) -> None:
+        super().__init__(name, db, bus, _PassthruListener(db, bus))
+
+
+class _PassthruListener:
+
+    def __init__(self, db: Database, bus: can.interface.Bus) -> None:
+        self._db = db
+        self._bus = bus
+        self._notifier = can.Notifier(bus, listeners=[self._passthru])
+
+    def kill(self, timeout: Optional[float]) -> None:
+        if timeout is None:
+            self._notifier.stop()  # Use default timeout of python-can.
+        else:
+            self._notifier.stop(timeout)
+
+    def _passthru(self, msg: can.Message) -> None:
+        self._bus.send(msg)
