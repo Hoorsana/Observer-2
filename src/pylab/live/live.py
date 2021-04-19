@@ -51,7 +51,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 import time
-from typing import ContextManager
+from typing import ContextManager, List, Union
 import yaml
 
 from pylab.core import errors
@@ -62,6 +62,7 @@ from pylab.core import utils as coreutility
 from pylab.live import utility as liveutility
 
 HEARTBEAT = 0.001
+_RESULT_TYPE = Union[timeseries.TimeSeries, List[str]]
 
 # FIXME Before executing the test for real, do a "dry run" checks all
 # devices for compatability with the commands executed on them (dry run
@@ -760,16 +761,17 @@ class _LoggingRequest(AbstractFuture):
         """The namespace qualified name of the logged signal."""
         return self._info.full_name()
 
-    def get_result(self) -> Tuple[report.LogEntry, timeseries.TimeSeries]:
+    def get_result(self) -> Tuple[report.LogEntry, _RESULT_TYPE]:
         """Return logged result.
 
         Shall only be called if the logging request is done.
         """
         assert self.done
-        ts = self._future.get_result()
-        ts.kind = self._info.kind
-        ts.transform(self._transform)
-        return ts
+        result = self._future.get_result()
+        if isinstance(result, timeseries.TimeSeries):
+            result.kind = self._info.kind
+            result.transform(self._transform)
+        return result
 
 
 class _DeadlineFuture:
