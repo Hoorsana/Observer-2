@@ -39,6 +39,10 @@ plugin-fake: venv
 .PHONY: quick
 quick: venv core cli
 
+.PHONY: simulink
+simulink: venv
+	$(PYTEST) -vv tests/simulink
+
 .PHONY: example
 example: venv
 	$(PYTEST) -vv -s example
