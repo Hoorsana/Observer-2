@@ -11,6 +11,7 @@ IF /I "%1"=="default" GOTO default
 IF /I "%1"=="cli" GOTO cli
 IF /I "%1"=="core" GOTO core
 IF /I "%1"=="live" GOTO live
+IF /I "%1"=="simulink" GOTO live
 IF /I "%1"=="quick" GOTO quick
 IF /I "%1"=="example" GOTO example
 IF /I "%1"=="venv" GOTO venv
@@ -33,6 +34,11 @@ GOTO error
 	CALL make.bat venv
 	%PYTEST% -vv tests\core
 	GOTO :EOF
+
+:simulink
+  CALL make.bat venv
+  %PYTEST% -vv tests\simulink
+  GOTO :EOF
 
 :live
 	CALL make.bat venv
