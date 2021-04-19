@@ -42,7 +42,7 @@ GOTO error
 
 :live
 	CALL make.bat venv
-	%PYTEST% -vv tests\live
+	%PYTEST% -vv tests\live\test_live.py
 	GOTO :EOF
 
 :quick

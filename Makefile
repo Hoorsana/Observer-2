@@ -30,7 +30,7 @@ core: venv
 
 .PHONY: live
 live: venv
-	$(PYTEST) -vv tests/live
+	$(PYTEST) -vv tests/live/test_live.py
 
 .PHONY: plugin-fake
 plugin-fake: venv
