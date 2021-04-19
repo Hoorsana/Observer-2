@@ -140,8 +140,6 @@ class CanDevice:
         return live.NoopFuture(report.LogEntry(report.INFO))
 
     def send_message(self, signal: str, name: str, data: dict) -> live.AbstractFuture:
-        print([elem.name for elem in self._buses])
-        print(signal)
         bus = next(elem for elem in self._buses if elem.name == signal)
         bus.send_message(name, data)
         return live.NoopFuture(report.LogEntry(report.INFO))

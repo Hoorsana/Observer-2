@@ -190,7 +190,6 @@ class Details:
     @classmethod
     def from_dict(cls, data: dict) -> Details:
         details = [DeviceDetails.from_dict(each) for each in data['devices']]
-        print(data['connections'])
         connections = [infos.ConnectionInfo(*each)
                        for each in data['connections']]
         return cls(details, connections)
@@ -590,9 +589,6 @@ class _TestObject:
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
-        print(target)
-        print(self._devices)
-        print([each.name for each in self._devices])
         device = next(each for each in self._devices if each.name == target)
         channel = device.interface.get_port(signal).channel
         line = next(each for each in self._connections
