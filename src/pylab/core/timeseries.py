@@ -177,7 +177,7 @@ def pretty_print(ts: timeseries.TimeSeries, file=sys.stdout) -> str:
     """
     from tabulate import tabulate
     data = zip(ts.time, ts.values)
-    return print(tabulate(data, headers=['Time', 'Values']), file=file)
+    return str(tabulate(data, headers=['Time', 'Values']), file=file)
 
 
 def _subdivision(ts: TimeSeries, time: list[float]) -> TimeSeries:
