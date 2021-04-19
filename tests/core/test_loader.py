@@ -10,7 +10,7 @@ from pylab.core import timeseries
 
 
 def test_load_test():
-    test = loader.load_test('resources/tests/test.yml')
+    test = loader.load_test('resources/tests/core/loader/test.yml')
 
     targets = [
         infos.TargetInfo(
