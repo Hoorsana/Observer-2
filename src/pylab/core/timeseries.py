@@ -19,11 +19,12 @@ from numpy.typing import ArrayLike
 import scipy.interpolate
 import scipy.integrate
 
+from pylab.tools import yamltools
 
-class TimeSeries(yaml.YAMLObject):
+
+@yamltools.yaml_object
+class TimeSeries:
     """Utility class that maps time to values using interpolation."""
-    yaml_tag = u'!TimeSeries'
-    yaml_loader = yaml.SafeLoader
 
     def __init__(self,
                  time: Sequence[float],
@@ -88,11 +89,6 @@ class TimeSeries(yaml.YAMLObject):
     def upper(self) -> float:
         """Largest time point of the time series."""
         return self._time[-1]
-
-    @classmethod
-    def from_yaml(cls, loader, node) -> None:
-        d = loader.construct_mapping(node, deep=True)
-        return cls(**d)
 
     def __add__(self, other: TimeSeries) -> TimeSeries:
         result = _subdivision(self, other.time)
