@@ -6,15 +6,38 @@ import time
 
 import can
 import pytest
+from typing import Optional
 
 from pylab.core import workflow
 from pylab.live import live
 from pylab.live.plugin.can import candriver
 
 
-@pytest.fixture
-def data():
-    return {'Temperature': 30, 'Humidity': 50}
+class _CanPassthruBus(candriver.CanBus):
+    yaml_tag = u'!_CanPassthruBus'
+
+    def __init__(self,
+                 name: str,
+                 db: candriver.Database,
+                 bus: can.interface.Bus) -> None:
+        super().__init__(name, db, bus, _PassthruListener(db, bus))
+
+
+class _PassthruListener:
+
+    def __init__(self, db: candriver.Database, bus: can.interface.Bus) -> None:
+        self._db = db
+        self._bus = bus
+        self._notifier = can.Notifier(bus, listeners=[self._passthru])
+
+    def kill(self, timeout: Optional[float]) -> None:
+        if timeout is None:
+            self._notifier.stop()  # Use default timeout of python-can.
+        else:
+            self._notifier.stop(timeout)
+
+    def _passthru(self, msg: can.Message) -> None:
+        self._bus.send(msg)
 
 
 def _create_can(channel: str) -> candriver.CanBus:
@@ -22,6 +45,11 @@ def _create_can(channel: str) -> candriver.CanBus:
         'resources/tests/live/plugin/can/test.dbc', encoding='utf-8')
     bus = can.interface.Bus(bustype='socketcan', channel=channel, bitrate=125000)
     return candriver.CanBus('foo', db, bus)
+
+
+@pytest.fixture
+def data():
+    return {'Temperature': 30, 'Humidity': 50}
 
 
 class TestDatabase:

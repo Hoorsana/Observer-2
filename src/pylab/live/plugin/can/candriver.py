@@ -310,31 +310,3 @@ class CmdCanMessage(live.AbstractCommand):
     def execute(self, test_object: _TestObject) -> live.AbstractFuture:
         device, port = test_object.trace_back(self._target, self._signal)
         return device.execute('send_message', port.channel, self._name, self._data)
-
-
-# TODO For testing only, should go into the corresponding test files!
-class _CanPassthruBus(CanBus):
-    yaml_tag = u'!_CanPassthruBus'
-
-    def __init__(self,
-                 name: str,
-                 db: Database,
-                 bus: can.interface.Bus) -> None:
-        super().__init__(name, db, bus, _PassthruListener(db, bus))
-
-
-class _PassthruListener:
-
-    def __init__(self, db: Database, bus: can.interface.Bus) -> None:
-        self._db = db
-        self._bus = bus
-        self._notifier = can.Notifier(bus, listeners=[self._passthru])
-
-    def kill(self, timeout: Optional[float]) -> None:
-        if timeout is None:
-            self._notifier.stop()  # Use default timeout of python-can.
-        else:
-            self._notifier.stop(timeout)
-
-    def _passthru(self, msg: can.Message) -> None:
-        self._bus.send(msg)
