@@ -3,7 +3,7 @@ from typing import Optional
 import yaml
 
 
-def yaml_object(_cls=None, loader=None, tag: Optional[str] = None):
+def yaml_object(_cls=None, loader=yaml.SafeLoader, tag: Optional[str] = None):
     """Turn class into a YAML object with tags and default loader.
 
     Args:
@@ -35,11 +35,12 @@ def yaml_object(_cls=None, loader=None, tag: Optional[str] = None):
     return wrap(_cls)  # Called without parens.
 
 
-def _process_class(cls, loader=None, tag: Optional[str] = None):
+def _process_class(cls, loader, tag: Optional[str] = None):
     if loader is None:
         loader = yaml.SafeLoader
     if tag is None:
         tag = u'!' + cls.__name__
+    print(tag)
 
     @classmethod
     def from_yaml(cls, loader, node):
@@ -54,4 +55,5 @@ def _process_class(cls, loader=None, tag: Optional[str] = None):
     # the meta object will not register the constructor.
     bases = (yaml.YAMLObject,) + inspect.getmro(cls)
     result = type(cls.__name__, bases, cls.__dict__.copy())
+    print(result.yaml_tag)
     return result

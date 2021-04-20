@@ -4,20 +4,12 @@ import yaml
 from pylab.tools import yamltools
 
 
-@yamltools.yaml_object
-class A:
-    def __init__(self, x):
-        self.x = x
-
-
-@yamltools.yaml_object(loader=yaml.BaseLoader, tag='!B')
-class B:
-    def __init__(self, x):
-        self.x = x
-
-
-def test_yaml_object_without_parens():
-    value = 123
+def test_yaml_object_no_parens():
+    @yamltools.yaml_object
+    class A:
+        def __init__(self, x):
+            self.x = x
+    value = -0.12
     a = yaml.safe_load(
         f"""
         !A
@@ -27,13 +19,32 @@ def test_yaml_object_without_parens():
     assert a.x == value
 
 
-def test_yaml_object_with_parens():
-    value = 'foo'
-    b = yaml.load(
+@pytest.mark.parametrize('input, tag, loader, expected', [
+    pytest.param(
         f"""
-        !B
-        x: {value}
+        !Dummy
+        value: foo
         """,
-        Loader=yaml.BaseLoader
-    )
-    assert b.x == value
+        None,
+        yaml.BaseLoader,
+        'foo',
+        id='Use BaseLoader instead of SafeLoader'
+    ),
+    pytest.param(
+        """
+        !tag
+        value: foo
+        """,
+        '!tag',
+        yaml.SafeLoader,
+        'foo',
+        id='Use non-default tag'
+    ),
+])
+def test_yaml_object(input, tag, loader, expected):
+    @yamltools.yaml_object(tag=tag, loader=loader)
+    class Dummy:
+        def __init__(self, value):
+            self.value = value
+    a = yaml.load(input, Loader=loader)
+    assert a.value == expected
