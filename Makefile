@@ -20,6 +20,10 @@ cli: venv
 	pytest -vv tests/test_pylab_cli.py; \
 	deactivate
 
+.PHONY: tools
+tools: venv
+	$(PYTEST) -vv tests/tools
+
 .PHONY: core
 core: venv
 	$(PYTEST) -vv tests/core
@@ -33,7 +37,7 @@ plugin-fake: venv
 	$(PYTEST) -vv tests/live/plugin/fake/test_fake.py
 
 .PHONY: quick
-quick: venv core cli
+quick: venv core cli tools
 
 .PHONY: example
 example: venv
