@@ -26,9 +26,7 @@ def _format_exception_with_traceback(e: Exception) -> str:
 
 def main():
     try:
-        print('done')
         args = pylab.commandline.parse(sys.argv[1:])
-        print('done')
         workflow.run_from_files(**args)
     except AssertionError as e:
         e = _format_exception_with_traceback(e)
