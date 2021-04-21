@@ -16,6 +16,9 @@ default: venv
 
 .PHONY: cli
 cli: venv
+	# We need to run pytest directly from the environment in order to test
+	# the command line interface (otherwise, we won't use the shell of the
+	# virtual environment).
 	. $(VENV)/bin/activate; \
 	pytest -vv tests/test_pylab_cli.py; \
 	deactivate
@@ -28,16 +31,20 @@ tools: venv
 core: venv
 	$(PYTEST) -vv tests/core
 
-.PHONY: live
-live: venv
-	$(PYTEST) -vv tests/live
+.PHONY: quick
+quick: core cli tools
 
 .PHONY: plugin-fake
 plugin-fake: venv
 	$(PYTEST) -vv tests/live/plugin/fake/test_fake.py
 
-.PHONY: quick
-quick: venv core cli tools
+.PHONY: live
+live: venv
+	$(PYTEST) -vv tests/live
+
+.PHONY: simulink
+simulink: venv
+	$(PYTEST) -vv tests/
 
 .PHONY: example
 example: venv

@@ -9,14 +9,30 @@ SPDX-License-Identifier: GPL-3.0-or-later
 Staging repos for pylab project
 
 
+## Documentation
+
+To build the documentation run `make sphinx`. The docs are then found in
+`docs/build/html/index.html`.
+
+
 ## Technical notes
 
 ### Testing
 
-Run `make` to test. Before doing so, make sure that `MATLABPATH` includes `src/pylab/simulink/_resources` if you want to test MATLAB/Simulink.
+Run `make` to test. Before doing so, make sure that `MATLABPATH`
+includes `src/pylab/simulink/_resources` if you want to test
+MATLAB/Simulink.
 
-Furthermore, if you must set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB installation in order for pylab to find the `setup.py` of the MATLAB engine. If you don't set the variable, the
-MATLAB engine will not be installed.
+The following targets are available for make: `core`, `tools`, `cli`
+(commandline), `quick` (runs `core`, `tools`, `cli`), `simulink`,
+`live`, `example`. The `example` target runs the `adder` example on the
+simulink driver (if available) and the live driver using the controllino
+plugin.
+
+You must set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB
+installation in order for pylab to find the `setup.py` of the MATLAB
+engine. If you don't set the variable, the MATLAB engine will not be
+installed along with the other modules.
 
 Running the `live` and `example` test requires two Arduino Due boards.
 The GPIO board must run the [Controllino
