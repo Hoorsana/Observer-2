@@ -21,7 +21,7 @@ GOTO error
 
 :default
 	CALL make.bat venv
-	. %VENV%\Scripts\activate && pytest -vv tests\ && deactivate
+	%VENV%\Scripts\activate && pytest -vv tests\ && deactivate
 	GOTO :EOF
 
 :cli
