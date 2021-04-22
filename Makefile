@@ -4,14 +4,39 @@
 
 # virtualenv environment.
 VENV?=.venv
-PYTHON?=$(VENV)/bin/python
-PIP?=$(VENV)/bin/pip
-PYTEST?=$(VENV)/bin/pytest
+ifeq ($(OS), Windows_NT)
+	BIN?=$(VENV)\Scripts
+else
+	BIN?=$(VENV)/bin
+endif
+PYTHON?=$(BIN)/python
+PIP?=$(BIN)/pip
+PYTEST?=$(BIN)/pytest
+
+ifeq ($(OS), Windows_NT)
+define delete_dir
+	if exist $(1) rmdir /Q /s $(1)
+endef
+else
+define delete_dir
+	rm -fr $(1)
+endef
+endif
+
+ifeq ($(OS), Windows_NT)
+define activate
+	$(BIN)\activate
+endef
+else
+define activate
+	. $(BIN)/activate
+endef
+endif
 
 .PHONY: default
 default: venv
-	. $(VENV)/bin/activate; \
-	pytest -vv tests/; \
+	$(call activate) && \
+	pytest -vv tests/ && \
 	deactivate
 
 .PHONY: cli
@@ -19,8 +44,8 @@ cli: venv
 	# We need to run pytest directly from the environment in order to test
 	# the command line interface (otherwise, we won't use the shell of the
 	# virtual environment).
-	. $(VENV)/bin/activate; \
-	pytest -vv tests/test_pylab_cli.py; \
+	$(call activate) && \
+	pytest -vv tests/test_pylab_cli.py && \
 	deactivate
 
 .PHONY: tools
@@ -40,33 +65,40 @@ plugin-fake: venv
 
 .PHONY: live
 live: venv
-	$(PYTEST) -vv tests/live
+	$(PYTEST) -vv tests/live/test_live.py
 
 .PHONY: simulink
 simulink: venv
-	$(PYTEST) -vv tests/
+	$(PYTEST) -vv tests/simulink
 
 # Legacy target; deprecated
 .PHONY: example
 example: example-adder
 
-.PHONY: example
+# Beware! Removing the whitespace in `python freeze ;` will result in
+# errors on windows!
+.PHONY: example-adder
 example-adder: venv
-	. $(VENV)/bin/activate; \
-	cd resources/examples/adder && ./freeze; \
+	$(call activate) && \
+	cd resources/examples/adder && python freeze && \
 	deactivate
 	$(PYTEST) -vv -s example
 
+# Create virtual environment if it doesn't exist; setup MATLAB Python
+# engine if available
 .PHONY: venv
 venv:
 	pip install virtualenv
-	# If virtualenv doesn't exist, create it, then fetch dependencies.
+ifeq ($(OS), Windows_NT)
+	if NOT exist $(VENV) virtualenv $(VENV)
+else
 	[ -d $(VENV) ] || virtualenv $(VENV)
+endif
 	$(PIP) install -r requirements.txt
 ifdef PYLAB_MATLAB_PATH
-	. $(VENV)/bin/activate; \
-	cd ${PYLAB_MATLAB_PATH}/extern/engines/python; \
-	python setup.py install; \
+	$(call activate) && \
+	cd ${PYLAB_MATLAB_PATH}/extern/engines/python && \
+	python setup.py install && \
 	deactivate
 endif
 	$(PYTHON) setup.py install
@@ -80,9 +112,9 @@ sphinx:
 .PHONY: clean
 clean:
 	python setup.py clean
-	rm -fr build
-	rm -fr .venv
-	rm -fr docs/build
+	$(call delete_dir,build)
+	$(call delete_dir,.venv)
+	$(call delete_dir,docs/build)
 
 .PHONY: install
 install:
