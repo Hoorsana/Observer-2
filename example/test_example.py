@@ -31,8 +31,7 @@ else:
     ),
     pytest.param(
         live,
-        'resources/examples/adder/arduino_details.yml',
-        marks=pytest.mark.skip
+        'resources/examples/adder/arduino_details.yml'
     )
 ])
 def test_adder(driver, details):

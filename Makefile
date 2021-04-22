@@ -46,8 +46,15 @@ live: venv
 simulink: venv
 	$(PYTEST) -vv tests/
 
+# Legacy target; deprecated
 .PHONY: example
-example: venv
+example: example-adder
+
+.PHONY: example
+example-adder: venv
+	. $(VENV)/bin/activate; \
+	cd resources/examples/adder && ./freeze; \
+	deactivate
 	$(PYTEST) -vv -s example
 
 .PHONY: venv
