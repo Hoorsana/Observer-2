@@ -39,11 +39,11 @@ default: venv
 	pytest -vv tests/ && \
 	deactivate
 
+# We need to run pytest directly from the environment in order to test
+# the command line interface (otherwise, we won't use the shell of the
+# virtual environment).
 .PHONY: cli
 cli: venv
-	# We need to run pytest directly from the environment in order to test
-	# the command line interface (otherwise, we won't use the shell of the
-	# virtual environment).
 	$(call activate) && \
 	pytest -vv tests/test_pylab_cli.py && \
 	deactivate
