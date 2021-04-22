@@ -9,6 +9,7 @@ controllino protocol.
 from __future__ import annotations
 
 import copy
+import os
 import time
 
 import serial
@@ -42,6 +43,13 @@ class PylabControllino:
             self._pin_modes = pin_modes
 
     @classmethod
+    def from_serial_address(cls,
+                            address: str,
+                            pin_modes: Optional[dict[str, str]] = None,
+                            **kwargs) -> controllino_serial.PylabControllino:
+        return cls(serial.Serial(address, **kwargs), pin_modes)
+
+    @classmethod
     def from_serial_number(cls,
                            serial_number: str,
                            pin_modes: Optional[dict[str, str]] = None,
@@ -50,7 +58,8 @@ class PylabControllino:
 
         Args:
             serial_number: The device's serial number
-            pin_modes: A ``dict`` mapping pins to their input/output mode
+            pin_modes:
+                A ``dict`` mapping pins to their input/output mode
 
         Raises:
             StopIteration: If the device is not found
@@ -59,6 +68,22 @@ class PylabControllino:
             utility.create_serial_device_from_serial_number(serial_number, **kwargs),
             pin_modes
         )
+
+    @classmethod
+    def from_os_environ(cls, var: str, min_modes: Optional[dict[str, str]] = None, **kwargs) -> controllino_serial.PylabControllino:
+        """Create from environment variable which stores the serial
+        number of the device.
+
+        Args:
+            var: The environment variable
+            pin_modes:
+                A ``dict`` mapping pins to their input/output mode
+
+            Raises:
+                StopIteration: If the device is not found
+                KeyError: If the envrionment variable is not defined
+        """
+        return cls.from_serial_number(os.environ[str], pin_modes, **kwargs)
 
     # FIXME This method should that ``pin: PortInfo`` as arg.
     def log_signal(
