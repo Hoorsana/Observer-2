@@ -82,7 +82,7 @@ example-adder: venv
 	$(call activate) && \
 	cd resources/examples/adder && python freeze && \
 	deactivate
-	$(PYTEST) -vv -s example
+	$(PYTEST) -vv -s example/test_example_adder.py
 
 # Create virtual environment if it doesn't exist; setup MATLAB Python
 # engine if available
