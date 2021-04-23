@@ -22,7 +22,7 @@ targets:
 logging:
   - target: monitor
     signal: result
-    period: 0.1
+    period: 0.05
 
 phases:
   # Specify seperate file

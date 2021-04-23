@@ -18,6 +18,7 @@ int analog_read(uint8_t pin)
 void setup()
 {
   Serial.begin(19200);
+  pinMode(40, OUTPUT);
 }
 
 void loop()
