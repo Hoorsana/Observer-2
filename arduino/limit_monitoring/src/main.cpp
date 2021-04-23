@@ -25,10 +25,10 @@ void loop()
   auto temperature = analog_read(A1);
   if (temperature > 229.5)
   {
-    digitalWrite(D40, HIGH);
+    digitalWrite(40, HIGH);
   }
   else
   {
-    digitalWrite(D40, LOW);
+    digitalWrite(40, LOW);
   }
 }
