@@ -82,6 +82,13 @@ example-adder: venv
 	deactivate
 	$(PYTEST) -vv -s example/test_example_adder.py
 
+.PHONY: example-limit
+example-limit: venv
+	$(call activate) && \
+	cd resources/examples/limit_monitoring && python freeze && \
+	deactivate
+	$(PYTEST) -vv -s example/test_example_limit_monitoring.py
+
 # Create virtual environment if it doesn't exist; setup MATLAB Python
 # engine if available
 .PHONY: venv

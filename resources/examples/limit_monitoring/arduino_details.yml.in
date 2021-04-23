@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: monitor
+    type: pylab.live.live.UsbSerialDevice.from_serial_number
+    interface:
+      ports:
+        - signal: temperature
+          channel: A1
+          range: 168..852
+          flags:
+            - input
+            - analog
+        - signal: result
+          channel: D40
+          range: 0..1
+          flags:
+            - output
+            - digital
+    data:
+      serial_number: '@PYLAB_USB_SERIAL_NUMBER_DEVICE@'
+  - name: gpio
+    type: pylab.live.plugin.controllino.controllino.PylabControllino.from_serial_number
+    interface:
+      ports:
+        - signal: value
+          channel: DAC1
+          range: 0..255
+          flags:
+            - output
+            - analog
+        - signal: result
+          channel: D30
+          range: 0..1
+          flags:
+            - input
+            - digital
+    data:
+      serial_number: '@PYLAB_USB_SERIAL_NUMBER_CONTROLLINO@'
+      baudrate: 19200
+
+connections:
+  - [gpio, value, monitor, temperature]
+  - [monitor, result, gpio, result]
