@@ -34,6 +34,6 @@ def test_limit_monitoring(driver, details):
     report = workflow.run_from_files(
         driver=driver,
         test='resources/examples/limit_monitoring/test.yml',
-        details=details  # ,
-        # asserts='resources/examples/limit_monitoring/asserts.yml'
+        details=details,
+        asserts='resources/examples/limit_monitoring/asserts.yml'
     )

@@ -138,6 +138,32 @@ class AlmostEverywhereClose(AbstractVerification):
         return Check()
 
 
+class IntegralAlmostEqualTo(AbstractVerification):
+
+    def __init__(self,
+                 result: str,
+                 expected: float,
+                 rtol: float = 1e-05,
+                 atol: float = 1e-05,
+                 lower: Optional[float] = None,
+                 upper: Optional[float] = None) -> None:
+        super().__init__({'result': result})
+        self._expected = expected
+        self._atol = atol
+        self._rtol = rtol
+        self._lower = lower
+        self._upper = upper
+
+    def _verify(self, result: timeseries.TimeSeries) -> Check:
+        try:
+            numpy.testing.assert_allclose(
+                timeseries.l2norm(result, self._lower, self._upper),
+                self._expected, rtol=self._rtol, atol=self._atol)
+        except AssertionError as e:
+            return Check(True, str(e))
+        return Check()
+
+
 class IsCloseAtTime(AbstractVerification):
 
     def __init__(self,
@@ -157,7 +183,6 @@ class IsCloseAtTime(AbstractVerification):
         try:
             numpy.testing.assert_allclose(
                 actual, self._expected,
-                self._expected.lower, upper=self._expected.upper,
                 rtol=self._rtol, atol=self._atol)
         except AssertionError as e:
             return Check(True, str(e))
@@ -202,3 +227,6 @@ class IsEqualOnce(AbstractVerification):
             True,
             f'TimeSeries not once equal to {self._expected} on [{self._lo}, {self._hi}]'
         )
+
+
+
