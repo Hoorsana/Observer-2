@@ -75,8 +75,6 @@ simulink: venv
 .PHONY: example
 example: example-adder
 
-# Beware! Removing the whitespace in `python freeze ;` will result in
-# errors on windows!
 .PHONY: example-adder
 example-adder: venv
 	$(call activate) && \
