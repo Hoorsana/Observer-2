@@ -39,6 +39,5 @@ def test_adder(driver, details):
         driver=driver,
         test='resources/examples/adder/test.yml',
         details=details,
-        asserts='resources/examples/adder/asserts.yml',
-        dump='result'
+        asserts='resources/examples/adder/asserts.yml'
     )
