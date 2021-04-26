@@ -4,10 +4,6 @@
 
 import pytest
 
-from pylab.core import timeseries
-from pylab.core import loader
-from pylab.core import verification
-from pylab.core import report
 from pylab.core import workflow
 from pylab.live import live
 
@@ -26,18 +22,18 @@ else:
 @pytest.mark.parametrize('driver, details', [
     pytest.param(
         simulink,
-        'resources/examples/adder/matlab_details.yml',
+        'resources/examples/limit_monitoring/matlab_details.yml',
         marks=pytest.mark.skipif(not matlab_found, reason='MATLAB Python engine not found')
     ),
     pytest.param(
         live,
-        'resources/examples/adder/arduino_details.yml'
+        'resources/examples/limit_monitoring/arduino_details.yml'
     )
 ])
-def test_adder(driver, details):
+def test_limit_monitoring(driver, details):
     report = workflow.run_from_files(
         driver=driver,
-        test='resources/examples/adder/test.yml',
+        test='resources/examples/limit_monitoring/test.yml',
         details=details,
-        asserts='resources/examples/adder/asserts.yml'
+        asserts='resources/examples/limit_monitoring/asserts.yml'
     )
