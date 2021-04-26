@@ -85,17 +85,21 @@ class Database:
 class BusConfig:
     """Class for platform dependent bus configuration."""
 
-    def __init__(self, args: dict[str, dict]) -> None:
+    def __init__(self, **kwargs: dict) -> None:
         """Args:
             args:
                 Maps OS identifiers to a dict of keyworded arguments
                 for creating a ``can.interface.Bus``
         """
-        self._args = args
+        self._kwargs = kwargs
 
-    def get_args(self) -> tuple[dict]:
+    def get(self) -> tuple[dict]:
         """Get the arguments for the current platform."""
-        return self._args[sys.platform]
+        print(self._kwargs)
+        try:
+            return self._kwargs[sys.platform]
+        except KeyError:
+            raise RuntimeError(f'No bus configuration provided for OS {sys.platform}')
 
 
 class CanDevice:
@@ -223,7 +227,7 @@ class CanBus:
 
     @classmethod
     def from_config(cls, signal: str, db: Database, config: BusConfig) -> CanBus:
-        kwargs = config.get_args()
+        kwargs = config.get()
         bus = can.interface.Bus(**kwargs)
         return cls(signal, db, bus)
 
