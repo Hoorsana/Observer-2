@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""CAN plugin for pylab live driver."""
+
 from __future__ import annotations
 
 import abc
@@ -53,7 +55,8 @@ class Database:
             A dict containing the data of the message
 
         Raises:
-            ???
+            CanError:
+                If ``cantools`` raises a ``cantools.database.DecodeError``
         """
         try:
             return self._db.decode_message(msg.arbitration_id, msg.data)
@@ -68,7 +71,9 @@ class Database:
             data: The data to encode
 
         Raises:
-            CanError: If encoding failed
+            CanError:
+                If ``cantools`` raises a ``cantools.database.EncodeError``
+                or the message ``name`` is not found in ``self._db``
         """
         try:
             msg = self._db.get_message_by_name(name)
@@ -83,23 +88,48 @@ class Database:
 
 @yamltools.yaml_object
 class BusConfig:
-    """Class for platform dependent bus configuration."""
+    """Class for platform dependent bus configuration.
+
+    Example:
+        >>> conf = BusConfig({
+            'linux': {
+                'bustype': 'socketcan',
+                'channel': 'can0',
+                'bitrate': 125000,
+            },
+            'win32': {
+                'bustype': 'pcan',
+                'channel': 'PCAN_USBBUS1',
+                'bitrate': 125000,
+            }
+        )
+        >>> conf.get()  # On Linux
+        {'bustype': 'socketcan', 'channel': 'can0', 'bitrate': 125000}
+    """
 
     def __init__(self, **kwargs: dict) -> None:
         """Args:
-            args:
+            **kwargs:
                 Maps OS identifiers to a dict of keyworded arguments
                 for creating a ``can.interface.Bus``
+
+        Identifiers for common OS's are the following (see
+        https://docs.python.org/3/library/sys.html#sys.platform for
+        details): ``aix``, ``linux``, ``win32``, ``cygwin``, ``darwin``.
         """
         self._kwargs = kwargs
 
-    def get(self) -> tuple[dict]:
-        """Get the arguments for the current platform."""
-        print(self._kwargs)
-        try:
-            return self._kwargs[sys.platform]
-        except KeyError:
+    def get(self) -> dict:
+        """Get the arguments for the current platform.
+
+        Raises:
+            RuntimeError:
+                If no configuration for this systems' OS is available
+        """
+        args = next((v for k, v in self._kwargs.items() if sys.platform.startswith(k)), None)
+        if args is None:
             raise RuntimeError(f'No bus configuration provided for OS {sys.platform}')
+        return args
 
 
 class CanDevice:
