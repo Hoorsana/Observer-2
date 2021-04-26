@@ -26,4 +26,5 @@ void loop()
   auto value1 = analog_read(A1);
   auto sum = (value0+value1) / 2;
   analogWrite(DAC0, constrain(sum, 0, 255));
+  analogWrite(DAC1, constrain(sum, 0, 255));
 }
