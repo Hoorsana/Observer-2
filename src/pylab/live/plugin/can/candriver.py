@@ -18,16 +18,16 @@ import yaml
 
 from pylab.core import report
 from pylab.live import live
+from pylab.tools import yamltools
 
 
 class CanError(Exception):
     """Wrapper for errors occuring in ``can`` and ``cantools``."""
 
 
-class Database(yaml.YAMLObject):
+@yamltools.yaml_object
+class Database:
     """CAN database object for en- and decoding messages."""
-    yaml_tag = u'!Database'
-    yaml_loader = yaml.SafeLoader
 
     def __init__(self, path: str, encoding: Optional[str] = None) -> None:
         """Args:
@@ -42,11 +42,6 @@ class Database(yaml.YAMLObject):
         based on file type and found in the documentation of cantools.
         """
         self._db = cantools.database.load_file(path, encoding=encoding)
-
-    @classmethod
-    def from_yaml(cls, loader, node) -> None:
-        d = loader.construct_mapping(node, deep=True)
-        return cls(**d)
 
     def decode(self, msg: can.Message) -> dict:
         """Decode a message to dictionary. 
@@ -86,12 +81,9 @@ class Database(yaml.YAMLObject):
         return can.Message(arbitration_id=msg.frame_id, data=encoded_data)
 
 
-# FIXME Write own YamlObject class with default from_yaml!
-# FIXME Only CanPort should be a YamlObject!
-class BusConfig(yaml.YAMLObject):
+@yamltools.yaml_object
+class BusConfig:
     """Class for platform dependent bus configuration."""
-    yaml_tag = u'!BusConfig'
-    yaml_loader = yaml.SafeLoader
 
     def __init__(self, args: dict[str, dict]) -> None:
         """Args:
@@ -100,11 +92,6 @@ class BusConfig(yaml.YAMLObject):
                 for creating a ``can.interface.Bus``
         """
         self._args = args
-
-    @classmethod
-    def from_yaml(cls, loader, node) -> None:
-        d = loader.construct_mapping(node, deep=True)
-        return cls(**d)
 
     def get_args(self) -> tuple[dict]:
         """Get the arguments for the current platform."""
@@ -200,10 +187,9 @@ class Future:
 
 
 # FIXME Only CanBus should be a YamlObject!
-class CanBus(yaml.YAMLObject):
+@yamltools.yaml_object(replace_from_yaml=False)
+class CanBus:
     """Class for representing a CAN bus."""
-    yaml_tag = u'!CanBus'
-    yaml_loader = yaml.SafeLoader
 
     def __init__(self,
                  name: str,
@@ -218,6 +204,7 @@ class CanBus(yaml.YAMLObject):
         else:
             self._listener = listener
 
+    # This is an override of the default `from_yaml` method!
     @classmethod
     def from_yaml(cls, loader, node) -> None:
         d = loader.construct_mapping(node, deep=True)
