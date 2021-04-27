@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import abc
+import concurrent.futures
 import copy
 import queue
 import sys
@@ -111,7 +112,7 @@ class BusConfig:
         """Args:
             **kwargs:
                 Maps OS identifiers to a dict of keyworded arguments
-                for creating a ``can.interface.Bus``
+                for creating a ``can.interface.BusABC``
 
         Identifiers for common OS's are the following (see
         https://docs.python.org/3/library/sys.html#sys.platform for
@@ -132,6 +133,12 @@ class BusConfig:
         return args
 
 
+# FIXME Mimic the interface of concurrent.futures.Future with the
+# interface of the futures! In particular, make `get_result` wait with a
+# timeout and then raise on failure. This should simplify alot of our
+# code.
+
+
 class CanDevice:
     """Implementation of ``live.AbstractDevice`` for devices with CAN
     capability.
@@ -145,6 +152,7 @@ class CanDevice:
             buses: Maps signal names to their CAN bus
         """
         self._buses = buses
+        self._executors = [ThreadPoolExecutor(max_workers=1, thread_name_prefix=elem.name + '-thread') for elem in self._buses]
         self._logging_requests: dict[str, Future] = {}
 
     def open(self):
@@ -154,9 +162,10 @@ class CanDevice:
     # FIXME This is a synchronous call that might take some time. It may
     # be necessary to start a separate thread and kill the bus there.
     def close(self) -> live.AbstractFuture:
-        for elem in self._buses:
-            elem.kill()
-        return live.NoopFuture(report.LogEntry(report.INFO))
+        futures = []
+        for bus, executor in zip(self._buses, self._executors):
+            futures.append(executor.submit(lambda: bus.kill(), 'something'))
+        return FutureCollection(futures)
 
     def setup(self) -> live.AbstractFuture:
         return live.NoopFuture(report.LogEntry(report.INFO))
@@ -190,6 +199,76 @@ class CanDevice:
         return live.NoopFuture(report.LogEntry(report.INFO))
 
 
+class ThreadPoolExecutor:
+
+    def __init__(self, max_workers: Optional[int] = None, thread_name_prefix: str = '', initializer: Optional[Callable] = None, initargs: tuple = ()):
+        self._tpe = concurrent.futures.ThreadPoolExecutor(max_workers, thread_name_prefix, initializer, initargs)
+
+    def submit(self, fn: Callable, what: str, *args, **kwargs) -> None:
+        future = self._tpe.submit(fn, *args, **kwargs)
+        return FutureWrap(future, what)
+
+    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
+        self._tpe.shutdown(wait, cancel_futures=cancel_futures)
+
+
+class FutureWrap:
+
+    def __init__(self, future: concurrent.futures.Future, what: str) -> None:
+        self._future = future
+        self._what = what
+        self._result = None
+        self._log = None
+        self._future.add_done_callback(self._finish)
+        self._done_event = threading.Event()
+
+    def _finish(self, _: concurrent.futures.Future):
+        """
+
+        Shall only be used as done callback for the wrapped future.
+
+        We use this method to save all data
+        """
+        try:
+            result = self._future.result()
+            self._result = result
+            self._log = report.LogEntry(self._what, report.INFO)
+        except Exception as e:
+            self._log = report.LogEntry(
+                self._what + '; failed with the following error: ' + str(self._error),
+                report.PANIC,
+                data=e
+            )
+        self._done_event.set()
+
+    @property
+    def what(self) -> str:
+        return self._what
+
+    @property
+    def log(self) -> str:
+        return self._log
+
+    def get_result(self) -> Any:
+        return self._result
+
+    def wait(self, timeout: Optional[float] = None) -> bool:
+        # We cannot just do the following:
+        # try:
+        #     self._future.result(timeout)
+        #     return True
+        # except concurrent.futures.TimeoutError:
+        #     return False
+        # (This would result in a raise in case the job raised an
+        # exception.) We have to use a seperate event.
+        return self._done_event.wait(timeout)
+
+    def done(self) -> bool:
+        # Note: This method also requires us to use the seperate event
+        # to ensure that ``_finish`` has finished.
+        return self._done_event.is_set()
+
+
 class Future:
 
     def __init__(self, what: str):
@@ -220,7 +299,6 @@ class Future:
         return self._done_event.is_set()
 
 
-# FIXME Only CanBus should be a YamlObject!
 @yamltools.yaml_object(replace_from_yaml=False)
 class CanBus:
     """Class for representing a CAN bus."""
@@ -228,7 +306,7 @@ class CanBus:
     def __init__(self,
                  name: str,
                  db: Database,
-                 bus: can.interface.Bus,
+                 bus: can.interface.BusABC,
                  listener: Optional[AbstractListener] = None) -> None:
         self._name = name
         self._db = db
@@ -269,10 +347,6 @@ class CanBus:
             return live.NoopFuture(report.LogEntry(severity=report.PANIC, what=str(e)))
         return live.NoopFuture(report.LogEntry(severity=report.PANIC, what='...'))
 
-    # TODO (In the live driver) For synchronous execution, it may be
-    # better to let ``execute`` return ``None`` and consider this as the
-    # "noop future" case
-
 
 class AbstractListener:
 
@@ -284,7 +358,7 @@ class AbstractListener:
 
 class _Listener:
 
-    def __init__(self, db: Database, bus: can.interface.Bus) -> None:
+    def __init__(self, db: Database, bus: can.interface.BusABC) -> None:
         self._db = db
         self._queue = []
         self._lock = threading.Lock()
@@ -331,3 +405,46 @@ class CmdCanMessage(live.AbstractCommand):
     def execute(self, test_object: _TestObject) -> live.AbstractFuture:
         device, port = test_object.trace_back(self._target, self._signal)
         return device.execute('send_message', port.channel, self._name, self._data)
+
+
+# FIXME code duplication: live.plugin.controllino
+class FutureCollection(live.AbstractFuture):
+    """Class for joining multiple futures under a single interface.
+
+    May be used as noop futures if the list of futures is empty.
+    """
+
+    def __init__(self, futures: Optional[list[Future]] = None):
+        if futures is None:
+            futures = []
+        self._futures = futures
+
+    def get_result(self) -> list[Any]:
+        return [elem.get_result() for elem in self._futures]
+
+    @property
+    def what(self) -> str:
+        return '\n'.join(each.what for each in self._futures)
+
+    @property
+    def log(self) -> report.LogEntry:
+        futures = [elem for elem in self._futures if elem.done]
+        severity = max(elem.log.severity for elem in futures)
+        for elem in futures:
+            print(elem.log.what)
+        return report.LogEntry('\n'.join(each.log.what for each in futures), severity)
+
+    @property
+    def done(self) -> bool:
+        return all(each.done for each in self._futures)
+
+    def wait(self, timeout: Optional[float] = None) -> bool:
+        if timeout is None:
+            return all(elem.wait() for elem in self._futures)
+        else:
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                if all(each.done for each in self._futures):
+                    return True
+                time.sleep(GRAIN)
+            return False
