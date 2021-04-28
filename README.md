@@ -55,6 +55,8 @@ connections `controllino.DAC1-target.A1` and
 `target.D40-controllino.D30`. Before running the test, run `make flash`
 in `arduino/limit_monitoring`.
 
+Both examples can be run _with flashing_ by calling `example-*-flash`.
+
 Note that `resources/examples/adder/arduino_details.yml` is created from
 `arduino_details.yml.in` by entering the USB serial numbers stored in
 the environment variables using the `freeze` script.

@@ -86,12 +86,22 @@ example-adder: venv
 	deactivate
 	$(PYTEST) -vv -s example/test_example_adder.py
 
+.PHONY: example-adder-flash
+example-adder-flash: venv
+	cd arduino/adder && make flash
+	make example-adder
+
 .PHONY: example-limit
 example-limit: venv
 	$(call activate) && \
 	cd resources/examples/limit_monitoring && python freeze && \
 	deactivate
 	$(PYTEST) -vv -s example/test_example_limit_monitoring.py
+
+.PHONY: example-limit-flash
+example-limit-flash: venv
+	cd arduino/limit_monitoring && make flash
+	make example-limit
 
 # Create virtual environment if it doesn't exist; setup MATLAB Python
 # engine if available
