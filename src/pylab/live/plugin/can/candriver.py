@@ -152,6 +152,10 @@ class CanDevice:
             buses: Maps signal names to their CAN bus
         """
         self._buses = buses
+        # We have one thread pool executor for each bus (the mapping
+        # from bus to executor is determined by the order of the lists).
+        # Thread-safety is guaranteed by using only one worker per bus,
+        # provided that _all_ calls to the bus are submitted to the TPE.
         self._executors = [ThreadPoolExecutor(max_workers=1, thread_name_prefix=elem.name + '-thread') for elem in self._buses]
         self._logging_requests: dict[str, Future] = {}
 
@@ -171,9 +175,8 @@ class CanDevice:
         return live.NoopFuture(report.LogEntry(report.INFO))
 
     def send_message(self, signal: str, name: str, data: dict) -> live.AbstractFuture:
-        bus = next(elem for elem in self._buses if elem.name == signal)
-        bus.send_message(name, data)
-        return live.NoopFuture(report.LogEntry(report.INFO))
+        bus, executor = next((bus, executor) for bus, executor in zip(self._buses, self._executors) if bus.name == signal)
+        return executor.submit(lambda: bus.send_message(name, data), f'send_message({name}, {data})')
 
     def log_signal(self,
                    bus: str,
@@ -219,8 +222,9 @@ class FutureWrap:
         self._what = what
         self._result = None
         self._log = None
-        self._future.add_done_callback(self._finish)
         self._done_event = threading.Event()
+
+        self._future.add_done_callback(self._finish)
 
     def _finish(self, _: concurrent.futures.Future):
         """
@@ -263,6 +267,7 @@ class FutureWrap:
         # exception.) We have to use a seperate event.
         return self._done_event.wait(timeout)
 
+    @property
     def done(self) -> bool:
         # Note: This method also requires us to use the seperate event
         # to ensure that ``_finish`` has finished.
