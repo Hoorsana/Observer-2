@@ -50,6 +50,15 @@ must be connected as follows: `controllino.DAC0-target.A0`,
 `controllino.DAC1-target.A1`, `target.DAC1-controllino.A0` or
 `target.DAC0-controllino.A0`.
 
+Another example, `example-limit`, uses the same setup, but requires the
+connections `controllino.DAC1-target.A1` and
+`target.D40-controllino.D30`. Before running the test, run `make flash`
+in `arduino/limit_monitoring`.
+
+Note that `resources/examples/adder/arduino_details.yml` is created from
+`arduino_details.yml.in` by entering the USB serial numbers stored in
+the environment variables using the `freeze` script.
+
 
 #### Testing `live.plugin.can`
 
@@ -85,16 +94,6 @@ sudo cangw -A -s vcan1 -d vcan2 -e
 (The middle device `vcan0` will serve as a passthru.)
 
 Run `make can` to test.
-=======
-Another example, `example-limit`, uses the same setup, but requires the
-connections `controllino.DAC1-target.A1` and
-`target.D40-controllino.D30`. Before running the test, run `make flash`
-in `arduino/limit_monitoring`.
-
-Note that `resources/examples/adder/arduino_details.yml` is created from
-`arduino_details.yml.in` by entering the USB serial numbers stored in
-the environment variables using the `freeze` script.
->>>>>>> master
 
 
 ## License
