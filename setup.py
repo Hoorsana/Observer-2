@@ -9,7 +9,7 @@ with open('README.md') as readme:
 
 setuptools.setup(
     name='pylab',
-    version='0.1.5',
+    version='0.1.6',
     author='M. Kliemann',
     author_email='mail@maltekliemann.com',
     description='hardware test automation software',
