@@ -157,7 +157,7 @@ class CanDevice:
         # Thread-safety is guaranteed by using only one worker per bus,
         # provided that _all_ calls to the bus are submitted to the TPE.
         self._executors = [ThreadPoolExecutor(max_workers=1, thread_name_prefix=elem.name + '-thread') for elem in self._buses]
-        self._logging_requests: dict[str, Future] = {}
+        self._logging_requests: dict[str, live.AbstractFuture] = {}
 
     def __del__(self):
         for elem in self._executors:
@@ -279,7 +279,9 @@ class FutureWrap:
         return self._done_event.is_set()
 
 
+# FIXME This can probably be refactored out.
 class Future:
+    """Primitive future object for logging requests."""
 
     def __init__(self, what: str):
         self._result = None
@@ -424,7 +426,7 @@ class FutureCollection(live.AbstractFuture):
     May be used as noop futures if the list of futures is empty.
     """
 
-    def __init__(self, futures: Optional[list[Future]] = None):
+    def __init__(self, futures: Optional[list[live.AbstractFuture]] = None):
         if futures is None:
             futures = []
         self._futures = futures
