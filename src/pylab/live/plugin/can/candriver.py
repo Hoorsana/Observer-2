@@ -159,6 +159,10 @@ class CanDevice:
         self._executors = [ThreadPoolExecutor(max_workers=1, thread_name_prefix=elem.name + '-thread') for elem in self._buses]
         self._logging_requests: dict[str, Future] = {}
 
+    def __del__(self):
+        for elem in self._executors:
+            elem.shutdown(wait=False)
+
     def open(self):
         # FIXME Move report.Severity to its own  module?
         return live.NoopFuture(report.LogEntry(report.INFO))
@@ -169,6 +173,7 @@ class CanDevice:
         futures = []
         for bus, executor in zip(self._buses, self._executors):
             futures.append(executor.submit(lambda: bus.kill(), 'something'))
+        # TODO We need to shutdown the executor! This is currently done in ``__del__``, but should maybe be placed in this function?
         return FutureCollection(futures)
 
     def setup(self) -> live.AbstractFuture:
@@ -211,8 +216,8 @@ class ThreadPoolExecutor:
         future = self._tpe.submit(fn, *args, **kwargs)
         return FutureWrap(future, what)
 
-    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
-        self._tpe.shutdown(wait, cancel_futures=cancel_futures)
+    def shutdown(self, wait: bool = True) -> None:
+        self._tpe.shutdown(wait)
 
 
 class FutureWrap:
