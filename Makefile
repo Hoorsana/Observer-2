@@ -4,56 +4,122 @@
 
 # virtualenv environment.
 VENV?=.venv
-PYTHON?=$(VENV)/bin/python
-PIP?=$(VENV)/bin/pip
-PYTEST?=$(VENV)/bin/pytest
+ifeq ($(OS), Windows_NT)
+	BIN?=$(VENV)\Scripts
+else
+	BIN?=$(VENV)/bin
+endif
+PYTHON?=$(BIN)/python
+PIP?=$(BIN)/pip
+PYTEST?=$(BIN)/pytest
+
+ifeq ($(OS), Windows_NT)
+define delete_dir
+	if exist $(1) rmdir /Q /s $(1)
+endef
+else
+define delete_dir
+	rm -fr $(1)
+endef
+endif
+
+ifeq ($(OS), Windows_NT)
+define activate
+	$(BIN)\activate
+endef
+else
+define activate
+	. $(BIN)/activate
+endef
+endif
 
 .PHONY: default
 default: venv
-	. $(VENV)/bin/activate; \
-	pytest -vv tests/; \
+	$(call activate) && \
+	pytest -vv tests/ && \
 	deactivate
 
+.PHONY: can
+can: venv
+	$(PYTEST) -vv tests/live/plugin/can/
+
+# We need to run pytest directly from the environment in order to test
+# the command line interface (otherwise, we won't use the shell of the
+# virtual environment).
 .PHONY: cli
 cli: venv
-	. $(VENV)/bin/activate; \
-	pytest -vv tests/test_pylab_cli.py; \
+	$(call activate) && \
+	pytest -vv tests/test_pylab_cli.py && \
 	deactivate
+
+.PHONY: tools
+tools: venv
+	$(PYTEST) -vv tests/tools
 
 .PHONY: core
 core: venv
 	$(PYTEST) -vv tests/core
 
-.PHONY: live
-live: venv
-	$(PYTEST) -vv tests/live
+.PHONY: quick
+quick: core cli tools
 
 .PHONY: plugin-fake
 plugin-fake: venv
 	$(PYTEST) -vv tests/live/plugin/fake/test_fake.py
 
-.PHONY: quick
-quick: venv core cli
+.PHONY: live
+live: venv
+	$(PYTEST) -vv tests/live/test_live.py
 
-	# TODO Use python setup.py clean instead of build dir!
+.PHONY: simulink
+simulink: venv
+	$(PYTEST) -vv tests/simulink
 
+# Legacy target; deprecated
 .PHONY: example
-example: venv
-	$(PYTEST) -vv -s example
+example: example-adder
 
+.PHONY: example-adder
+example-adder: venv
+	$(call activate) && \
+	cd resources/examples/adder && python freeze && \
+	deactivate
+	$(PYTEST) -vv -s example/test_example_adder.py
+
+.PHONY: example-adder-flash
+example-adder-flash: venv
+	cd arduino/adder && make flash
+	make example-adder
+
+.PHONY: example-limit
+example-limit: venv
+	$(call activate) && \
+	cd resources/examples/limit_monitoring && python freeze && \
+	deactivate
+	$(PYTEST) -vv -s example/test_example_limit_monitoring.py
+
+.PHONY: example-limit-flash
+example-limit-flash: venv
+	cd arduino/limit_monitoring && make flash
+	make example-limit
+
+# Create virtual environment if it doesn't exist; setup MATLAB Python
+# engine if available
 .PHONY: venv
 venv:
 	pip install virtualenv
-	# If virtualenv doesn't exist, create it, then fetch dependencies.
+ifeq ($(OS), Windows_NT)
+	if NOT exist $(VENV) virtualenv $(VENV)
+else
 	[ -d $(VENV) ] || virtualenv $(VENV)
+endif
 	$(PIP) install -r requirements.txt
-	. $(VENV)/bin/activate; \
-	if ! [[ -z $(PYLAB_MATLAB_PATH) ]]; then \
-		cd ${PYLAB_MATLAB_PATH}/extern/engines/python; \
-		python setup.py install; \
-	fi; \
-	pip install git+https://github.com/maltekliemann/controllino@0.1.0; \
+ifdef PYLAB_MATLAB_PATH
+	$(call activate) && \
+	cd ${PYLAB_MATLAB_PATH}/extern/engines/python && \
+	python setup.py install && \
 	deactivate
+endif
 	$(PYTHON) setup.py install
 	$(PYTHON) setup.py install_scripts
 
@@ -64,9 +130,10 @@ sphinx:
 
 .PHONY: clean
 clean:
-	rm -fr build
-	rm -fr .venv
-	rm -fr docs/build
+	python setup.py clean
+	$(call delete_dir,build)
+	$(call delete_dir,.venv)
+	$(call delete_dir,docs/build)
 
 .PHONY: install
 install:

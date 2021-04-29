@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+from pylab.tools import template
+
+
+template.fill_with_environment_variables('arduino_details.yml.in', 'arduino_details.yml')

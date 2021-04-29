@@ -59,7 +59,7 @@ class TestSignalInfo:
         {'name': 'foo', 'min': 123, 'range': '123..456'},
         {'name': 'bar', 'max': 234, 'range': '123.0..456'},
         {'name': 'bar', 'min': 123, 'max': 234, 'range': '123.0..456'},
-        {'name': 'bar'},
+        pytest.param({'name': 'bar'}, id='No range specified', marks=pytest.mark.xfail),
     ])
     def test___init__failure(self, kwargs):
         with pytest.raises(ValueError):
@@ -105,7 +105,11 @@ class TestPortInfo:
         {'signal': 'foo', 'channel': 'ch1', 'min': 123, 'range': '123..456'},
         {'signal': 'bar', 'channel': 'ch1', 'max': 234, 'range': '123.0..456'},
         {'signal': 'bar', 'channel': 'ch1', 'min': 123, 'max': 234, 'range': '123.0..456'},
-        {'signal': 'bar', 'channel': 'ch1', },
+        pytest.param(
+            {'signal': 'bar', 'channel': 'ch1', },
+            id='No range specified',
+            marks=pytest.mark.xfail
+        )
     ])
     def test___init__success(self, kwargs):
         with pytest.raises(ValueError):

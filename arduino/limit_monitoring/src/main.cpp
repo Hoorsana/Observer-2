@@ -18,13 +18,18 @@ int analog_read(uint8_t pin)
 void setup()
 {
   Serial.begin(19200);
+  pinMode(40, OUTPUT);
 }
 
 void loop()
 {
-  auto value0 = analog_read(A0);
-  auto value1 = analog_read(A1);
-  auto sum = (value0+value1) / 2;
-  analogWrite(DAC0, constrain(sum, 0, 255));
-  analogWrite(DAC1, constrain(sum, 0, 255));
+  auto temperature = analog_read(A1);
+  if (temperature > 229.5)
+  {
+    digitalWrite(40, HIGH);
+  }
+  else
+  {
+    digitalWrite(40, LOW);
+  }
 }
