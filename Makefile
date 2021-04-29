@@ -132,6 +132,7 @@ sphinx:
 clean:
 	python setup.py clean
 	$(call delete_dir,build)
+	$(call delete_dir,dist)
 	$(call delete_dir,.venv)
 	$(call delete_dir,docs/build)
 
