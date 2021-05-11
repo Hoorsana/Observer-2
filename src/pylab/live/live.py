@@ -202,13 +202,15 @@ def load_details(path: str) -> Details:
 class Details:
     devices: list[DeviceDetails]
     connections: list[infos.ConnectionInfo]
+    extension: dict = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> Details:
         details = [DeviceDetails.from_dict(each) for each in data['devices']]
         connections = [infos.ConnectionInfo(*each)
                        for each in data['connections']]
-        return cls(details, connections)
+        extension = data.get('extension', {})
+        return cls(details, connections, extension)
 
 
 # FIXME code-duplication: pylab.simulink.simulink.DeviceDetails

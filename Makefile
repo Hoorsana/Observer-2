@@ -40,6 +40,10 @@ default: venv
 	pytest -vv tests && \
 	deactivate
 
+.PHONY: saleae
+saleae: venv
+	$(PYTEST) -vv tests/live/plugin/saleae/test_logic.py
+
 .PHONY: can
 can: venv
 	$(PYTEST) -vv tests/live/plugin/can/
