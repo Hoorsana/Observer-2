@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import importlib
 import time
 from typing import ContextManager, List, Union
 import yaml
@@ -200,6 +201,7 @@ class Details:
 class DeviceDetails:
     name: str
     type: str
+    module: str
     interface: infos.ElectricalInterface
     data: dict = dataclasses.field(default_factory=dict)
 
@@ -207,9 +209,10 @@ class DeviceDetails:
     def from_dict(cls, data: dict) -> DeviceDetails:
         name = data['name']
         type = data['type']
+        module = data['module']
         interface = infos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward...!
-        return cls(name, type, interface, args)
+        return cls(name, type, module, interface, args)
 
 
 # }}} frontend
@@ -421,7 +424,8 @@ class _Device:
 
     def __init__(self, info: DeviceDetails) -> None:
         self._name = info.name
-        cls = coreutility.getattr_from_module(info.type)
+        module = importlib.import_module(info.module)
+        cls = coreutility.recursive_getattr(module, info.type)
         self._implementation: AbstractDevice = cls(**info.data)
         self._interface = info.interface
 
