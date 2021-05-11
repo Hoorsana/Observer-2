@@ -35,8 +35,9 @@ endif
 
 .PHONY: default
 default: venv
+	cd arduino/adder && make flash
 	$(call activate) && \
-	pytest -vv tests/ && \
+	pytest -vv tests && \
 	deactivate
 
 .PHONY: can
@@ -69,6 +70,11 @@ plugin-fake: venv
 
 .PHONY: live
 live: venv
+	$(PYTEST) -vv tests/live/test_live.py
+
+.PHONY: live-flash
+live-flash: venv
+	cd arduino/adder && make flash
 	$(PYTEST) -vv tests/live/test_live.py
 
 .PHONY: simulink
@@ -132,6 +138,7 @@ sphinx:
 clean:
 	python setup.py clean
 	$(call delete_dir,build)
+	$(call delete_dir,dist)
 	$(call delete_dir,.venv)
 	$(call delete_dir,docs/build)
 

@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import importlib
 import time
 from typing import ContextManager, List, Union
 import yaml
@@ -78,7 +79,22 @@ def create(info: infos.TestInfo, details: Details) -> Test:
     """Implementation of :meth:`core.api.create
     <pylab.core.api.create>`.
     """
+    inits = []
+    post_inits = []
+    for each in details.devices:
+        module = importlib.import_module(each.module)
+        init = getattr(module, 'init', None)
+        if init is not None:
+            inits.append(init)
+        post_init = getattr(module, 'post_init', None)
+        if post_init is not None:
+            post_inits.append(post_init)
+
+    for each in inits:
+        each(info, details)
     test_object = _TestObject(details, info.targets)
+    for each in post_inits:
+        each(info, details, test_object)
 
     commands: list[AbstractCommand] = []
     duration = 0.0
@@ -200,6 +216,7 @@ class Details:
 class DeviceDetails:
     name: str
     type: str
+    module: str
     interface: infos.ElectricalInterface
     data: dict = dataclasses.field(default_factory=dict)
 
@@ -207,9 +224,10 @@ class DeviceDetails:
     def from_dict(cls, data: dict) -> DeviceDetails:
         name = data['name']
         type = data['type']
+        module = data['module']
         interface = infos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward...!
-        return cls(name, type, interface, args)
+        return cls(name, type, module, interface, args)
 
 
 # }}} frontend
@@ -421,7 +439,8 @@ class _Device:
 
     def __init__(self, info: DeviceDetails) -> None:
         self._name = info.name
-        cls = coreutility.getattr_from_module(info.type)
+        module = importlib.import_module(info.module)
+        cls = coreutility.recursive_getattr(module, info.type)
         self._implementation: AbstractDevice = cls(**info.data)
         self._interface = info.interface
 

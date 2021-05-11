@@ -139,7 +139,8 @@ def details_arduino():
         devices=[
             live.DeviceDetails(
                 name='adder',
-                type='pylab.live.live.UsbSerialDevice.from_serial_number',
+                module='pylab.live.live',
+                type='UsbSerialDevice.from_serial_number',
                 data={'serial_number': os.environ['PYLAB_USB_SERIAL_NUMBER_DEVICE']},
                 interface=infos.ElectricalInterface(
                     ports=[
@@ -166,7 +167,8 @@ def details_arduino():
             ),
             live.DeviceDetails(
                 name='gpio',
-                type='pylab.live.plugin.controllino.controllino.PylabControllino.from_serial_number',
+                module='pylab.live.plugin.controllino.controllino',
+                type='PylabControllino.from_serial_number',
                 data={
                     'serial_number': os.environ['PYLAB_USB_SERIAL_NUMBER_CONTROLLINO'],
                     'baudrate': 19200
@@ -218,7 +220,8 @@ def details_fake():
         devices=[
             live.DeviceDetails(
                 name='adder',
-                type='pylab.live.plugin.fake.fake.Device',
+                module='pylab.live.plugin.fake.fake',
+                type='Device',
                 data={
                     'name': 'adder',
                     'ports': [
@@ -252,7 +255,8 @@ def details_fake():
             ),
             live.DeviceDetails(
                 name='gpio',
-                type='pylab.live.plugin.fake.fake.Logger',
+                module='pylab.live.plugin.fake.fake',
+                type='Logger',
                 data={
                     'name': 'gpio',
                     'ports': [

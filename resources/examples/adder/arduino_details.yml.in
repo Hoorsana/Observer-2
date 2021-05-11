@@ -4,7 +4,8 @@
 
 devices:
   - name: adder
-    type: pylab.live.live.UsbSerialDevice.from_serial_number
+    module: pylab.live.live
+    type: UsbSerialDevice.from_serial_number
     interface:
       ports:
         - signal: val1
@@ -28,7 +29,8 @@ devices:
     data:
       serial_number: '@PYLAB_USB_SERIAL_NUMBER_DEVICE@'
   - name: gpio
-    type: pylab.live.plugin.controllino.controllino.PylabControllino.from_serial_number
+    module: pylab.live.plugin.controllino.controllino
+    type: PylabControllino.from_serial_number
     interface:
       ports:
         - signal: out1

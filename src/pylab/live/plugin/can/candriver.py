@@ -279,7 +279,7 @@ class FutureWrap:
         return self._done_event.is_set()
 
 
-# FIXME This can probably be refactored out.
+# FIXME This can probably be refactored out. Also: code-duplication?
 class Future:
     """Primitive future object for logging requests."""
 
