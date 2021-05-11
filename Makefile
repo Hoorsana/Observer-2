@@ -35,8 +35,9 @@ endif
 
 .PHONY: default
 default: venv
+	cd arduino/adder && make flash
 	$(call activate) && \
-	pytest -vv tests/ && \
+	pytest -vv tests && \
 	deactivate
 
 .PHONY: can
