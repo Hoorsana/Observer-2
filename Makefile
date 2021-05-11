@@ -71,6 +71,11 @@ plugin-fake: venv
 live: venv
 	$(PYTEST) -vv tests/live/test_live.py
 
+.PHONY: live-flash
+live-flash: venv
+	cd arduino/adder && make flash
+	$(PYTEST) -vv tests/live/test_live.py
+
 .PHONY: simulink
 simulink: venv
 	$(PYTEST) -vv tests/simulink
