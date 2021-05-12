@@ -1,4 +1,5 @@
 import os
+import time
 
 import pytest
 
@@ -7,8 +8,10 @@ from pylab.live import live
 from pylab.live.plugin.saleae import logic
 
 
-def test_init(adder, details):
+def test_init_kill(adder, details):
     logic.init(adder, details)
+    time.sleep(0.1)
+    logic.kill()
 
 
 @pytest.fixture

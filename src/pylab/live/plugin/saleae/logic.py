@@ -1,12 +1,30 @@
 """pylab live plugin for Saleae Logic 1 Legacy.
 
-The details file *may* have an extension field `saleae`, which
-*may* contain the following fields:
+Requirements:
+
+    - Saleae Logic 1.1.x Legacy
+    - saleae-python
+
+The details are loaded from file. File *may* have an extension field `saleae`, which *may* contain the following fields:
 
 * host (str): The host running Logic
 * port (int): The port of the socket API
 * performance (str): One of the following: 'Full', 'Half', 'Third',
   'Quarter', 'Low'
+* grace (float): The grace period used for the recording length
+  heuristics (see below)
+
+If so, then these are used to configure the Saleae Logic client. If not,
+the following defaults are used: ``host='localhost'``, ``port=10429``,
+``performance='Full'``.
+
+The plugin currently suffers from serious restrictions. At most one
+Logic Analyzer may be operated at the same time. The time the recording
+starts cannot be determined using the Socket API and recording cannot be
+stopped manually, which is why the plugin uses a heuristic grace period
+to determine when recording starts and ends, thus creating quite long
+recordings, even for short tests. Note that this leads to excessive
+memory consumption and long wait times _after_ the test.
 """
 
 from __future__ import annotations
@@ -16,37 +34,48 @@ import saleae
 from pylab.live import live
 
 _logic = None
+_grace = None  # Grace period in seconds
 
 
 def init(info: infos.TestInfo, details: live.Details) -> None:
     total_duration = sum(phase.duration for phase in info.phases)
-    args = {}
+    args = _parse_args(details)
+    _initialize_saleae(**args)
+
+
+def _parse_args(details: live.Details) -> dict:
     ext_saleae = details.extension.get('saleae')
-    if ext_saleae is not None:
-        args = ext_saleae.get('init', {})
-        if args.get('performance') is not None:
-            args['performance'] = getattr(saleae.PerformanceOption, args['performance'])
-    _initialize(**args)
+    if ext_saleae is None:
+        return {}
+    args = ext_saleae.get('init', {})
+    if args.get('performance') is not None:
+        args['performance'] = getattr(saleae.PerformanceOption, args['performance'])
+    return args
 
 
 def kill():
-    saleae.Saelae.kill_logic(kill_all=True)
+    saleae.Saleae.kill_logic(kill_all=True)
 
 
-def _initialize(host: str = 'localhost',
-                port: int = 10429,
-                performance: saleae.PerformanceOption = saleae.PerformanceOption.Full
-               ) -> None:
+def _initialize_saleae(host: str = 'localhost',
+                       port: int = 10429,
+                       performance: saleae.PerformanceOption = saleae.PerformanceOption.Full,
+                       grace: float = 5.0
+                      ) -> None:
     """Lazily create global Logic API object.
 
     Args:
         host: The host running Logic
         port: The port for the socket API
         performance: Performance option for Logic
+        grace:
+            The grace period for recording length heuristics in seconds
     """
     global _logic
+    global _grace
     _logic = saleae.Saleae(host, port)
     _logic.set_performance(performance)
+    _grace = grace
 
 
 def from_id(id: int,
