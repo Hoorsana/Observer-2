@@ -14,6 +14,16 @@ def test_init_kill(adder, details):
     logic.kill()
 
 
+class TestDevice:
+
+    def test_from_id(self, details):
+        pass
+
+
+def test_functional(adder, details):
+    pass
+
+
 @pytest.fixture
 def adder():
     return infos.TestInfo(
@@ -168,7 +178,23 @@ def details():
                         ),
                     ]
                 )
-            )
+            ),
+            live.DeviceDetails(
+                name='logger',
+                module='pylab.live.plugin.saleae.logic',
+                type='Device.from_id',
+                data={'id': os.environ['PYLAB_SALEAE_DEVICE_ID_NO_DEVICE']},
+                interface=infos.ElectricalInterface(
+                    ports=[
+                        infos.PortInfo(
+                            'in',
+                            ('analog', 0),
+                            min=0, max=255,
+                            flags=['input', 'analog']
+                        ),
+                    ]
+                )
+            ),
         ],
         connections=[
             infos.ConnectionInfo(
@@ -189,7 +215,8 @@ def details():
                 'init': {
                     'host': 'localhost',
                     'performance': 'Full',
-                    'port': 10429
+                    'port': 10429,
+                    'grace': 3.0
                 }
             }
         }

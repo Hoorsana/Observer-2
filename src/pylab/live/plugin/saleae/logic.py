@@ -78,48 +78,6 @@ def _initialize_saleae(host: str = 'localhost',
     _grace = grace
 
 
-def from_id(id: int,
-            digital: Optional[list[int]] = None,
-            analog: Optional[list[int]] = None,
-            sample_rate_digital: int = 0,
-            sample_rate_analog: int = 0) -> Device:
-    """Create a Logic device from id.
-
-    Args:
-        id: The saleae id
-        digital: The activate digital channels
-        analog: The active analog channels
-        sample_rate_digital:
-            The minimum digital sample rate in MS/s (0 for "don't care")
-        sample_rate_analog:
-            The minimum analog sample rate in S/s (0 for "don't care")
-
-    Raises:
-        RuntimeError: If ``_initialize`` was not yet called
-        StopIteration: If no device with id ``id`` is found
-        saleae.ImpossibleSetting:
-            If the sample rate settings are invalid
-    """
-    index, device = next(
-        (index, elem) for index, elem
-        in enumerate(logic().get_connected_devices())
-        if elem.id == id
-    )
-    _logic.select_active_device(index)
-
-    # Logic and default values based on ``saleae.demo()``.
-    if device.type not in {'LOGIC_4_DEVICE', 'LOGIC_DEVICE'}:
-        if digital is None:
-            digital = [0, 1, 2, 3, 4]
-        if analog is None:
-            analog = [0, 1]
-        _logic.set_active_channels(digital, analog)
-    rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
-    assert rate == (sample_rate_digital, sample_rate_analog)
-
-    return Device(device)
-
-
 def from_config(path: str) -> Device:
     pass
 
@@ -130,6 +88,50 @@ class Device:
     def __init__(self, details: saleae.ConnectedDevice) -> None:
         self._details = details
         self._requests = {}
+
+    def from_id(cls,
+                id: int,
+                digital: Optional[list[int]] = None,
+                analog: Optional[list[int]] = None,
+                sample_rate_digital: int = 0,
+                sample_rate_analog: int = 0) -> Device:
+        """Create a Logic device from id.
+
+        Args:
+            id: The saleae id
+            digital: The activate digital channels
+            analog: The active analog channels
+            sample_rate_digital:
+                The minimum digital sample rate in MS/s (0 for "don't care")
+            sample_rate_analog:
+                The minimum analog sample rate in S/s (0 for "don't care")
+
+        Raises:
+            RuntimeError: If ``_initialize`` was not yet called
+            StopIteration: If no device with id ``id`` is found
+            saleae.ImpossibleSetting:
+                If the sample rate settings are invalid
+
+
+        """
+        index, device = next(
+            (index, elem) for index, elem
+            in enumerate(_logic.get_connected_devices())
+            if elem.id == id
+        )
+        _logic.select_active_device(index)
+
+        # Logic and default values based on ``saleae.demo()``.
+        if device.type not in {'LOGIC_4_DEVICE', 'LOGIC_DEVICE'}:
+            if digital is None:
+                digital = [0, 1, 2, 3, 4]
+            if analog is None:
+                analog = [0, 1]
+            _logic.set_active_channels(digital, analog)
+        rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
+        assert rate == (sample_rate_digital, sample_rate_analog)
+
+        return cls(device)
 
     @property
     def details(self) -> saleae.ConnectedDevice:

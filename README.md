@@ -62,6 +62,25 @@ Note that `resources/examples/adder/arduino_details.yml` is created from
 the environment variables using the `freeze` script.
 
 
+#### Testing `live.plugin.saleae`
+
+Run `make saleae` to test the saleae component. Before doing so, set the
+environment variable `PYLAB_SALEAE_DEVICE_ID_NO_DEVICE` to the id of one
+of the four connected devices _that show up when no actual hardware is
+connected_. You can discover the id using the following script:
+
+```python
+import saleae
+from tabulat import tabulate
+
+s = saleae.Saleae()
+devices = s.get_connected_devices()
+data = [(each.name, each.type, each.id) for each in devices]
+tab = tabulate(data, headers=['name', 'type', 'id'])
+print(tab)
+```
+
+
 #### Testing `live.plugin.can`
 
 Testing the can plugin requires vcan on Linux. First, load the required
