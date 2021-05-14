@@ -62,6 +62,7 @@ from pylab.core import report
 from pylab.core import utils as coreutility
 from pylab.live import utility as liveutility
 
+DEFAULT_TIMEOUT = 20.0  # Timeout in sec
 HEARTBEAT = 0.001
 _RESULT_TYPE = Union[timeseries.TimeSeries, List[str]]
 
@@ -153,7 +154,7 @@ class Test:
                     each for each in self._commands if each not in commands]
                 for cmd in commands:
                     future = cmd.execute(self._test_object)
-                    self._controller.put(future, timeout=1)
+                    self._controller.put(future, timeout=DEFAULT_TIMEOUT)
                 logbook += self._controller.run()
                 if _panic(logbook):
                     return report.Report(logbook, {})
@@ -889,6 +890,8 @@ def _wait_for_all(futures: list[AbstractFuture],
     # just those that actually timed out - Separate timed out futures
     # from the rest!
     if not all(done):
+        print(timeout)
+        print([type(elem) for elem in futures])
         return [_timed_out_report(elem) for elem in futures]
     return [each.log for each in futures]
 

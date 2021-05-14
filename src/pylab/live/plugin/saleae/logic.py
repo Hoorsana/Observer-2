@@ -239,11 +239,18 @@ class DelayFuture(BaseFuture):
         return self._start + self._delay - time.time()
 
     def wait(self, timeout: Optional[float] = None) -> bool:
+        result = True
         if timeout is None:
             wait_for = self._seconds_until_done()
         else:
-            wait_for = min(self._seconds_until_done(), timeout)
-        time.sleep(self._seconds_until_done())
+            if timeout > self._seconds_until_done():
+                wait_for = self._seconds_until_done()
+            else:
+                wait_for = min(self._seconds_until_done(), timeout)
+                result = False
+        time.sleep(wait_for)
+        return result
+
 
     def done(self) -> bool:
         return time.time() >= self._start + self._delay
