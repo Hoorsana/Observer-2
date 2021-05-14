@@ -165,7 +165,7 @@ class CanDevice:
 
     def open(self):
         # FIXME Move report.Severity to its own  module?
-        return live.NoopFuture(report.LogEntry(report.INFO))
+        return live.NoOpFuture(report.LogEntry(report.INFO))
 
     # FIXME This is a synchronous call that might take some time. It may
     # be necessary to start a separate thread and kill the bus there.
@@ -177,7 +177,7 @@ class CanDevice:
         return FutureCollection(futures)
 
     def setup(self) -> live.AbstractFuture:
-        return live.NoopFuture(report.LogEntry(report.INFO))
+        return live.NoOpFuture(report.LogEntry(report.INFO))
 
     def send_message(self, signal: str, name: str, data: dict) -> live.AbstractFuture:
         bus, executor = next((bus, executor) for bus, executor in zip(self._buses, self._executors) if bus.name == signal)
@@ -198,13 +198,13 @@ class CanDevice:
         """
         future = Future(f'Logging request for {bus}')
         self._logging_requests[bus] = future
-        return live.NoopFuture(report.LogEntry(report.INFO)), future
+        return live.NoOpFuture(report.LogEntry(report.INFO)), future
 
     def end_log_signal(self, bus: str) -> live.AbstractFuture:
         bus_obj = next(elem for elem in self._buses if elem.name == bus)
         result = bus_obj.listener.take_received()
         self._logging_requests.pop(bus).set_result(result)
-        return live.NoopFuture(report.LogEntry(report.INFO))
+        return live.NoOpFuture(report.LogEntry(report.INFO))
 
 
 class ThreadPoolExecutor:
@@ -351,13 +351,13 @@ class CanBus:
         bus = can.interface.Bus(**kwargs)
         return cls(signal, db, bus)
 
-    def send_message(self, name: str, data: dict) -> live.NoopFuture:
+    def send_message(self, name: str, data: dict) -> live.NoOpFuture:
         try:
             frame = self._db.encode(name, data)
             self._bus.send(frame)
         except (CanError, can.CanError) as e:
-            return live.NoopFuture(report.LogEntry(severity=report.PANIC, what=str(e)))
-        return live.NoopFuture(report.LogEntry(severity=report.PANIC, what='...'))
+            return live.NoOpFuture(report.LogEntry(severity=report.PANIC, what=str(e)))
+        return live.NoOpFuture(report.LogEntry(severity=report.PANIC, what='...'))
 
 
 class AbstractListener:

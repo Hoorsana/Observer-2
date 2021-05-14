@@ -370,7 +370,7 @@ class AbstractFuture(abc.ABC):
         pass
 
 
-class NoopFuture(AbstractFuture):
+class NoOpFuture(AbstractFuture):
     """Class for synchronous commands or commands without callback.
 
     This future is always done, and may have any logbook entry or
@@ -507,16 +507,16 @@ class UsbSerialDevice(AbstractDevice):
         return cls(liveutility.create_serial_device_from_serial_number(serial_number))
 
     def open(self):
-        return NoopFuture(
+        return NoOpFuture(
             report.LogEntry('open', severity='info'))
 
     def close(self):
         self._serial.close()
-        return NoopFuture(
+        return NoOpFuture(
             report.LogEntry('close', severity='info'))
 
     def setup(self):
-        return NoopFuture(
+        return NoOpFuture(
             report.LogEntry('setup', severity='info'))
 
 

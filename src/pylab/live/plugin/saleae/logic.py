@@ -107,17 +107,17 @@ class Device:
     def open(self) -> live.AbstractFuture:
         """No-op ``open`` method to satisfy live.AbstractDevice
         interface requirements."""
-        return live.NoopFuture(report.LogEntry('open logic'))
+        return live.NoOpFuture(report.LogEntry('open logic'))
 
     def close(self) -> live.AbstractFuture:
         """No-op ``close`` method to satisfy live.AbstractDevice
         interface requirements."""
-        return live.NoopFuture(report.LogEntry('close logic'))
+        return live.NoOpFuture(report.LogEntry('close logic'))
 
     def setup(self) -> live.AbstractFuture:
         """No-op ``setup`` method to satisfy live.AbstractDevice
         interface requirements."""
-        return live.NoopFuture(report.LogEntry('close logic'))
+        return live.NoOpFuture(report.LogEntry('close logic'))
 
     @classmethod
     def from_id(cls,
