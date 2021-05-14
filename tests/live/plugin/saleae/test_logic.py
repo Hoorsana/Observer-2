@@ -23,6 +23,8 @@ class TestDevice:
 
 def test_functional(adder, details):
     report = workflow.run(live, adder, details)
+    print(report)
+    assert(False)
 
 
 @pytest.fixture
@@ -171,12 +173,6 @@ def details():
                             min=0, max=255,
                             flags=['output', 'analog'],
                         ),
-                        infos.PortInfo(
-                            'sum',
-                            'A0',
-                            min=168, max=852,
-                            flags=['input', 'analog']
-                        ),
                     ]
                 )
             ),
@@ -212,7 +208,7 @@ def details():
             ),
             infos.ConnectionInfo(
                 sender='adder', sender_port='sum',
-                receiver='gpio', receiver_port='sum'
+                receiver='logger', receiver_port='in'
             ),
         ],
         extension={

@@ -35,6 +35,9 @@ The plugin currently suffers from serious restrictions:
 
 from __future__ import annotations
 
+import threading
+import time
+
 import saleae
 
 from pylab.live import live
@@ -142,7 +145,6 @@ class Device:
             saleae.ImpossibleSetting:
                 If the sample rate settings are invalid
         """
-        print([each.id for each in _logic.get_connected_devices()])
         index, device = next(
             (index, elem) for index, elem
             in enumerate(_logic.get_connected_devices(), start=1)
@@ -166,16 +168,7 @@ class Device:
     def details(self) -> saleae.ConnectedDevice:
         return self._details
 
-    def _activate(self):
-        # TODO Not sure if this is even an option, but maybe multiple
-        # devices can run in parallel.
-        _logic.select_active_device(self._index())
-
-    def _index(self):
-        return _logic.get_connected_devices().index(self._details)
-
     def _extract_data(self) -> list[...]:  # FIXME Annotation
-        self._activate()
         # TODO Do this using the socket API instead of a tempdir
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.csv')
@@ -199,12 +192,11 @@ class Device:
                 The logging period in seconds
         """
         del period  # TODO
-        self._activate()
-        _logic.capture_begin()
+        _logic.capture_start()
         future = Future('result')
         assert channel not in self._requests
         self._requests[channel] = future
-        return DelayFuture(self._grace), future
+        return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[str, int]) -> live.AbstractFuture:
         self._activate  # TODO We need a lock on the _logic API if we want to use two or more logger concurrently!
@@ -251,7 +243,7 @@ class DelayFuture(BaseFuture):
             wait_for = self._seconds_until_done()
         else:
             wait_for = min(self._seconds_until_done(), timeout)
-        time.sleep(self._seconds_until_done)
+        time.sleep(self._seconds_until_done())
 
     def done(self) -> bool:
         return time.time() >= self._start + self._delay
