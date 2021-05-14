@@ -4,6 +4,7 @@ import time
 import pytest
 
 from pylab.core import infos
+from pylab.core import workflow
 from pylab.live import live
 from pylab.live.plugin.saleae import logic
 
@@ -21,7 +22,7 @@ class TestDevice:
 
 
 def test_functional(adder, details):
-    pass
+    report = workflow.run(live, adder, details)
 
 
 @pytest.fixture
@@ -183,7 +184,11 @@ def details():
                 name='logger',
                 module='pylab.live.plugin.saleae.logic',
                 type='Device.from_id',
-                data={'id': os.environ['PYLAB_SALEAE_DEVICE_ID_NO_DEVICE']},
+                data={
+                    'id': int(os.environ['PYLAB_SALEAE_DEVICE_ID_NO_DEVICE']),
+                    'sample_rate_digital': 400_000,
+                    'sample_rate_analog': 100
+                },
                 interface=infos.ElectricalInterface(
                     ports=[
                         infos.PortInfo(
@@ -214,7 +219,7 @@ def details():
             'saleae': {
                 'init': {
                     'host': 'localhost',
-                    'performance': 'Full',
+                    # 'performance': 'Full',
                     'port': 10429,
                     'grace': 3.0
                 }

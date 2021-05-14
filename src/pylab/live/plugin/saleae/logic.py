@@ -5,7 +5,8 @@ Requirements:
     - Saleae Logic 1.1.x Legacy
     - saleae-python
 
-The details are loaded from file. File *may* have an extension field `saleae`, which *may* contain the following fields:
+The details are loaded from file. File *may* have an extension field
+`saleae`, which *may* contain the following fields:
 
 * host (str): The host running Logic
 * port (int): The port of the socket API
@@ -16,15 +17,20 @@ The details are loaded from file. File *may* have an extension field `saleae`, w
 
 If so, then these are used to configure the Saleae Logic client. If not,
 the following defaults are used: ``host='localhost'``, ``port=10429``,
-``performance='Full'``.
+``performance='Full'``, ``grace=5.0``.
 
-The plugin currently suffers from serious restrictions. At most one
-Logic Analyzer may be operated at the same time. The time the recording
-starts cannot be determined using the Socket API and recording cannot be
-stopped manually, which is why the plugin uses a heuristic grace period
-to determine when recording starts and ends, thus creating quite long
-recordings, even for short tests. Note that this leads to excessive
-memory consumption and long wait times _after_ the test.
+The plugin currently suffers from serious restrictions:
+
+- At most one logic analyzer may be operated at the same time. Creating
+  more than a single ``Device`` object will result in a
+  ``RuntimeError``.
+
+- The time the recording starts cannot be determined using the Socket
+  API and recording cannot be stopped manually, which is why the plugin
+  uses a heuristic grace period to determine when recording starts and
+  ends, thus creating quite long recordings, even for short tests. Note
+  that this leads to excessive memory consumption and long wait times
+  _after_ the test.
 """
 
 from __future__ import annotations
@@ -32,6 +38,7 @@ from __future__ import annotations
 import saleae
 
 from pylab.live import live
+from pylab.core import report
 
 _logic = None
 _grace = None  # Grace period in seconds
@@ -82,13 +89,34 @@ def from_config(path: str) -> Device:
     pass
 
 
+# TODO How to guarantee that there is only one device?
 class Device:
     """Handle object for pylab usage."""
+    device_exists = False
 
     def __init__(self, details: saleae.ConnectedDevice) -> None:
+        if Device.device_exists:
+            raise RuntimeError('Attempting to created multiple saleae.logic.Device objects')
+        Device.device_exists = True
         self._details = details
         self._requests = {}
 
+    def open(self) -> live.AbstractFuture:
+        """No-op ``open`` method to satisfy live.AbstractDevice
+        interface requirements."""
+        return live.NoopFuture(report.LogEntry('open logic'))
+
+    def close(self) -> live.AbstractFuture:
+        """No-op ``close`` method to satisfy live.AbstractDevice
+        interface requirements."""
+        return live.NoopFuture(report.LogEntry('close logic'))
+
+    def setup(self) -> live.AbstractFuture:
+        """No-op ``setup`` method to satisfy live.AbstractDevice
+        interface requirements."""
+        return live.NoopFuture(report.LogEntry('close logic'))
+
+    @classmethod
     def from_id(cls,
                 id: int,
                 digital: Optional[list[int]] = None,
@@ -102,21 +130,22 @@ class Device:
             digital: The activate digital channels
             analog: The active analog channels
             sample_rate_digital:
-                The minimum digital sample rate in MS/s (0 for "don't care")
+                The minimum digital sample rate in MS/s (0 to disable
+                sampling method)
             sample_rate_analog:
-                The minimum analog sample rate in S/s (0 for "don't care")
+                The minimum analog sample rate in S/s (0 to disable
+                sampling method)
 
         Raises:
             RuntimeError: If ``_initialize`` was not yet called
             StopIteration: If no device with id ``id`` is found
             saleae.ImpossibleSetting:
                 If the sample rate settings are invalid
-
-
         """
+        print([each.id for each in _logic.get_connected_devices()])
         index, device = next(
             (index, elem) for index, elem
-            in enumerate(_logic.get_connected_devices())
+            in enumerate(_logic.get_connected_devices(), start=1)
             if elem.id == id
         )
         _logic.select_active_device(index)
@@ -129,8 +158,8 @@ class Device:
                 analog = [0, 1]
             _logic.set_active_channels(digital, analog)
         rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
-        assert rate == (sample_rate_digital, sample_rate_analog)
-
+        assert rate[0] > sample_rate_digital
+        assert rate[1] > sample_rate_analog
         return cls(device)
 
     @property

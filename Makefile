@@ -44,6 +44,11 @@ default: venv
 saleae: venv
 	$(PYTEST) -vv tests/live/plugin/saleae/test_logic.py
 
+.PHONY: saleae-flash
+saleae-flash:
+	cd arduino/adder && make flash
+	make saleae
+
 .PHONY: can
 can: venv
 	$(PYTEST) -vv tests/live/plugin/can/
@@ -79,7 +84,7 @@ live: venv
 .PHONY: live-flash
 live-flash: venv
 	cd arduino/adder && make flash
-	$(PYTEST) -vv tests/live/test_live.py
+	make live
 
 .PHONY: simulink
 simulink: venv
