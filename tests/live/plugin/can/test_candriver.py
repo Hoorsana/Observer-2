@@ -6,11 +6,18 @@ import time
 
 import can
 import pytest
+import sys
 from typing import Optional
 
 from pylab.core import workflow
 from pylab.live import live
 from pylab.live.plugin.can import candriver
+
+
+pytestmark = pytest.mark.skipif(
+    not sys.platform.startswith('linux'),
+    reason='vcan only available on linux'
+)
 
 
 class _CanPassthruBus(candriver.CanBus):
