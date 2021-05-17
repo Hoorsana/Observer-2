@@ -58,7 +58,7 @@ def adder():
         [infos.LoggingInfo(target='adder', signal='sum', period=0.1)],
         [
             infos.PhaseInfo(
-                duration=5.0,
+                duration=2.0,
                 commands=[
                     infos.CommandInfo(
                         time=0.0, command='CmdSetSignal', target='adder',
@@ -71,47 +71,6 @@ def adder():
                     infos.CommandInfo(
                         time=1.0, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 75}
-                    ),
-                    infos.CommandInfo(
-                        time=2.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val2', 'value': 25}
-                    ),
-                    infos.CommandInfo(
-                        time=3.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 25}
-                    ),
-                    infos.CommandInfo(
-                        time=4.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 0}
-                    ),
-                    infos.CommandInfo(
-                        time=4.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val2', 'value': 0}
-                    ),
-                ]
-            ),
-            infos.PhaseInfo(
-                duration=4.0,
-                commands=[
-                    infos.CommandInfo(
-                        time=0.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 0}
-                    ),
-                    infos.CommandInfo(
-                        time=0.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val2', 'value': 100}
-                    ),
-                    infos.CommandInfo(
-                        time=1.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 100}
-                    ),
-                    infos.CommandInfo(
-                        time=2.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val2', 'value': 0}
-                    ),
-                    infos.CommandInfo(
-                        time=3.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 0}
                     ),
                 ]
             ),

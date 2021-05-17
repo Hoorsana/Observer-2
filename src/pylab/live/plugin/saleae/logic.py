@@ -27,14 +27,96 @@ The plugin currently suffers from serious restrictions:
 
 - The time the recording starts cannot be determined using the Socket
   API and recording cannot be stopped manually, which is why the plugin
-  uses a heuristic grace period to determine when recording starts and
-  ends, thus creating quite long recordings, even for short tests. Note
-  that this leads to excessive memory consumption and long wait times
-  _after_ the test.
+  uses a heuristic grace period to determine when recording starts, thus
+  creating quite long recordings, even for short tests. Note that this
+  may lead to excessive memory consumption and long wait times _after_
+  the test.
+
+Both of these are caused by limitations of the API. Indeed, the Logic
+Socket API is, by nature, synchronous, i.e. you send a command and then
+wait for the ACK, then send another command, etc. (there are exceptions
+to this, see below). Sending messages out-of-turn will result in
+undefined behavior. Furthermore, the ``capture`` command only ACKs
+_after_ the recording is done. So it is not possible to know when a
+recording has started. For details, see:
+
+* https://discuss.saleae.com/t/is-there-a-way-to-get-ack-when-the-capture-starts/1023
+
+* https://ideas.saleae.com/b/feature-requests/application-api/
+
+* https://github.com/ppannuto/python-saleae/issues/18
+
+The exception mentioned above is detailed in
+github.com/ppannuto/python-saleae/issues/18, which uses a trick to
+circumvent a certain problem found in C# API Docs. The C# API docs say:
+
+  Socket Command: stop_capture
+  
+  This command stops the current capture. This command will return
+  ``NAK`` if no capture is in progress.
+  
+  If a capture is in progress, it does not return a response. Instead,
+  it initiates the end of the capture, and then the active capture
+  command will send it's reply, either a ``ACK`` if any data is
+  recorded, or a ``NAK`` if the capture was terminated before the
+  trigger condition was found.
+  
+  Use this function with care, as a race condition determines if one or
+  two responses will be returned. This will be improved in future
+  versions of the socket API and C# wrapper.
+  
+  Specifically, if the stop_capture command is issued near
+  simultaneously with the normal end of the capture, it is possible to
+  get a single ``ACK`` response or two responses, ``ACK`` followed by
+  ``NAK``. The first is the case where the stop command ends the capture
+  early, and the second case is when the stop command is applied after
+  the capture has already completed, returning ``NAK``.
+  [https://github.com/saleae/SaleaeSocketApi/blob/master/Doc/Logic%20Socket%20API%20Users%20Guide.md]
+
+To summarize: When issued while a capture in progress, *the
+``stop_capture`` command may be issued out-of-turn*.
+
+The python-saleae API exploits this as follows. Like the Socket
+API, it is synchronous, so issueing a command to the socket API by
+calling ``Saleae._cmd`` usually means that ``_cmd`` blocks until a reply
+is received. However, ``Saleae.capture_start`` does not wait for an
+``ACK`` from the Socket API, but returns immediately instead. This
+allows ``Saleae.capture_stop``, which issues the ``stop_capture``
+command to the Socket API, to read the reply to the ``start_capture``
+command, which, according to the quote above, will be ``ACK`` if data
+was recorded and ``NAK`` otherwise. This way, a capture in progress may
+be stopped, even using the synchronous API, but failing to ensure that
+``stop_capture`` is issued while a capture is in progress will result in
+undefined behavior. To ensure this is this plugin's job.
+
+Of course, due to the many moving parts of the live driver, no absolute
+guarantee can be given, but using the grace period, the following
+fashion gives reasonable safety:
+
+- The future which signals success or failure in starting a recording
+  will wait for ``_grace`` seconds until done. The larger ``_grace`` is
+  the higher the probability that the capture is, in fact, in progress.
+
+- The recording length is set to ``GRACE + _grace + 2*total_duration_of_test``.
+  Given that the ``GRAIN`` of the live driver is a fraction of a second,
+  we expect ``GRACE`` (the internal grace period constant) to be
+  sufficient if ``>1.0``, even if the user uses more liberal grace
+  period themselves and/or the test is suprisingly short.
+
+These should guarantee that, when the ``end_log_signal`` command is
+issued to the Saleae plugin at the end of the test (after roughly
+``total_duration_of_test + epsilon`` seconds have passed), the capture
+is still in progress.
 """
+
+# TODO Is there any disadvantage to setting ``GRACE`` to ``1_000_000``
+# and just be done with the problem?
 
 from __future__ import annotations
 
+import csv
+import os
+import tempfile
 import threading
 import time
 
@@ -44,13 +126,16 @@ from pylab.live import live
 from pylab.core import report
 
 _logic = None
-_grace = None  # Grace period in seconds
+_grace = None  # Grace period in seconds, set by the user
+
+GRAIN = 0.1
+GRACE = 1.0
 
 
 def init(info: infos.TestInfo, details: live.Details) -> None:
-    total_duration = sum(phase.duration for phase in info.phases)
+    duration = sum(phase.duration for phase in info.phases)
     args = _parse_args(details)
-    _initialize_saleae(**args)
+    _initialize_saleae(duration, **args)
 
 
 def _parse_args(details: live.Details) -> dict:
@@ -67,14 +152,29 @@ def kill():
     saleae.Saleae.kill_logic(kill_all=True)
 
 
-def _initialize_saleae(host: str = 'localhost',
+def _capture_duration(duration: float) -> float:
+    """Calculate the total duration of capture to guarantee correct
+    Socket API behavior.
+
+    Args:
+        duration: The duration of the current test
+
+    Returns:
+        The total duration of capture
+    """
+    return GRACE + _grace + 2*duration
+
+
+def _initialize_saleae(duration: float,
+                       host: str = 'localhost',
                        port: int = 10429,
                        performance: saleae.PerformanceOption = saleae.PerformanceOption.Full,
-                       grace: float = 5.0
+                       grace: float = 5.0,
                       ) -> None:
     """Lazily create global Logic API object.
 
     Args:
+        duration: Duration of the test
         host: The host running Logic
         port: The port for the socket API
         performance: Performance option for Logic
@@ -86,6 +186,7 @@ def _initialize_saleae(host: str = 'localhost',
     _logic = saleae.Saleae(host, port)
     _logic.set_performance(performance)
     _grace = grace
+    _logic.set_capture_seconds(_capture_duration(duration))
 
 
 def from_config(path: str) -> Device:
@@ -171,10 +272,11 @@ class Device:
     def _extract_data(self) -> list[...]:  # FIXME Annotation
         # TODO Do this using the socket API instead of a tempdir
         with tempfile.TemporaryDirectory() as tmpdir:
+            # TODO Write to fake file?
             path = os.path.join(tmpdir, 'data.csv')
             _logic.export_data2(path, delimiter='comma')
             with open(path, 'r') as f:
-                reader = csv.reader(f, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
+                reader = csv.reader(f, delimiter=',')  # quoting=csv.QUOTE_NONNUMERIC
                 # TODO Read out in chunks (even when using socket API)
                 result = list(reader)
         return result  # TODO This needs to be reformatted
@@ -199,8 +301,10 @@ class Device:
         return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[str, int]) -> live.AbstractFuture:
-        self._activate  # TODO We need a lock on the _logic API if we want to use two or more logger concurrently!
+        # TODO This needs to run in a seperate thread!
         assert _logic.capture_stop()
+        while not _logic.is_processing_complete():
+            time.sleep(GRAIN)
         result = self._extract_data()  # Result must be gotten in a seperate thread, as this will take a while!
         self._requests[channel].set_result(result)
 

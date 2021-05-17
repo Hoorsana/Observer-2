@@ -40,9 +40,14 @@ default: venv
 	pytest -vv tests && \
 	deactivate
 
+.PHONY: saleae-quick
+saleae-quick: venv
+	$(PYTEST) -vv tests/live/plugin/saleae/test_parser.py
+
 .PHONY: saleae
 saleae: venv
 	$(PYTEST) -vv tests/live/plugin/saleae/test_logic.py
+	$(PYTEST) -vv tests/live/plugin/saleae/test_parser.py
 
 .PHONY: saleae-flash
 saleae-flash:
