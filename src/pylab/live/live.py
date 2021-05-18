@@ -914,7 +914,8 @@ class _LoggingHandler:
             infos: Infos for the handled logging requests
         """
         self._test_object = test_object
-        self._requests = [self._test_object.make_logging_request(each) for each in infos]
+        self._requests: list[_LoggingRequest] = [self._test_object.make_logging_request(each)
+                                                 for each in infos]
 
     def begin(self, timeout: Optional[float] = None) -> list[report.LogEntry]:
         """Begin submitting the managed logging requests.

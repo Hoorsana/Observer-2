@@ -24,6 +24,7 @@ class TestDevice:
 def test_functional(adder, details):
     report = workflow.run(live, adder, details)
     print(report)
+    print([k for k in report.results])
     assert(False)
 
 
@@ -58,7 +59,7 @@ def adder():
         [infos.LoggingInfo(target='adder', signal='sum', period=0.1)],
         [
             infos.PhaseInfo(
-                duration=2.0,
+                duration=0.6,
                 commands=[
                     infos.CommandInfo(
                         time=0.0, command='CmdSetSignal', target='adder',
@@ -69,7 +70,7 @@ def adder():
                         data={'signal': 'val2', 'value': 50}
                     ),
                     infos.CommandInfo(
-                        time=1.0, command='CmdSetSignal', target='adder',
+                        time=0.3, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 75}
                     ),
                 ]
@@ -176,7 +177,7 @@ def details():
                     'host': 'localhost',
                     # 'performance': 'Full',
                     'port': 10429,
-                    'grace': 3.0
+                    'grace': 1.0
                 }
             }
         }

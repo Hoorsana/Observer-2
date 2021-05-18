@@ -121,9 +121,11 @@ import threading
 import time
 
 import saleae
+from numpy.typing import ArrayLike
 
 from pylab.live import live
 from pylab.core import report
+from pylab.live.plugin.saleae import _parser
 
 _logic = None
 _grace = None  # Grace period in seconds, set by the user
@@ -261,25 +263,22 @@ class Device:
                 analog = [0, 1]
             _logic.set_active_channels(digital, analog)
         rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
-        assert rate[0] > sample_rate_digital
-        assert rate[1] > sample_rate_analog
+        assert rate[0] >= sample_rate_digital
+        assert rate[1] >= sample_rate_analog
         return cls(device)
 
     @property
     def details(self) -> saleae.ConnectedDevice:
         return self._details
 
-    def _extract_data(self) -> list[...]:  # FIXME Annotation
+    def _extract_data(self) -> dict[tuple[str, int], tuple[list[float], list[ArrayLike]]]:
         # TODO Do this using the socket API instead of a tempdir
         with tempfile.TemporaryDirectory() as tmpdir:
             # TODO Write to fake file?
             path = os.path.join(tmpdir, 'data.csv')
             _logic.export_data2(path, delimiter='comma')
-            with open(path, 'r') as f:
-                reader = csv.reader(f, delimiter=',')  # quoting=csv.QUOTE_NONNUMERIC
-                # TODO Read out in chunks (even when using socket API)
-                result = list(reader)
-        return result  # TODO This needs to be reformatted
+            result = _parser.from_file(path)
+        return result
 
     def log_signal(self,
                    channel: tuple[str, int],
@@ -301,12 +300,18 @@ class Device:
         return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[str, int]) -> live.AbstractFuture:
-        # TODO This needs to run in a seperate thread!
-        assert _logic.capture_stop()
-        while not _logic.is_processing_complete():
-            time.sleep(GRAIN)
-        result = self._extract_data()  # Result must be gotten in a seperate thread, as this will take a while!
-        self._requests[channel].set_result(result)
+        def worker():
+            _logic.capture_stop()
+            while not _logic.is_processing_complete():
+                time.sleep(GRAIN)
+            result = self._extract_data()
+            self._requests[channel].set_result(result)
+        thread = threading.Thread(target=worker)
+        thread.start()
+        return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
+
+
+
 
 
 class BaseFuture:
