@@ -304,14 +304,6 @@ class Device:
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
 
 
-@dataclasses.dataclass
-class _Channel:
-    number: int
-    type: str
-
-    # TODO post-init
-
-
 class _LoggingManager:
 
     def __init__(self) -> None:
@@ -339,25 +331,14 @@ class _LoggingManager:
             thread.start()
 
 
-# TODO Make dataclass
+@dataclasses.dataclass
 class _LoggingRequest:
+    channel: tuple[int, str]
+    period: int
+    future: live.AbstractFuture = dataclasses.field(init=False)
 
-    def __init__(self, channel: tuple[int, str], period: int) -> None:
-        self._channel = channel
-        self._period = period
-        self._future = Future(f'Saleae Logic {channel} result')
-
-    @property
-    def channel(self) -> tuple[int, str]:
-        return self._channel
-
-    @property
-    def period(self) -> int:
-        return self._period
-
-    @property
-    def future(self) -> live.AbstractFuture:
-        return self._future
+    def __post_init__(self):
+        self.future = Future(f'Saleae Logic {self.channel}@{self.period}')
 
 
 class ExportDataObject:
