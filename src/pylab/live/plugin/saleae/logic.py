@@ -206,9 +206,8 @@ class Device:
             raise RuntimeError('Attempting to created multiple saleae.logic.Device objects')
         Device.device_exists = True
         self._details = details
-        self._requests = {}
         self._result = ExportDataObject()
-        # self._manager = _LoggingManager()
+        self._manager = _LoggingManager()
 
     def open(self) -> live.AbstractFuture:
         """No-op ``open`` method to satisfy live.AbstractDevice
@@ -281,6 +280,8 @@ class Device:
     def details(self) -> saleae.ConnectedDevice:
         return self._details
 
+    # TODO This would be easier to do if all logging requests could be
+    # issued at the same time.
     def log_signal(self,
                    channel: tuple[int, str],
                    period: float) -> tuple[live.AbstractFuture, live.AbstractFuture]:
@@ -294,15 +295,14 @@ class Device:
                 The logging period in seconds
         """
         _logic.capture_start()  # TODO This causes a crash when multiple requests are submitted
-        request = _LoggingRequest(channel, period)
-        self._requests[channel] = request
-        return DelayFuture('log_signal', _grace), request.future
+        future = self._manager.push(channel, period)
+        return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
         def worker():
             result = self._result.get()
             ts = timeseries.TimeSeries(*result[channel])
-            request = self._requests[channel]
+            request = self._manager._requests[channel]
             request.future.set_result(ts)
         thread = threading.Thread(target=worker)
         thread.start()
@@ -312,13 +312,16 @@ class Device:
 # TODO Channel class
 
 
-# class _LoggingManager:
-# 
-#     def __init__(self) -> None:
-#         self._requests: dict[tuple[int, str], _LoggingRequest] = {}
-#         self._results: dict[tuple[int, str], timeseries.TimeSeries] = {}
-# 
-#     def push(self, channel: dict[tuple[int, str]]) -> tuple[live.AbstractFuture, live.AbstractFuture]:
+class _LoggingManager:
+
+    def __init__(self) -> None:
+        self._requests: dict[tuple[int, str], _LoggingRequest] = {}
+        self._export_data = ExportDataObject()
+
+    def push(self, channel: dict[tuple[int, str]], period: int) -> live.AbstractFuture:
+        request = _LoggingRequest(channel, period)
+        self._requests[channel] = request
+        return request.future
 
 
 class _LoggingRequest:
