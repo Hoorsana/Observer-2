@@ -207,7 +207,8 @@ class Device:
         Device.device_exists = True
         self._details = details
         self._requests = {}
-        self._result = ResultObject()
+        self._result = ExportDataObject()
+        # self._manager = _LoggingManager()
 
     def open(self) -> live.AbstractFuture:
         """No-op ``open`` method to satisfy live.AbstractDevice
@@ -292,25 +293,56 @@ class Device:
             period:
                 The logging period in seconds
         """
-        del period  # TODO
-        _logic.capture_start()
-        future = Future('result')
-        assert channel not in self._requests
-        self._requests[channel] = future
-        return DelayFuture('log_signal', _grace), future
+        _logic.capture_start()  # TODO This causes a crash when multiple requests are submitted
+        request = _LoggingRequest(channel, period)
+        self._requests[channel] = request
+        return DelayFuture('log_signal', _grace), request.future
 
     def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
         def worker():
             result = self._result.get()
             ts = timeseries.TimeSeries(*result[channel])
-            future = self._requests[channel]
-            future.set_result(ts)
+            request = self._requests[channel]
+            request.future.set_result(ts)
         thread = threading.Thread(target=worker)
         thread.start()
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
 
 
-class ResultObject:
+# TODO Channel class
+
+
+# class _LoggingManager:
+# 
+#     def __init__(self) -> None:
+#         self._requests: dict[tuple[int, str], _LoggingRequest] = {}
+#         self._results: dict[tuple[int, str], timeseries.TimeSeries] = {}
+# 
+#     def push(self, channel: dict[tuple[int, str]]) -> tuple[live.AbstractFuture, live.AbstractFuture]:
+
+
+class _LoggingRequest:
+
+    def __init__(self, channel: tuple[int, str], period: int) -> None:
+        self._channel = channel
+        self._period = period
+        self._future = Future(f'Saleae Logic {channel} result')
+
+    @property
+    def channel(self) -> tuple[int, str]:
+        return self._channel
+
+    @property
+    def period(self) -> int:
+        return self._period
+
+    @property
+    def future(self) -> live.AbstractFuture:
+        return self._future
+
+
+
+class ExportDataObject:
     """Class that manages concurrent access to the (future) results of
     the logic analyzer.
     """
