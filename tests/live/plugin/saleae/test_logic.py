@@ -92,13 +92,13 @@ def details():
                     ports=[
                         infos.PortInfo(
                             'analog',
-                            ('analog', 3),
+                            (3, 'analog'),
                             min=0, max=255,
                             flags=['input', 'analog']
                         ),
                         # infos.PortInfo(
                         #     'digital',
-                        #     ('digital', 2),
+                        #     (2, 'digital'),
                         #     min=0, max=1,
                         #     flags=['input', 'digital']
                         # )

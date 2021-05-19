@@ -278,7 +278,7 @@ class Device:
     def details(self) -> saleae.ConnectedDevice:
         return self._details
 
-    def _extract_data(self) -> dict[tuple[str, int], tuple[list[float], list[ArrayLike]]]:
+    def _extract_data(self) -> dict[tuple[int, str], tuple[list[float], list[ArrayLike]]]:
         # TODO Do this using the socket API instead of a tempdir
         with tempfile.TemporaryDirectory() as tmpdir:
             # TODO Write to fake file?
@@ -288,7 +288,7 @@ class Device:
         return result
 
     def log_signal(self,
-                   channel: tuple[str, int],
+                   channel: tuple[int, str],
                    period: float) -> tuple[live.AbstractFuture, live.AbstractFuture]:
         """Submit a logging request.
 
@@ -306,7 +306,7 @@ class Device:
         self._requests[channel] = future
         return DelayFuture('log_signal', _grace), future
 
-    def end_log_signal(self, channel: tuple[str, int]) -> live.AbstractFuture:
+    def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
         def worker():
             _logic.capture_stop()
             while not _logic.is_processing_complete():
