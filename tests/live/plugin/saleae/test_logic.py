@@ -14,11 +14,11 @@ def test_basic(pulsar, details):
     time.sleep(0.1)
 
 
-@pytest.mark.skip
 def test_functional(pulsar, details):
     report = workflow.run(live, pulsar, details)
     print(report)
     print([k for k in report.results])
+    assert False
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def pulsar():
         ],
         [
             infos.LoggingInfo(target='pulsar', signal='analog', period=None),
-            infos.LoggingInfo(target='pulsar', signal='digital', period=None),
+            # infos.LoggingInfo(target='pulsar', signal='digital', period=None),
         ],
         [infos.PhaseInfo(duration=1.0, commands=[])]
     )
@@ -68,12 +68,12 @@ def details():
                             min=0, max=255,
                             flags=['output', 'analog']
                         ),
-                        infos.PortInfo(
-                            'sum',
-                            'D45',
-                            min=0, max=1,
-                            flags=['output', 'digital']
-                        ),
+                        # infos.PortInfo(
+                        #     'digital',
+                        #     'D45',
+                        #     min=0, max=1,
+                        #     flags=['output', 'digital']
+                        # ),
                     ]
                 )
             ),
@@ -82,10 +82,10 @@ def details():
                 module='pylab.live.plugin.saleae.logic',
                 type='Device.from_id',
                 data={
-                    'id': os.environ['PYLAB_SALEAE_DEVICE_ID_LOGIC_PRO_8'],
-                    'digital': [2],
-                    'analog': [3],
-                    'sample_rate_digital': 100,
+                    'id': int(os.environ['PYLAB_SALEAE_DEVICE_ID_LOGIC_PRO_8']),
+                    # 'digital': [2],
+                    'analog': [0, 1, 2, 3],
+                    # 'sample_rate_digital': 100,
                     'sample_rate_analog': 100
                 },
                 interface=infos.ElectricalInterface(
@@ -96,12 +96,12 @@ def details():
                             min=0, max=255,
                             flags=['input', 'analog']
                         ),
-                        infos.PortInfo(
-                            'digital',
-                            ('digital', 2),
-                            min=0, max=1,
-                            flags=['input', 'digital']
-                        )
+                        # infos.PortInfo(
+                        #     'digital',
+                        #     ('digital', 2),
+                        #     min=0, max=1,
+                        #     flags=['input', 'digital']
+                        # )
                     ]
                 )
             )
@@ -109,12 +109,12 @@ def details():
         connections=[
             infos.ConnectionInfo(
                 sender='pulsar', sender_port='analog',
-                receiver='logger', receiver_port=('analog', 3)
+                receiver='logger', receiver_port='analog'
             ),
-            infos.ConnectionInfo(
-                sender='pulsar', sender_port='digital',
-                receiver='logger', receiver_port=('digita', 2)
-            ),
+            # infos.ConnectionInfo(
+            #     sender='pulsar', sender_port='digital',
+            #     receiver='logger', receiver_port='digital'
+            # ),
         ],
         extension={
             'saleae': {

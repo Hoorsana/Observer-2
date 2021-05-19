@@ -22,7 +22,7 @@ void loop()
   auto t = millis();
   if (t - last > FREQUENCY)
   {
-    analogWrite(DAC0, mult * 255);
+    analogWrite(DAC1, mult * 255);
     digitalWrite(DIGITAL_OUT, mult ? HIGH : LOW);
     mult = abs(1 - mult);
     last = t;

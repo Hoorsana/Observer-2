@@ -248,11 +248,18 @@ class Device:
             saleae.ImpossibleSetting:
                 If the sample rate settings are invalid
         """
-        index, device = next(
-            (index, elem) for index, elem
-            in enumerate(_logic.get_connected_devices(), start=1)
-            if elem.id == id
-        )
+        try:
+            index, device = next(
+                (index, elem) for index, elem
+                in enumerate(_logic.get_connected_devices(), start=1)
+                if elem.id == id
+            )
+        except StopIteration:
+            raise ValueError(
+                f'Failed to find Saleae device with id {id} ({type(id)}). Available devices are:\n'
+                + '\n'.join('\t' + str(elem.id) + f' ({type(elem.id)})' + ': ' + str(elem)
+                            for elem in _logic.get_connected_devices())
+            )
         _logic.select_active_device(index)
 
         # Logic and default values based on ``saleae.demo()``.
@@ -311,9 +318,6 @@ class Device:
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
 
 
-
-
-
 class BaseFuture:
 
     def __init__(self, what: str) -> None:
@@ -345,7 +349,7 @@ class DelayFuture(BaseFuture):
         self._delay = delay
 
     def _seconds_until_done(self) -> float:
-        return self._start + self._delay - time.time()
+        return max(self._start + self._delay - time.time(), 0)
 
     def wait(self, timeout: Optional[float] = None) -> bool:
         result = True
@@ -355,11 +359,10 @@ class DelayFuture(BaseFuture):
             if timeout > self._seconds_until_done():
                 wait_for = self._seconds_until_done()
             else:
-                wait_for = min(self._seconds_until_done(), timeout)
+                wait_for = timeout
                 result = False
         time.sleep(wait_for)
         return result
-
 
     def done(self) -> bool:
         return time.time() >= self._start + self._delay
