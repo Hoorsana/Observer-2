@@ -115,6 +115,7 @@ is still in progress.
 from __future__ import annotations
 
 import csv
+import dataclasses
 import os
 import tempfile
 import threading
@@ -206,7 +207,6 @@ class Device:
             raise RuntimeError('Attempting to created multiple saleae.logic.Device objects')
         Device.device_exists = True
         self._details = details
-        self._result = ExportDataObject()
         self._manager = _LoggingManager()
 
     def open(self) -> live.AbstractFuture:
@@ -299,17 +299,17 @@ class Device:
         return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
-        def worker():
-            result = self._result.get()
-            ts = timeseries.TimeSeries(*result[channel])
-            request = self._manager._requests[channel]
-            request.future.set_result(ts)
-        thread = threading.Thread(target=worker)
-        thread.start()
+        del channel
+        self._manager.end()
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
 
 
-# TODO Channel class
+@dataclasses.dataclass
+class _Channel:
+    number: int
+    type: str
+
+    # TODO post-init
 
 
 class _LoggingManager:
@@ -323,7 +323,23 @@ class _LoggingManager:
         self._requests[channel] = request
         return request.future
 
+    def end(self) -> None:
+        """End logging for this session.
 
+        With Logic, it's either all or nothing, so it's find to not even
+        check the channel name.
+        """
+        for channel in self._requests:
+            def worker():
+                result = self._export_data.get()
+                ts = timeseries.TimeSeries(*result[channel])
+                request = self._requests[channel]
+                request.future.set_result(ts)
+            thread = threading.Thread(target=worker)
+            thread.start()
+
+
+# TODO Make dataclass
 class _LoggingRequest:
 
     def __init__(self, channel: tuple[int, str], period: int) -> None:
@@ -342,7 +358,6 @@ class _LoggingRequest:
     @property
     def future(self) -> live.AbstractFuture:
         return self._future
-
 
 
 class ExportDataObject:
@@ -374,9 +389,6 @@ class ExportDataObject:
             path = os.path.join(tmpdir, 'data.csv')
             _logic.export_data2(path, delimiter='comma')
             self._value = _parser.from_file(path)
-
-
-
 
 
 class BaseFuture:
