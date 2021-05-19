@@ -7,6 +7,7 @@ resources/examples/adder/arduino_details.yml
 resources/examples/limit_monitoring/arduino_details.yml
 arduino/limit_monitoring/platformio.ini
 arduino/adder/platformio.ini
+arduino/pulsar/platformio.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
