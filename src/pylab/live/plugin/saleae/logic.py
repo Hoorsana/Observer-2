@@ -125,6 +125,7 @@ from numpy.typing import ArrayLike
 
 from pylab.live import live
 from pylab.core import report
+from pylab.core import timeseries
 from pylab.live.plugin.saleae import _parser
 
 _logic = None
@@ -314,7 +315,7 @@ class Device:
             while not _logic.is_processing_complete():
                 time.sleep(GRAIN)
             result = self._extract_data()
-            self._requests[channel].set_result(result[channel])
+            self._requests[channel].set_result(timeseries.TimeSeries(*result[channel]))
         thread = threading.Thread(target=worker)
         thread.start()
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))

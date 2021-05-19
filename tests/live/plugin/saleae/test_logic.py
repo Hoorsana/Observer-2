@@ -16,8 +16,11 @@ def test_basic(pulsar, details):
 
 def test_functional(pulsar, details):
     report = workflow.run(live, pulsar, details)
-    print(report)
+    print(type(report))
     print([k for k in report.results])
+    print(type(report.results['pulsar.analog']))
+    print(report.results['pulsar.analog'].time[0:100])
+    print(report.results['pulsar.analog'].values[0:100])
     assert False
 
 
