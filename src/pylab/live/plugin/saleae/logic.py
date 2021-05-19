@@ -307,12 +307,14 @@ class Device:
         return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
+        # TODO Do this work only once, not everytime a new signal is
+        # gotten by the user!
         def worker():
             _logic.capture_stop()
             while not _logic.is_processing_complete():
                 time.sleep(GRAIN)
             result = self._extract_data()
-            self._requests[channel].set_result(result)
+            self._requests[channel].set_result(result[channel])
         thread = threading.Thread(target=worker)
         thread.start()
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
