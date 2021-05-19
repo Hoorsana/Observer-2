@@ -227,13 +227,13 @@ class Device:
                 id: int,
                 digital: Optional[list[int]] = None,
                 analog: Optional[list[int]] = None,
-                sample_rate_digital: int = 0,
-                sample_rate_analog: int = 0) -> Device:
+                sample_rate_digital: int = 50_000,
+                sample_rate_analog: int = 100) -> Device:
         """Create a Logic device from id.
 
         Args:
             id: The saleae id
-            digital: The activate digital channels
+            digital: The active digital channels
             analog: The active analog channels
             sample_rate_digital:
                 The minimum digital sample rate in MS/s (0 to disable

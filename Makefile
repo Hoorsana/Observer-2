@@ -40,6 +40,11 @@ default: venv
 	pytest -vv tests && \
 	deactivate
 
+.PHONY: saleae-flash
+saleae-flash: venv
+	cd arduino/pulsar && make flash
+	make saleae
+
 .PHONY: saleae-quick
 saleae-quick: venv
 	$(PYTEST) -vv tests/live/plugin/saleae/test_parser.py
@@ -48,11 +53,6 @@ saleae-quick: venv
 saleae: venv
 	$(PYTEST) -vv tests/live/plugin/saleae/test_logic.py
 	$(PYTEST) -vv tests/live/plugin/saleae/test_parser.py
-
-.PHONY: saleae-flash
-saleae-flash:
-	cd arduino/adder && make flash
-	make saleae
 
 .PHONY: can
 can: venv

@@ -9,73 +9,45 @@ from pylab.live import live
 from pylab.live.plugin.saleae import logic
 
 
-def test_init_kill(adder, details):
-    logic.init(adder, details)
+def test_basic(pulsar, details):
+    logic.init(pulsar, details)
     time.sleep(0.1)
-    logic.kill()
 
 
-class TestDevice:
-
-    def test_from_id(self, details):
-        pass
-
-
-def test_functional(adder, details):
-    report = workflow.run(live, adder, details)
+@pytest.mark.skip
+def test_functional(pulsar, details):
+    report = workflow.run(live, pulsar, details)
     print(report)
     print([k for k in report.results])
-    assert(False)
 
 
 @pytest.fixture
-def adder():
+def pulsar():
     return infos.TestInfo(
         [
             infos.TargetInfo(
-                name='adder',
+                name='pulsar',
                 signals=[
                     infos.SignalInfo(
-                        name='val1',
-                        flags=['input', 'analog'],
-                        min=0,
-                        max=100
-                    ),
-                    infos.SignalInfo(
-                        name='val2',
-                        flags=['input', 'analog'],
-                        min=0,
-                        max=100
-                    ),
-                    infos.SignalInfo(
-                        name='sum',
+                        name='analog',
                         flags=['output', 'analog'],
                         min=0,
                         max=200
                     ),
+                    infos.SignalInfo(
+                        name='digital',
+                        flags=['output', 'digital'],
+                        min=0,
+                        max=1
+                    ),
                 ],
             )
         ],
-        [infos.LoggingInfo(target='adder', signal='sum', period=0.1)],
         [
-            infos.PhaseInfo(
-                duration=0.6,
-                commands=[
-                    infos.CommandInfo(
-                        time=0.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 50}
-                    ),
-                    infos.CommandInfo(
-                        time=0.0, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val2', 'value': 50}
-                    ),
-                    infos.CommandInfo(
-                        time=0.3, command='CmdSetSignal', target='adder',
-                        data={'signal': 'val1', 'value': 75}
-                    ),
-                ]
-            ),
-        ]
+            infos.LoggingInfo(target='pulsar', signal='analog', period=None),
+            infos.LoggingInfo(target='pulsar', signal='digital', period=None),
+        ],
+        [infos.PhaseInfo(duration=1.0, commands=[])]
     )
 
 
@@ -84,54 +56,23 @@ def details():
     return live.Details(
         devices=[
             live.DeviceDetails(
-                name='adder',
+                name='pulsar',
                 module='pylab.live.live',
                 type='UsbSerialDevice.from_serial_number',
                 data={'serial_number': os.environ['PYLAB_USB_SERIAL_NUMBER_DEVICE']},
                 interface=infos.ElectricalInterface(
                     ports=[
                         infos.PortInfo(
-                            'val1',
-                            'A0',
-                            min=168, max=852,
-                            flags=['input', 'analog']
-                        ),
-                        infos.PortInfo(
-                            'val2',
-                            'A1',
-                            min=168, max=852,
-                            flags=['input', 'analog']
-                        ),
-                        infos.PortInfo(
-                            'sum',
-                            'DAC0',
+                            'analog',
+                            'DAC1',
                             min=0, max=255,
                             flags=['output', 'analog']
                         ),
-                    ]
-                )
-            ),
-            live.DeviceDetails(
-                name='gpio',
-                module='pylab.live.plugin.controllino.controllino',
-                type='PylabControllino.from_serial_number',
-                data={
-                    'serial_number': os.environ['PYLAB_USB_SERIAL_NUMBER_CONTROLLINO'],
-                    'baudrate': 19200
-                },
-                interface=infos.ElectricalInterface(
-                    ports=[
                         infos.PortInfo(
-                            'out1',
-                            'DAC0',
-                            min=0, max=255,
-                            flags=['output', 'analog'],
-                        ),
-                        infos.PortInfo(
-                            'out2',
-                            'DAC1',
-                            min=0, max=255,
-                            flags=['output', 'analog'],
+                            'sum',
+                            'D45',
+                            min=0, max=1,
+                            flags=['output', 'digital']
                         ),
                     ]
                 )
@@ -141,34 +82,38 @@ def details():
                 module='pylab.live.plugin.saleae.logic',
                 type='Device.from_id',
                 data={
-                    'id': int(os.environ['PYLAB_SALEAE_DEVICE_ID_NO_DEVICE']),
-                    'sample_rate_digital': 400_000,
+                    'id': os.environ['PYLAB_SALEAE_DEVICE_ID_LOGIC_PRO_8'],
+                    'digital': [2],
+                    'analog': [3],
+                    'sample_rate_digital': 100,
                     'sample_rate_analog': 100
                 },
                 interface=infos.ElectricalInterface(
                     ports=[
                         infos.PortInfo(
-                            'in',
-                            ('analog', 0),
+                            'analog',
+                            ('analog', 3),
                             min=0, max=255,
                             flags=['input', 'analog']
                         ),
+                        infos.PortInfo(
+                            'digital',
+                            ('digital', 2),
+                            min=0, max=1,
+                            flags=['input', 'digital']
+                        )
                     ]
                 )
-            ),
+            )
         ],
         connections=[
             infos.ConnectionInfo(
-                sender='gpio', sender_port='out1',
-                receiver='adder', receiver_port='val1'
+                sender='pulsar', sender_port='analog',
+                receiver='logger', receiver_port=('analog', 3)
             ),
             infos.ConnectionInfo(
-                sender='gpio', sender_port='out2',
-                receiver='adder', receiver_port='val2'
-            ),
-            infos.ConnectionInfo(
-                sender='adder', sender_port='sum',
-                receiver='logger', receiver_port='in'
+                sender='pulsar', sender_port='digital',
+                receiver='logger', receiver_port=('digita', 2)
             ),
         ],
         extension={
@@ -177,7 +122,7 @@ def details():
                     'host': 'localhost',
                     # 'performance': 'Full',
                     'port': 10429,
-                    'grace': 1.0
+                    'grace': 5.0
                 }
             }
         }

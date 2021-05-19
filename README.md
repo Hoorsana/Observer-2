@@ -67,7 +67,8 @@ the environment variables using the `freeze` script.
 Run `make saleae` to test the saleae component. Before doing so, set the
 environment variable `PYLAB_SALEAE_DEVICE_ID_NO_DEVICE` to the id of one
 of the four connected devices _that show up when no actual hardware is
-connected_. You can discover the id using the following script:
+connected_ and `PYLAB_SALEAE_DEVICE_ID_LOGIC_PRO_8` to the id of a
+Saleae LogicPro 8. You can discover the id using the following script:
 
 ```python
 import saleae
@@ -79,6 +80,15 @@ data = [(each.name, each.type, each.id) for each in devices]
 tab = tabulate(data, headers=['name', 'type', 'id'])
 print(tab)
 ```
+
+Testing requires one Arduino Due Board and a Saleae LogicPro 8. Flash
+the Arduino with `arduino/pulsar/` (by running `make flash` in that
+directory) and make the following connections: `pulsar.D40-saleae.2`,
+`pulsar.DAC1-saleae.3`.
+
+**Beware!** It may be necessary to start Logic Legacy _before_ running
+the tests. If you experience blocking or crashes during the tests, try
+that.
 
 
 #### Testing `live.plugin.can`
