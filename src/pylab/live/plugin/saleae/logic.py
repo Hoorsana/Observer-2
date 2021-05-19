@@ -307,12 +307,12 @@ class Device:
 class _LoggingManager:
 
     def __init__(self) -> None:
-        self._requests: dict[tuple[int, str], _LoggingRequest] = {}
+        self._requests: list[_LoggingRequest] = []
         self._export_data = ExportDataObject()
 
     def push(self, channel: dict[tuple[int, str]], period: int) -> live.AbstractFuture:
         request = _LoggingRequest(channel, period)
-        self._requests[channel] = request
+        self._requests.append(request)
         return request.future
 
     def end(self) -> None:
@@ -321,12 +321,14 @@ class _LoggingManager:
         With Logic, it's either all or nothing, so it's find to not even
         check the channel name.
         """
-        for channel in self._requests:
+        for elem in self._requests:
             def worker():
                 result = self._export_data.get()
-                ts = timeseries.TimeSeries(*result[channel])
-                request = self._requests[channel]
-                request.future.set_result(ts)
+                ts = timeseries.TimeSeries(*result[elem.channel])
+                # TODO This will result in a dead thread if the wrong
+                # channel is provided - the error handling must be
+                # improved!
+                elem.future.set_result(ts)
             thread = threading.Thread(target=worker)
             thread.start()
 
