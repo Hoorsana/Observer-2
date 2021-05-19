@@ -76,6 +76,10 @@ _RESULT_TYPE = Union[timeseries.TimeSeries, List[str]]
 # frontend {{{
 
 
+# TODO The init, post_init, cleanup structure is messed up. It should
+# probably all go into TestObject.
+
+
 def create(info: infos.TestInfo, details: Details) -> Test:
     """Implementation of :meth:`core.api.create
     <pylab.core.api.create>`.

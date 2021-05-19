@@ -207,6 +207,7 @@ class Device:
         Device.device_exists = True
         self._details = details
         self._requests = {}
+        self._result = ResultObject()
 
     def open(self) -> live.AbstractFuture:
         """No-op ``open`` method to satisfy live.AbstractDevice
@@ -279,15 +280,6 @@ class Device:
     def details(self) -> saleae.ConnectedDevice:
         return self._details
 
-    def _extract_data(self) -> dict[tuple[int, str], tuple[list[float], list[ArrayLike]]]:
-        # TODO Do this using the socket API instead of a tempdir
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # TODO Write to fake file?
-            path = os.path.join(tmpdir, 'data.csv')
-            _logic.export_data2(path, delimiter='comma')
-            result = _parser.from_file(path)
-        return result
-
     def log_signal(self,
                    channel: tuple[int, str],
                    period: float) -> tuple[live.AbstractFuture, live.AbstractFuture]:
@@ -308,17 +300,48 @@ class Device:
         return DelayFuture('log_signal', _grace), future
 
     def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
-        # TODO Do this work only once, not everytime a new signal is
-        # gotten by the user!
         def worker():
-            _logic.capture_stop()
-            while not _logic.is_processing_complete():
-                time.sleep(GRAIN)
-            result = self._extract_data()
-            self._requests[channel].set_result(timeseries.TimeSeries(*result[channel]))
+            result = self._result.get()
+            ts = timeseries.TimeSeries(*result[channel])
+            future = self._requests[channel]
+            future.set_result(ts)
         thread = threading.Thread(target=worker)
         thread.start()
         return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
+
+
+class ResultObject:
+    """Class that manages concurrent access to the (future) results of
+    the logic analyzer.
+    """
+
+    def __init__(self):
+        self._value = None
+        self._lock = threading.Lock()
+
+    def get(self) -> dict[tuple[int, str], tuple[list[float], list[ArrayLike]]]:
+        """Get and post-process results of the last capture.
+
+        Any number of threads may call ``get()``; one of them will take over
+        the job of doing the actual computation while all others will wait
+        for the lock to be freed when the computation is done.
+        """
+        with self._lock:
+            if self._value is None:
+                self._get_impl()
+        return self._value
+
+    def _get_impl(self):
+        _logic.capture_stop()
+        while not _logic.is_processing_complete():
+            time.sleep(GRAIN)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.csv')
+            _logic.export_data2(path, delimiter='comma')
+            self._value = _parser.from_file(path)
+
+
+
 
 
 class BaseFuture:
