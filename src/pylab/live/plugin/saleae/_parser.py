@@ -7,34 +7,82 @@ from __future__ import annotations
 import csv
 import dataclasses
 import re
+from typing import IO
 
 from pylab.core import timeseries
 
 
-def from_file(path: str) -> timeseries.TimeSeries:
+def from_file(path: str, data: list[tuple[int, str, float]]) -> ...:
     with open(path, 'r') as f:
         reader = csv.reader(f, delimiter=',')  # , quoting=csv.QUOTE_NONNUMERIC)
-        data = list(reader)
-    return _to_list(data)
+        header = next(reader)
+        available_channels = _get_available_channels(header)
+        requests = []
+        for number, type, period in data:
+            channel = next(elem for elem in available_channels if elem.number == number and elem.type == type)
+            requests.append(_Request(channel, period))
+        job = Job(requests)
+        result = job.deploy(f)
+    return result
 
 
-def _to_list(data: list[list[str]]) -> timeseries.TimeSeries:
-    """Convert raw .csv data to tuple of time and value vectors.
-    
-    Args:
-        data: The data to parse
+class Job:
 
-    Returns:
-        A dict mapping the channel to the corresponding time series
-    """
-    header = [elem.strip() for elem in data[0]]
-    channels = _parse_channels(header)
-    data = [[float(x) if x != ' ' else None for x in line] for line in data[1:]]
+    def __init__(self, requests: list[_Request]):
+        self._requests = requests
 
-    return {(each.number, each.type): each.deploy(data) for each in channels}
+    def deploy(self, f: IO) -> ...:
+        reader = csv.reader(f, delimiter=',')
+        for line in reader:
+            self._handle(line)
+        return self._requests
+
+    def _handle(self, line: list[str]) -> None:
+        line = [float(x) if x != ' ' else None for x in line]
+        for request in self._requests:
+            request.update(line)
 
 
-def _parse_channels(header: list[str]) -> list[_Channel]:
+class _Request:
+
+    def __init__(self, channel: _Channel, period: float) -> None:
+        self._channel = channel
+        self._period = period
+        self._time = []
+        self._values = []
+
+    @property
+    def channel(self) -> tuple[int, str]:
+        return (self._channel.number, self._channel.type)
+
+    @property
+    def result(self) -> list[float]:
+        return self._time, self._values
+
+    def update(self, line: list[Optional[float]]) -> None:
+        time, values = self._channel.extract_data_from_line(line)
+        if time is None and values is None:
+            return
+        assert time is not None
+        assert values is not None
+        while True:
+            if not self._time:
+                current = 0.0
+            else:
+                last = self._time[-1]
+                current = last + self._period
+            # Note that if (request period) << (logger period), then
+            # this will result in may superfluous samples, but this will
+            # probably never happen.
+            if time >= current:
+                self._time.append(current)
+                self._values.append(values)
+            else:
+                break
+        assert len(self._time) == len(self._values)
+
+
+def _get_available_channels(header: list[str]) -> list[_Channel]:
     channels = []
     for index, elem in enumerate(header):
         if elem == 'Time [s]':
@@ -84,11 +132,7 @@ class _Channel:
     time: int
     data: int
 
-    def deploy(self, data: list[list[float]]) -> tuple[list[float], list[float]]:
+    def extract_data_from_line(self, line: list[float]) -> tuple[list[float], list[float]]:
         # Make sure to only read available data by checking for
         # ``None``.
-        time = [elem[self.time] for elem in data
-                if elem[self.time] is not None]
-        values = [elem[self.data] for elem in data
-                  if elem[self.data] is not None]
-        return time, values
+        return line[self.time], line[self.data]
