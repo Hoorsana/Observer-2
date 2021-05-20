@@ -51,20 +51,20 @@ github.com/ppannuto/python-saleae/issues/18, which uses a trick to
 circumvent a certain problem found in C# API Docs. The C# API docs say:
 
   Socket Command: stop_capture
-  
+
   This command stops the current capture. This command will return
   ``NAK`` if no capture is in progress.
-  
+
   If a capture is in progress, it does not return a response. Instead,
   it initiates the end of the capture, and then the active capture
   command will send it's reply, either a ``ACK`` if any data is
   recorded, or a ``NAK`` if the capture was terminated before the
   trigger condition was found.
-  
+
   Use this function with care, as a race condition determines if one or
   two responses will be returned. This will be improved in future
   versions of the socket API and C# wrapper.
-  
+
   Specifically, if the stop_capture command is issued near
   simultaneously with the normal end of the capture, it is possible to
   get a single ``ACK`` response or two responses, ``ACK`` followed by
@@ -166,7 +166,7 @@ def _capture_duration(duration: float) -> float:
     Returns:
         The total duration of capture
     """
-    return GRACE + _grace + 2*duration
+    return GRACE + _grace + 2 * duration
 
 
 def _initialize_saleae(duration: float,
@@ -174,7 +174,7 @@ def _initialize_saleae(duration: float,
                        port: int = 10429,
                        performance: saleae.PerformanceOption = saleae.PerformanceOption.Full,
                        grace: float = 5.0,
-                      ) -> None:
+                       ) -> None:
     """Lazily create global Logic API object.
 
     Args:
@@ -204,7 +204,8 @@ class Device:
 
     def __init__(self, details: saleae.ConnectedDevice) -> None:
         if Device.device_exists:
-            raise RuntimeError('Attempting to created multiple saleae.logic.Device objects')
+            raise RuntimeError(
+                'Attempting to created multiple saleae.logic.Device objects')
         Device.device_exists = True
         self._details = details
         self._manager = _LoggingManager()
