@@ -28,8 +28,13 @@ def _to_list(data: list[list[str]]) -> timeseries.TimeSeries:
         A dict mapping the channel to the corresponding time series
     """
     header = [elem.strip() for elem in data[0]]
+    channels = _parse_channels(header)
     data = [[float(x) if x != ' ' else None for x in line] for line in data[1:]]
 
+    return {(each.number, each.type): each.deploy(data) for each in channels}
+
+
+def _parse_channels(header: list[str]) -> list[_Channel]:
     channels = []
     for index, elem in enumerate(header):
         if elem == 'Time [s]':
@@ -43,7 +48,7 @@ def _to_list(data: list[list[str]]) -> timeseries.TimeSeries:
                 'Expected header field of the following form: "Time [s]"'
                 ' or "Channel [0-9]-(Analog|Digital)"'
             )
-    return {(each.number, each.type): each.deploy(data) for each in channels}
+    return channels
 
 
 def _parse_channel_info(entry: str) -> tuple[int, str]:

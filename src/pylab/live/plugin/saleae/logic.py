@@ -373,6 +373,9 @@ class ExportDataObject:
         _logic.capture_stop()
         while not _logic.is_processing_complete():
             time.sleep(GRAIN)
+        # There is apparently no better way to do this. In fact, Saleae
+        # themselves suggest this approach:
+        # https://support.saleae.com/faq/technical-faq/extract-data-using-socket-api 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.csv')
             _logic.export_data2(path, delimiter='comma')

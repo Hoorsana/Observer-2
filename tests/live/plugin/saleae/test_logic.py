@@ -92,8 +92,8 @@ def details():
                     'id': int(os.environ['PYLAB_SALEAE_DEVICE_ID_LOGIC_PRO_8']),
                     # 'digital': [2],
                     'analog': [0, 1, 2, 3],
-                    # 'sample_rate_digital': 100,
-                    'sample_rate_analog': 100
+                    # 'sample_rate_digital': 0,
+                    'sample_rate_analog': 10
                 },
                 interface=infos.ElectricalInterface(
                     ports=[
