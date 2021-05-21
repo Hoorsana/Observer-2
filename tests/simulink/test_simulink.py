@@ -117,8 +117,6 @@ class TestExamples:
     def test_limit(self, limit):
         test = simulink.create(*limit)
         report = test.execute()
-        print(report.what)
-        print(test._code)
         assert not report.failed
         # FIXME No verification...
 

@@ -442,8 +442,6 @@ class FutureCollection(live.AbstractFuture):
     def log(self) -> report.LogEntry:
         futures = [elem for elem in self._futures if elem.done]
         severity = max(elem.log.severity for elem in futures)
-        for elem in futures:
-            print(elem.log.what)
         return report.LogEntry('\n'.join(each.log.what for each in futures), severity)
 
     @property

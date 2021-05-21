@@ -894,8 +894,6 @@ def _wait_for_all(futures: list[AbstractFuture],
     # just those that actually timed out - Separate timed out futures
     # from the rest!
     if not all(done):
-        print(timeout)
-        print([type(elem) for elem in futures])
         return [_timed_out_report(elem) for elem in futures]
     return [each.log for each in futures]
 
