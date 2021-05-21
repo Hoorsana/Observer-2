@@ -27,7 +27,6 @@ class AbstractLoader:
         pass
 
 
-# TODO This doesn't include loading verifications
 def run_from_files(driver: Union[str, api.AbstractDriver],
                    test: str,
                    details: str,

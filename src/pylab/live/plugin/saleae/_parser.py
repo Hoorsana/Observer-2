@@ -35,7 +35,7 @@ class Job:
         reader = csv.reader(f, delimiter=',')
         for line in reader:
             self._handle(line)
-        return self._requests
+        return {elem.channel: elem.result for elem in self._requests}
 
     def _handle(self, line: list[str]) -> None:
         line = [float(x) if x != ' ' else None for x in line]
@@ -85,6 +85,7 @@ class _Request:
 def _get_available_channels(header: list[str]) -> list[_Channel]:
     channels = []
     for index, elem in enumerate(header):
+        elem = elem.strip()
         if elem == 'Time [s]':
             time = index
         elif elem.startswith('Channel'):
@@ -93,8 +94,9 @@ def _get_available_channels(header: list[str]) -> list[_Channel]:
             channels.append(channel)
         else:
             raise ValueError(
-                'Expected header field of the following form: "Time [s]"'
-                ' or "Channel [0-9]-(Analog|Digital)"'
+                'Expected header field of the following form: "Time [s]"\n'
+                'or "Channel [0-9]-(Analog|Digital)". Instead received the\n'
+                f'following: {header}'
             )
     return channels
 

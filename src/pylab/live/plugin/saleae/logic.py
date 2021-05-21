@@ -313,7 +313,6 @@ class _LoggingManager:
 
     def __init__(self) -> None:
         self._requests: list[_LoggingRequest] = []
-        self._export_data = ExportDataObject()
 
     def push(self, channel: dict[tuple[int, str]], period: int) -> live.AbstractFuture:
         request = _LoggingRequest(channel, period)
@@ -326,16 +325,30 @@ class _LoggingManager:
         With Logic, it's either all or nothing, so it's find to not even
         check the channel name.
         """
+        # def worker():
+        result = self._export_data()
+        # TODO This will result in a dead thread if the wrong
+        # channel is provided - the error handling must be
+        # improved!
         for elem in self._requests:
-            def worker():
-                result = self._export_data.get()
-                ts = timeseries.TimeSeries(*result[elem.channel])
-                # TODO This will result in a dead thread if the wrong
-                # channel is provided - the error handling must be
-                # improved!
-                elem.future.set_result(ts)
-            thread = threading.Thread(target=worker)
-            thread.start()
+            ts = timeseries.TimeSeries(*result[elem.channel])
+            elem.future.set_result(ts)
+        # thread = threading.Thread(target=worker)
+        # thread.start()
+
+    def _export_data(self):
+        _logic.capture_stop()
+        while not _logic.is_processing_complete():
+            time.sleep(GRAIN)
+        # There is apparently no better way to do this. In fact, Saleae
+        # themselves suggest this approach:
+        # https://support.saleae.com/faq/technical-faq/extract-data-using-socket-api 
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.csv')
+            _logic.export_data2(path, delimiter='comma')
+            data = [(*elem.channel, elem.period/1000) for elem in self._requests]
+            return _parser.from_file(path, data)
+
 
 
 @dataclasses.dataclass
@@ -346,40 +359,6 @@ class _LoggingRequest:
 
     def __post_init__(self):
         self.future = Future(f'Saleae Logic {self.channel}@{self.period}')
-
-
-class ExportDataObject:
-    """Class that manages concurrent access to the (future) results of
-    the logic analyzer.
-    """
-
-    def __init__(self):
-        self._value = None
-        self._lock = threading.Lock()
-
-    def get(self) -> dict[tuple[int, str], tuple[list[float], list[ArrayLike]]]:
-        """Get and post-process results of the last capture.
-
-        Any number of threads may call ``get()``; one of them will take over
-        the job of doing the actual computation while all others will wait
-        for the lock to be freed when the computation is done.
-        """
-        with self._lock:
-            if self._value is None:
-                self._get_impl()
-        return self._value
-
-    def _get_impl(self):
-        _logic.capture_stop()
-        while not _logic.is_processing_complete():
-            time.sleep(GRAIN)
-        # There is apparently no better way to do this. In fact, Saleae
-        # themselves suggest this approach:
-        # https://support.saleae.com/faq/technical-faq/extract-data-using-socket-api 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = os.path.join(tmpdir, 'data.csv')
-            _logic.export_data2(path, delimiter='comma')
-            self._value = _parser.from_file(path)
 
 
 class BaseFuture:

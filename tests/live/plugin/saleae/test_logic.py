@@ -7,6 +7,7 @@ import time
 
 import pytest
 
+from pylab.core import verification
 from pylab.core import infos
 from pylab.core import workflow
 from pylab.live import live
@@ -20,12 +21,10 @@ def test_basic(pulsar, details):
 
 def test_functional(pulsar, details):
     report = workflow.run(live, pulsar, details)
-    print(type(report))
-    print([k for k in report.results])
-    print(type(report.results['pulsar.analog']))
-    print(report.results['pulsar.analog'].time[0:100])
-    print(report.results['pulsar.analog'].values[0:100])
-    assert False
+    a = verification.IntegralAlmostEqualTo('pulsar.analog', 1, lower=0.07, upper=1.07)
+    print(report.results['pulsar.analog'].time[70:370])
+    print(report.results['pulsar.analog'].values[70:370])
+    workflow.check_report(report, [a])
 
 
 @pytest.fixture
@@ -51,7 +50,7 @@ def pulsar():
             )
         ],
         [
-            infos.LoggingInfo(target='pulsar', signal='analog', period=None),
+            infos.LoggingInfo(target='pulsar', signal='analog', period=1),
             # infos.LoggingInfo(target='pulsar', signal='digital', period=None),
         ],
         [infos.PhaseInfo(duration=1.0, commands=[])]
@@ -93,7 +92,7 @@ def details():
                     # 'digital': [2],
                     'analog': [0, 1, 2, 3],
                     # 'sample_rate_digital': 0,
-                    'sample_rate_analog': 10
+                    'sample_rate_analog': 100
                 },
                 interface=infos.ElectricalInterface(
                     ports=[
