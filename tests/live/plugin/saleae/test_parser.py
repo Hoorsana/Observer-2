@@ -12,7 +12,7 @@ PERIODS = [0.5, 0.3, 0.2]
 REQUESTS = [channel + (period,) for channel, period in zip(CHANNELS, PERIODS)]
 
 @pytest.fixture
-def data():
+def result():
     return _parser.from_file('resources/tests/live/plugin/saleae/data.csv', REQUESTS)
 
 
@@ -26,7 +26,7 @@ def data():
         ]
     ))
 )
-def test_from_file(data, channel, expected):
-    request = next(elem for elem in data if elem.channel == channel)
-    assert request.result[0] == pytest.approx(expected[0])
-    assert request.result[1] == pytest.approx(expected[1])
+def test_from_file(result, channel, expected):
+    time, values = result[channel]
+    assert time == pytest.approx(expected[0])
+    assert values == pytest.approx(expected[1])
