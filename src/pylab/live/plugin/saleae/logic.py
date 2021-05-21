@@ -325,16 +325,16 @@ class _LoggingManager:
         With Logic, it's either all or nothing, so it's find to not even
         check the channel name.
         """
-        # def worker():
-        result = self._export_data()
-        # TODO This will result in a dead thread if the wrong
-        # channel is provided - the error handling must be
-        # improved!
-        for elem in self._requests:
-            ts = timeseries.TimeSeries(*result[elem.channel])
-            elem.future.set_result(ts)
-        # thread = threading.Thread(target=worker)
-        # thread.start()
+        def worker():
+            result = self._export_data()
+            # TODO This will result in a dead thread if the wrong
+            # channel is provided - the error handling must be
+            # improved!
+            for elem in self._requests:
+                ts = timeseries.TimeSeries(*result[elem.channel])
+                elem.future.set_result(ts)
+        thread = threading.Thread(target=worker)
+        thread.start()
 
     def _export_data(self):
         _logic.capture_stop()

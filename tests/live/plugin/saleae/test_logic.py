@@ -99,7 +99,7 @@ def details():
                         infos.PortInfo(
                             'analog',
                             (3, 'analog'),
-                            min=0, max=255,
+                            min=0.53315, max=2.734,
                             flags=['input', 'analog']
                         ),
                         # infos.PortInfo(
