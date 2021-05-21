@@ -21,7 +21,7 @@ def test_basic(pulsar, details):
 
 def test_functional(pulsar, details):
     report = workflow.run(live, pulsar, details)
-    a = verification.IntegralAlmostEqualTo('pulsar.analog', 1, lower=0.07, upper=1.07)
+    a = verification.IntegralAlmostEqualTo('pulsar.analog', 0.5, atol=0.01, lower=0.07, upper=1.07)
     print(report.results['pulsar.analog'].time[70:370])
     print(report.results['pulsar.analog'].values[70:370])
     workflow.check_report(report, [a])
@@ -37,8 +37,7 @@ def pulsar():
                     infos.SignalInfo(
                         name='analog',
                         flags=['output', 'analog'],
-                        min=0,
-                        max=200
+                        min=0, max=1
                     ),
                     infos.SignalInfo(
                         name='digital',
