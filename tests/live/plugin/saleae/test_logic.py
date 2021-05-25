@@ -21,8 +21,13 @@ def test_basic(pulsar, details):
 
 def test_functional(pulsar, details):
     report = workflow.run(live, pulsar, details)
-    a = verification.IntegralAlmostEqualTo('pulsar.analog', 0.5, atol=0.01, lower=0.07, upper=1.07)
-    workflow.check_report(report, [a])
+    asserts = [
+        verification.IntegralAlmostEqualTo(
+            'pulsar.analog', 0.5, atol=0.01, lower=1, upper=2),
+        verification.IntegralAlmostEqualTo(
+            'pulsar.digital', 0.5, atol=0.01, lower=1, upper=2)
+    ]
+    workflow.check_report(report, asserts)
 
 
 @pytest.fixture
@@ -48,7 +53,7 @@ def pulsar():
         ],
         [
             infos.LoggingInfo(target='pulsar', signal='analog', period=1),
-            # infos.LoggingInfo(target='pulsar', signal='digital', period=None),
+            infos.LoggingInfo(target='pulsar', signal='digital', period=1),
         ],
         [infos.PhaseInfo(duration=1.0, commands=[])]
     )
@@ -71,12 +76,12 @@ def details():
                             min=0, max=255,
                             flags=['output', 'analog']
                         ),
-                        # infos.PortInfo(
-                        #     'digital',
-                        #     'D45',
-                        #     min=0, max=1,
-                        #     flags=['output', 'digital']
-                        # ),
+                        infos.PortInfo(
+                            'digital',
+                            'D45',
+                            min=0, max=1,
+                            flags=['output', 'digital']
+                        ),
                     ]
                 )
             ),
@@ -86,9 +91,9 @@ def details():
                 type='Device.from_id',
                 data={
                     'id': int(os.environ['PYLAB_SALEAE_DEVICE_ID_LOGIC_PRO_8']),
-                    # 'digital': [2],
+                    'digital': [2],
                     'analog': [0, 1, 2, 3],
-                    # 'sample_rate_digital': 0,
+                    'sample_rate_digital': 4_000_000,
                     'sample_rate_analog': 100
                 },
                 interface=infos.ElectricalInterface(
@@ -99,12 +104,12 @@ def details():
                             min=0.53315, max=2.734,
                             flags=['input', 'analog']
                         ),
-                        # infos.PortInfo(
-                        #     'digital',
-                        #     (2, 'digital'),
-                        #     min=0, max=1,
-                        #     flags=['input', 'digital']
-                        # )
+                        infos.PortInfo(
+                            'digital',
+                            (2, 'digital'),
+                            min=0, max=1,
+                            flags=['input', 'digital']
+                        )
                     ]
                 )
             )
@@ -114,16 +119,16 @@ def details():
                 sender='pulsar', sender_port='analog',
                 receiver='logger', receiver_port='analog'
             ),
-            # infos.ConnectionInfo(
-            #     sender='pulsar', sender_port='digital',
-            #     receiver='logger', receiver_port='digital'
-            # ),
+            infos.ConnectionInfo(
+                sender='pulsar', sender_port='digital',
+                receiver='logger', receiver_port='digital'
+            ),
         ],
         extension={
             'saleae': {
                 'init': {
                     'host': 'localhost',
-                    # 'performance': 'Full',
+                    'performance': 'Full',
                     'port': 10429,
                     'grace': 5.0
                 }

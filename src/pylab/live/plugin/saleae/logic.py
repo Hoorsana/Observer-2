@@ -213,6 +213,7 @@ class Device:
         Device.device_exists = True
         self._details = details
         self._manager = _LoggingManager()
+        self._capture_in_progress = False
 
     def open(self) -> live.AbstractFuture:
         """No-op ``open`` method to satisfy live.AbstractDevice
@@ -299,7 +300,9 @@ class Device:
             period:
                 The logging period in seconds
         """
-        _logic.capture_start()  # TODO This causes a crash when multiple requests are submitted
+        if not self._capture_in_progress:
+            _logic.capture_start()
+            self._capture_in_progress = True
         future = self._manager.push(channel, period)
         return DelayFuture('log_signal', _grace), future
 
@@ -313,6 +316,7 @@ class _LoggingManager:
 
     def __init__(self) -> None:
         self._requests: list[_LoggingRequest] = []
+        self._ended = False
 
     def push(self, channel: dict[tuple[int, str]], period: int) -> live.AbstractFuture:
         request = _LoggingRequest(channel, period)
@@ -322,19 +326,25 @@ class _LoggingManager:
     def end(self) -> None:
         """End logging for this session.
 
-        With Logic, it's either all or nothing, so it's find to not even
+        With Logic, it's either all or nothing, so it's fine to not even
         check the channel name.
         """
+        if self._ended:
+            return
         def worker():
             result = self._export_data()
             # TODO This will result in a dead thread if the wrong
             # channel is provided - the error handling must be
             # improved!
             for elem in self._requests:
+                # FIXME It could happen that result[elem.channel][0] has
+                # length 1, for example if the digital input is not
+                # connected. We should check for that error.
                 ts = timeseries.TimeSeries(*result[elem.channel])
                 elem.future.set_result(ts)
         thread = threading.Thread(target=worker)
         thread.start()
+        self._ended = True
 
     def _export_data(self):
         _logic.capture_stop()
