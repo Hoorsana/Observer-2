@@ -19,6 +19,14 @@ from typing import Any, Optional
 
 @dataclasses.dataclass(frozen=True)
 class TestInfo:
+    """Master info for a test, start-to-finish.
+
+    Attributes:
+        targets: Infos on targets in the test environment
+        logging: Infos on signals to be logged during test
+        phases: Infos on the phases of the test
+        description: A detailed description of the test
+    """
     targets: list[TargetInfo]
     logging: list[LoggingInfo]
     phases: list[PhaseInfo]
@@ -40,7 +48,7 @@ class CommandInfo:
     command: str
     target: str  # Name of the targeted physical device.
     # Data that may depend on the type of command, like signal, value, etc.
-    data: dict = dataclasses.field(default_factory=dict)
+    data: dict[str, Any] = dataclasses.field(default_factory=dict)
     description: Optional[str] = ''
 
 
@@ -243,6 +251,16 @@ class ElectricalInterface:
 
 @dataclasses.dataclass(frozen=True)
 class AssertionInfo:
+    """Class for representing assertions made about test data.
+
+    Attributes:
+        type:
+            Namespace qualified name of a Python class which
+            implements `AbstractVerification`
+        data:
+            Keyworded arguments for calling ``__init__`` of the class
+            specified by the ``type`` field
+    """
     type: str
     data: dict[str, Any]
 
