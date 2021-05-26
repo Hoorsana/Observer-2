@@ -130,7 +130,10 @@ def details():
                     'host': 'localhost',
                     'performance': 'Full',
                     'port': 10429,
-                    'grace': 5.0
+                    'grace': 5.0,
+                    'triggers': {
+                        2: 'Posedge'
+                    }
                 }
             }
         }

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
-# 
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """pylab live plugin for Saleae Logic 1 Legacy.
@@ -18,6 +18,10 @@ The details are loaded from file. File *may* have an extension field
   'Quarter', 'Low'
 * grace (float): The grace period used for the recording length
   heuristics (see below)
+* triggers (dict[int, str]): A dict mapping digital channels to their
+  trigger setting. An undefined trigger leave the setting at default.
+  Allowed settings are: 'NoTrigger', 'High', 'Low', 'Posedge',
+  'Negedge'
 
 If so, then these are used to configure the Saleae Logic client. If not,
 the following defaults are used: ``host='localhost'``, ``port=10429``,
@@ -135,6 +139,7 @@ from pylab.live.plugin.saleae import _parser
 
 _logic = None
 _grace = None  # Grace period in seconds, set by the user
+_triggers = None
 
 GRAIN = 0.1
 GRACE = 1.0
@@ -151,8 +156,15 @@ def _parse_args(details: live.Details) -> dict:
     if ext_saleae is None:
         return {}
     args = ext_saleae.get('init', {})
-    if args.get('performance') is not None:
-        args['performance'] = getattr(saleae.PerformanceOption, args['performance'])
+    # Replace performance string with enum supplied by `saleae` module
+    performance = args.get('performance')
+    if performance is not None:
+        args['performance'] = getattr(saleae.PerformanceOption, performance)
+    # Replace trigger string with enum supplied by `saleae` module
+    args['triggers'] = {
+        channel: getattr(saleae.Trigger, trigger)
+        for channel, trigger in args.get('triggers', {}).items()
+    }
     return args
 
 
@@ -178,6 +190,7 @@ def _initialize_saleae(duration: float,
                        port: int = 10429,
                        performance: saleae.PerformanceOption = saleae.PerformanceOption.Full,
                        grace: float = 5.0,
+                       triggers: Optional[dict[int, saleae.Trigger]] = None
                        ) -> None:
     """Lazily create global Logic API object.
 
@@ -188,13 +201,16 @@ def _initialize_saleae(duration: float,
         performance: Performance option for Logic
         grace:
             The grace period for recording length heuristics in seconds
+        triggers: A dict mapping channels to their Trigger setting
     """
     global _logic
     global _grace
+    global _triggers
     _logic = saleae.Saleae(host, port)
     _logic.set_performance(performance)
     _grace = grace
     _logic.set_capture_seconds(_capture_duration(duration))
+    _triggers = triggers  # For later use! We cannot set triggers without an active device!
 
 
 def from_config(path: str) -> Device:
@@ -280,6 +296,13 @@ class Device:
         rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
         assert rate[0] >= sample_rate_digital
         assert rate[1] >= sample_rate_analog
+        print(_logic.get_active_channels())
+        # FIXME This is incorrect, as each call of
+        # `set_trigger_one_channel` will override the setting of the
+        # previous call!
+        if _triggers is not None:
+            for channel, trigger in _triggers.items():
+                _logic.set_trigger_one_channel(channel, trigger)
         return cls(device)
 
     @property
@@ -331,6 +354,7 @@ class _LoggingManager:
         """
         if self._ended:
             return
+
         def worker():
             result = self._export_data()
             # TODO This will result in a dead thread if the wrong
@@ -352,13 +376,12 @@ class _LoggingManager:
             time.sleep(GRAIN)
         # There is apparently no better way to do this. In fact, Saleae
         # themselves suggest this approach:
-        # https://support.saleae.com/faq/technical-faq/extract-data-using-socket-api 
+        # https://support.saleae.com/faq/technical-faq/extract-data-using-socket-api
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.csv')
             _logic.export_data2(path, delimiter='comma')
-            data = [(*elem.channel, elem.period/1000) for elem in self._requests]
+            data = [(*elem.channel, elem.period / 1000) for elem in self._requests]
             return _parser.from_file(path, data)
-
 
 
 @dataclasses.dataclass
