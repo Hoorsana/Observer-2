@@ -21,7 +21,8 @@ The details are loaded from file. File *may* have an extension field
 * triggers (dict[int, str]): A dict mapping digital channels to their
   trigger setting. An undefined trigger leave the setting at default.
   Allowed settings are: 'NoTrigger', 'High', 'Low', 'Posedge',
-  'Negedge'
+  'Negedge'. At least one of the settings must be 'Posedge' or 'Negedge'
+  or all must be 'NoTrigger' (but that's the default setting anyways)
 
 If so, then these are used to configure the Saleae Logic client. If not,
 the following defaults are used: ``host='localhost'``, ``port=10429``,
@@ -296,13 +297,10 @@ class Device:
         rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
         assert rate[0] >= sample_rate_digital
         assert rate[1] >= sample_rate_analog
-        print(_logic.get_active_channels())
-        # FIXME This is incorrect, as each call of
-        # `set_trigger_one_channel` will override the setting of the
-        # previous call!
-        if _triggers is not None:
-            for channel, trigger in _triggers.items():
-                _logic.set_trigger_one_channel(channel, trigger)
+        # if _triggers is not None:
+        #     triggers = [_triggers.get(channel, saleae.Trigger.NoTrigger)
+        #                 for channel in _triggers]
+        #     _logic.set_triggers_for_all_channels(triggers)
         return cls(device)
 
     @property
