@@ -23,11 +23,22 @@ Run `make` to test. Before doing so, make sure that `MATLABPATH`
 includes `src/pylab/simulink/_resources` if you want to test
 MATLAB/Simulink.
 
-The following targets are available for make: `core`, `tools`, `cli`
-(commandline), `quick` (runs `core`, `tools`, `cli`), `simulink`,
-`live`, `example`. The `example` target runs the `adder` example on the
-simulink driver (if available) and the live driver using the controllino
-plugin.
+The following targets are available for make:
+
+- `core`
+- `tools`
+- `cli` (commandline)
+- `quick` (runs `core`, `tools`, `cli`)
+- `simulink`
+- `live`
+- `live-flash`
+- `example` (`example-adder`)
+- `example-adder`
+- `example-adder-flash`
+- `example-limit`
+- `example-limit-flash`
+- `saleae`
+- `saleae-flash`
 
 Furthermore, if you must set `PYLAB_MATLAB_PATH` equal to the directory
 of your MATLAB installation in order for pylab to find the `setup.py` of
@@ -89,6 +100,9 @@ directory) and make the following connections: `pulsar.D40-saleae.2`,
 **Beware!** It may be necessary to start Logic Legacy _before_ running
 the tests. If you experience blocking or crashes during the tests, try
 that.
+
+Note that you need at least commit
+877178f67618cdb3355054eae3666d99dce36aaa.
 
 
 #### Testing `live.plugin.can`
