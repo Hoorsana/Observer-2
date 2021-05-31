@@ -131,9 +131,6 @@ def details():
                     'performance': 'Full',
                     'port': 10429,
                     'grace': 5.0,
-                    'triggers': {
-                        2: 'Posedge'
-                    }
                 }
             }
         }

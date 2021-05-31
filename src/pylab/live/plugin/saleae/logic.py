@@ -297,10 +297,10 @@ class Device:
         rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
         assert rate[0] >= sample_rate_digital
         assert rate[1] >= sample_rate_analog
-        # if _triggers is not None:
-        #     triggers = [_triggers.get(channel, saleae.Trigger.NoTrigger)
-        #                 for channel in _triggers]
-        #     _logic.set_triggers_for_all_channels(triggers)
+        if _triggers:
+            triggers = [_triggers.get(channel, saleae.Trigger.NoTrigger)
+                        for channel in _triggers]
+            _logic.set_triggers_for_all_channels(triggers)
         return cls(device)
 
     @property
