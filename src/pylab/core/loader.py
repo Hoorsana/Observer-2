@@ -17,7 +17,7 @@ from pylab.core import verification
 PHASE_DIR = 'PYLAB_PHASE_DIR'
 
 
-# FIXME Implement loader using `from_yaml` and `yaml.YAMLObject`.
+# FIXME Implement loader using `from_yaml` and `yaml.YAMLObject`?
 
 
 def load_test(path: str) -> infos.TestInfo:

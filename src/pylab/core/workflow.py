@@ -8,6 +8,7 @@ single workflow.
 
 from __future__ import annotations
 
+import abc
 import importlib
 from typing import Any, Optional
 
@@ -21,13 +22,15 @@ from pylab.core import utils
 # TODO Rename verification -> asserts?
 
 
-class AbstractLoader:
+class AbstractLoader(abc.ABC):
 
-    def __call__(self, path: str) -> infos.TestInfo:
+    def load_test(self, path: str) -> infos.TestInfo:
+        pass
+
+    def load_asserts(self, path: str) -> infos.AssertionInfo:
         pass
 
 
-# TODO This doesn't include loading verifications
 def run_from_files(driver: Union[str, api.AbstractDriver],
                    test: str,
                    details: str,
@@ -47,7 +50,7 @@ def run_from_files(driver: Union[str, api.AbstractDriver],
             qualified name of the driver module
         test: Path to test file
         details: Path to details file
-        asserts: Assertions which are tested on the results
+        asserts: Pat hto assertions file
         load: Loader for test and assertion data
         dump: Filesystem path for dumping test results
 

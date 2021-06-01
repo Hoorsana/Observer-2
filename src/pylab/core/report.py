@@ -47,7 +47,7 @@ class LogEntry:
 
     @property
     def failed(self):
-        return self.severity in {FAILED, PANIC}
+        return self.severity >= FAILED
 
     @property
     def msg(self):  # TODO Rename?
