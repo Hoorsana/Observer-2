@@ -23,6 +23,23 @@ class Check:
     what: Optional[str] = ''
 
 
+class AbstractAssertion(abc.ABC):
+
+    @abc.abstractmethod
+    def deploy(self, results: dict[str, timeseries.TimeSeries]) -> None:
+        """Apply assertion to ``results`` and raise on failure.
+
+        Args:
+            results:
+                A dictionary mapping fully qualified signal names to
+                logged data
+
+        Raises:
+            AssertionError: If the test fails
+        """
+        pass
+
+
 # FIXME The indirection via ``_verify`` may be a bad idea. It is
 # entirely possible that an assertion will want to compare two results.
 # T
@@ -40,7 +57,7 @@ class AbstractVerification(abc.ABC):
         self._vars = vars
 
     def deploy(self, results: dict[str, timeseries.TimeSeries]) -> None:
-        """Apply assertiion to ``results`` and raise on failure.
+        """Apply assertion to ``results`` and raise on failure.
 
         Args:
             results:

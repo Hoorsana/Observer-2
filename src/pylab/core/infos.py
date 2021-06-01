@@ -19,6 +19,14 @@ from typing import Any, Optional
 
 @dataclasses.dataclass(frozen=True)
 class TestInfo:
+    """Master info for a test, start-to-finish.
+
+    Attributes:
+        targets: Infos on targets in the test environment
+        logging: Infos on signals to be logged during test
+        phases: Infos on the phases of the test
+        description: A detailed description of the test
+    """
     targets: list[TargetInfo]
     logging: list[LoggingInfo]
     phases: list[PhaseInfo]
@@ -31,7 +39,7 @@ class CommandInfo:
 
     Attributes:
         time: Time of execution during phase
-        command: The commands fully qualified name
+        command: The command name
         target: The targeted device
         data: Arguments passed to the initializer of the command
         description: For documentation purposes
@@ -40,7 +48,7 @@ class CommandInfo:
     command: str
     target: str  # Name of the targeted physical device.
     # Data that may depend on the type of command, like signal, value, etc.
-    data: dict = dataclasses.field(default_factory=dict)
+    data: dict[str, Any] = dataclasses.field(default_factory=dict)
     description: Optional[str] = ''
 
 
@@ -74,15 +82,16 @@ class LoggingInfo:
     Attributes:
         target: The target device the signal belongs to
         signal: The signal to log
-        period: The period with which the signal is logged
+        period: The period with which the signal is logged in seconds
         kind: The kind of interpolation
         description: For documentation purposes
 
     The kind of interpolation may be any value specified in the scipy
-    documentation of interp1d
-    (https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.interp1d.html):
+    1.6.0 documentation of ``interp1d``
+    (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d)
     ``linear``, ``nearest``, ``nearest-up``, ``zero``, ``slinear``,
-    ``quadratic``, ``cubic`` and will have the same meaning.
+    ``quadratic``, ``cubic``, ``previous``, ``next`` and will have the
+    same meaning.
     """
     target: str
     signal: str
@@ -104,12 +113,16 @@ class SignalInfo:
         min: Upper bound on the value of the physical signal
         flags: A list of additional info
         description: For documentation purposes
+        range:
+            A string of the form ``'{lo}..{hi}'``, where ``lo`` and
+            ``hi`` are floats with ``lo < hi`` specifying the physical
+            range of the signal
 
     The ``flags`` attribute may or may not be used by the driver to
     improve performance or raise errors which may otherwise not have
     been spotted.
 
-    The ``__init__`` may be called with either ``range`` or *both*
+    The ``__init__`` may be called with *either* ``range`` or *both*
     ``min`` and ``max``. Otherwise, ``__init__`` will raise a
     ``ValueError``.
     """
@@ -122,6 +135,14 @@ class SignalInfo:
     range: InitVar[str] = None
 
     def __post_init__(self, range: str):
+        """Args:
+            range:
+                A string of the form ``'{lo}..{hi}'``, where ``lo`` and
+                ``hi`` are floats with ``lo < hi``
+
+        Raises:
+            ValueError: If ``range`` is not correctly formatted
+        """
         if range is not None:
             if not (self.min is None and self.max is None):
                 raise ValueError(
@@ -243,6 +264,16 @@ class ElectricalInterface:
 
 @dataclasses.dataclass(frozen=True)
 class AssertionInfo:
+    """Class for representing assertions made about test data.
+
+    Attributes:
+        type:
+            Namespace qualified name of a Python class which
+            implements `AbstractVerification`
+        data:
+            Keyworded arguments for calling ``__init__`` of the class
+            specified by the ``type`` field
+    """
     type: str
     data: dict[str, Any]
 
