@@ -23,31 +23,28 @@ class AbstractDriver:
             """Execute the test and return a report including logged
             data.
             """
-            pass
 
     class Details:
-        """Class for storing test setup data.
-
-        This class should hold, for instance, device details and the
-        connections between the devices.
-        """
-        pass
+        """Class for storing test setup data."""
 
     def create(info: infos.TestInfo, details: Details) -> Test:
-        """Create and return a ``Test`` object from info and device details.
+        """Create and return a ``Test`` object from info and driver details.
+
+        Args:
+            info: A valid test info
+            details: The driver details
 
         Raises:
             pylab.core.errors.LogicError:
-                If ``info`` violates the specification
-
-        May also raise implementation specific errors.
+                If test creation fails due to faulty driver details
         """
-        pass
+
 
     def load_details(path: str) -> Details:
         """Load details from file ``path``.
 
         Raises:
             FileNotFoundError: If ``path`` doesn't exist
+            pylab.core.errors.LogicError:
+              If loading fails due to faulty file contents
         """
-        pass
