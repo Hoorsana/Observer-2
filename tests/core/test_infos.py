@@ -164,6 +164,20 @@ class TestPhaseInfo:
 
 class TestSignalInfo:
 
+    @pytest.mark.parametrize('name, min, max', [
+        pytest.param(
+            'foo', 2.0, 1.0,
+            id='min larger than max'
+        ),
+        pytest.param(
+            'foo.bar', 1.0, 2.0,
+            id='invalid id'
+        )
+    ])
+    def test_failure(self, name, min, max):
+        with pytest.raises(errors.InfoError):
+            infos.SignalInfo(name, min, max)
+
     @pytest.mark.parametrize('kwargs, expected', [
         ({'name': 'foo', 'min': 123, 'max': 456},
          infos.SignalInfo(name='foo', min=123, max=456)),
@@ -186,6 +200,24 @@ class TestSignalInfo:
 
 
 class TestTargetInfo:
+
+    @pytest.mark.parametrize('name, signals', [
+        pytest.param(
+            'foo.bar', [],
+            id='invalid id'
+        ),
+        pytest.param(
+            'foo',
+            [
+                infos.SignalInfo(name='bar', min=0, max=1),
+                infos.SignalInfo(name='bar', min=1, max=2),
+            ],
+            id='duplicate signal id'
+        )
+    ])
+    def test_failure(self, name, signals):
+        with pytest.raises(errors.InfoError):
+            infos.TargetInfo(name, signals)
 
     def test_from_dict(self):
         data = {

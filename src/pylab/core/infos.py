@@ -190,7 +190,7 @@ class SignalInfo:
         """
         self._set_range(range)
         if not _is_valid_id(self.name):
-            raise errors.InfoError(f'Invalid SignalInfo: name "{name}" is not valid. The specification states: "`name` **must** be a valid name"')
+            raise errors.InfoError(f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         if self.min > self.max:
             raise errors.InfoError(f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
 
@@ -219,7 +219,7 @@ class TargetInfo:
 
     def __post_init__(self):
         if not _is_valid_id(self.name):
-            raise errors.InfoError(f'Invalid TargetInfo: name "{name}" is not valid. The specification states: "`name` **must** be a valid name"')
+            raise errors.InfoError(f'Invalid TargetInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         seen = set()
         for elem in self.signals:
             if elem.name in seen:
