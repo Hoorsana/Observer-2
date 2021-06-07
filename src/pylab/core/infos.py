@@ -40,28 +40,35 @@ class TestInfo:
         seen = set()
         for elem in self.targets:
             if elem.name in seen:
-                raise errors.InfoError(f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
+                raise errors.InfoError(
+                    f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
             seen.add(elem.name)
         seen = set()
         for request in self.logging:
             try:
-                target = next(elem for elem in self.targets if request.target == elem.name)
+                target = next(
+                    elem for elem in self.targets if request.target == elem.name)
             except StopIteration:
-                raise errors.InfoError(f'Invalid TestInfo: Found no target for logging request "{request.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
+                raise errors.InfoError(
+                    f'Invalid TestInfo: Found no target for logging request "{request.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
             try:
-                signal = next(elem for elem in target.signals if request.signal == elem.name)
+                signal = next(
+                    elem for elem in target.signals if request.signal == elem.name)
             except StopIteration:
-                raise errors.InfoError(f'Invalid TestInfo: Signal "{request.signal}" for logging request "{request.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
+                raise errors.InfoError(
+                    f'Invalid TestInfo: Signal "{request.signal}" for logging request "{request.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
             data = (request.target, request.signal)
             if data in seen:
-                raise errors.InfoError(f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
+                raise errors.InfoError(
+                    f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
             seen.add(data)
         for phase in self.phases:
             for command in phase.commands:
                 try:
                     next(elem for elem in self.targets if command.target == elem.name)
                 except StopIteration:
-                    raise errors.InfoError(f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
+                    raise errors.InfoError(
+                        f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -84,7 +91,8 @@ class CommandInfo:
 
     def __post_init__(self):
         if self.time < 0.0:
-            raise errors.InfoError(f'Invalid CommandInfo: `time` is equal to {self.time}. The specification states: "`time` **must** not be negative"')
+            raise errors.InfoError(
+                f'Invalid CommandInfo: `time` is equal to {self.time}. The specification states: "`time` **must** not be negative"')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -104,9 +112,11 @@ class PhaseInfo:
 
     def __post_init__(self):
         if self.duration < 0.0:
-            raise errors.InfoError(f'Invalid PhaseInfo: duration {self.duration} is negative. The specification states: "`duration` **must** be a non-negative float"')
+            raise errors.InfoError(
+                f'Invalid PhaseInfo: duration {self.duration} is negative. The specification states: "`duration` **must** be a non-negative float"')
         for elem in [elem for elem in self.commands if self.duration < elem.time]:
-            raise errors.InfoError(f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {self.duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
+            raise errors.InfoError(
+                f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {self.duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
 
     @classmethod
     def from_dict(cls, data: dict) -> PhaseInfo:
@@ -147,8 +157,10 @@ class LoggingInfo:
             except TypeError:
                 is_pos = False
             if not is_pos:
-                raise errors.InfoError(f'Invalid LoggingInfo: period is {self.period}. The specification states: "`period` **must** be `None` or a positive `float`"')
-        if self.kind not in {'linear', 'nearest', 'nearest-up', 'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
+                raise errors.InfoError(
+                    f'Invalid LoggingInfo: period is {self.period}. The specification states: "`period` **must** be `None` or a positive `float`"')
+        if self.kind not in {'linear', 'nearest', 'nearest-up',
+                             'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
             raise errors.InfoError(f'Invalid LoggingInfo: kind "{self.kind}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
 
     def full_name(self) -> str:
@@ -197,9 +209,11 @@ class SignalInfo:
         """
         self._set_range(range)
         if not _is_valid_id(self.name):
-            raise errors.InfoError(f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
+            raise errors.InfoError(
+                f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         if self.min > self.max:
-            raise errors.InfoError(f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
+            raise errors.InfoError(
+                f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
 
     def _set_range(self, range):
         if range is not None:
@@ -226,13 +240,14 @@ class TargetInfo:
 
     def __post_init__(self):
         if not _is_valid_id(self.name):
-            raise errors.InfoError(f'Invalid TargetInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
+            raise errors.InfoError(
+                f'Invalid TargetInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         seen = set()
         for elem in self.signals:
             if elem.name in seen:
-                raise errors.InfoError(f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The specification states: "No two elements of `signals` **must** have the same name"')
+                raise errors.InfoError(
+                    f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The specification states: "No two elements of `signals` **must** have the same name"')
             seen.add(elem.name)
-
 
     @classmethod
     def from_dict(cls, data: dict) -> TargetInfo:
@@ -369,6 +384,7 @@ def _load_range(expr: str) -> tuple[float, float]:
     min_, max_ = map(float, [matches.group(1), matches.group(2)])
 
     return min_, max_
+
 
 def _is_valid_id(id: str):
     """Check if ``id`` is a valid id in the sense of the pylab specification.
