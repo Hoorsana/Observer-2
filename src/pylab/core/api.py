@@ -39,7 +39,6 @@ class AbstractDriver:
                 If test creation fails due to faulty driver details
         """
 
-
     def load_details(path: str) -> Details:
         """Load details from file ``path``.
 

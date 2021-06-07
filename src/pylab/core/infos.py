@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import InitVar
+import itertools
 import re
 from typing import Any, Optional
 
@@ -31,6 +32,34 @@ class TestInfo:
     logging: list[LoggingInfo]
     phases: list[PhaseInfo]
     description: Optional[str] = ''
+
+    def __post_init__(self):
+        # Check for duplicates in `targets`.
+        seen = set()
+        for elem in self.targets:
+            if elem.name in seen:
+                raise ValueError(f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
+            seen.add(elem.name)
+        seen = set()
+        for request in self.logging:
+            try:
+                target = next(elem for elem in self.targets if request.target == elem.name)
+            except StopIteration:
+                raise ValueError(f'Invalid TestInfo: Found no target for logging request "{request.name}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`')
+            try:
+                signal = next(elem for elem in target.signals if request.signal == elem.name)
+            except StopIteration:
+                raise ValueError(f'Invalid TestInfo: Signal "{request.signal}" for logging request "{request.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`')
+            data = (request.target, request.signal)
+            if data in seen:
+                raise ValueError(f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields')
+            seen.add(data)
+        for phase in self.phases:
+            for command in phase.commands:
+                try:
+                    next(elem for elem in self.targets if command.target == target.name)
+                except StopIteration:
+                    raise ValueError(f'Invalid TestInfo: Target "{command.target}" not found. The specification states: For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`.')
 
 
 @dataclasses.dataclass(frozen=True)
