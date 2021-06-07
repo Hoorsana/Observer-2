@@ -10,5 +10,9 @@ class PylabError(Exception):
 
 
 class LogicError(PylabError):
-    """Raised if the logic of the pylab specification is violated."""
+    """Raised if driver logic is violated."""
     pass
+
+
+class InfoError(PylabError):
+    """Raised if *Info instance is invalid."""

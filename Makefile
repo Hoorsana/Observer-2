@@ -35,10 +35,11 @@ endif
 
 .PHONY: default
 default: venv
-	cd arduino/adder && make flash
-	$(call activate) && \
-	pytest -vv tests && \
-	deactivate
+	make quick
+	make simulink
+	make live-flash
+	make example-adder-flash
+	make example-limit-flash
 
 .PHONY: saleae-flash
 saleae-flash: venv
