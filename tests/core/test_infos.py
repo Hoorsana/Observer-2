@@ -192,6 +192,19 @@ class TestPhaseInfo:
         assert phase == expected
 
 
+class TestLoggingInfo:
+
+    @pytest.mark.parametrize('period, kind', [
+        pytest.param('foo', 'next', id='wrong period type'),
+        pytest.param(-1.23, 'next', id='negative period'),
+        pytest.param(0.0, 'next', id='zero period'),
+        pytest.param(1.23, 'foo', id='unknown kind')
+    ])
+    def test_failure(self, period, kind):
+        with pytest.raises(errors.InfoError):
+            infos.LoggingInfo('foo', 'bar', period, kind)
+
+
 class TestSignalInfo:
 
     @pytest.mark.parametrize('name, min, max', [

@@ -141,10 +141,15 @@ class LoggingInfo:
     description: Optional[str] = ''
 
     def __post_init__(self):
-        if self.period is not None and self.period <= 0.0:
-            raise errors.InfoError(f'Invalid LoggingInfo: period is {period}. The specification states: "`period` **must** be `None` or a positive `float`"')
+        if self.period is not None:
+            try:
+                is_pos = (self.period > 0.0)
+            except TypeError:
+                is_pos = False
+            if not is_pos:
+                raise errors.InfoError(f'Invalid LoggingInfo: period is {self.period}. The specification states: "`period` **must** be `None` or a positive `float`"')
         if self.kind not in {'linear', 'nearest', 'nearest-up', 'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
-            raise errors.InfoError(f'Invalid LoggingInfo: kind is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
+            raise errors.InfoError(f'Invalid LoggingInfo: kind "{self.kind}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
 
     def full_name(self) -> str:
         return f'{self.target}.{self.signal}'
