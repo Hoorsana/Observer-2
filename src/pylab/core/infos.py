@@ -84,7 +84,7 @@ class CommandInfo:
 
     def __post_init__(self):
         if self.time < 0.0:
-            raise errors.InfoError(f'Invalid CommandInfo: `time` is equal to {time}. The specification states: "`time` **must** not be negative"')
+            raise errors.InfoError(f'Invalid CommandInfo: `time` is equal to {self.time}. The specification states: "`time` **must** not be negative"')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -103,6 +103,8 @@ class PhaseInfo:
     description: Optional[str] = ''
 
     def __post_init__(self):
+        if self.duration < 0.0:
+            raise errors.InfoError(f'Invalid PhaseInfo: duration {self.duration} is negative. The specification states: "`duration` **must** be a non-negative float"')
         for elem in [elem for elem in self.commands if self.duration < elem.time]:
             raise errors.InfoError(f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {self.duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
 

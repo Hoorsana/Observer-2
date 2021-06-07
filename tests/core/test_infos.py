@@ -8,7 +8,7 @@ from pylab.core import errors
 from pylab.core import infos
 
 
-class TestPhaseInfo:
+class TestTestInfo:
 
     @pytest.mark.parametrize('targets, logging, phases', [
         pytest.param(
@@ -127,6 +127,36 @@ class TestPhaseInfo:
         with pytest.raises(errors.InfoError):
             infos.TestInfo(targets, logging, phases)
 
+
+class TestCommandInfo:
+
+    def test_failure(self):
+        with pytest.raises(errors.InfoError):
+            infos.CommandInfo(-0.1, 'foo', 'bar')
+
+
+class TestPhaseInfo:
+
+    @pytest.mark.parametrize('duration, commands', [
+        pytest.param(
+            -0.3, [],
+            id='negative duration'
+        ),
+        pytest.param(
+            1.23,
+            [
+                infos.CommandInfo(
+                    time=2.34,
+                    command='foo',
+                    target='bar'
+                )
+            ],
+            id='cmd time exceeds phase duration'
+        )
+    ])
+    def test_failure(self, duration, commands):
+        with pytest.raises(errors.InfoError):
+            infos.PhaseInfo(duration, commands)
 
     def test_from_dict(self):
         data = {
