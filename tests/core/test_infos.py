@@ -4,10 +4,129 @@
 
 import pytest
 
+from pylab.core import errors
 from pylab.core import infos
 
 
 class TestPhaseInfo:
+
+    @pytest.mark.parametrize('targets, logging, phases', [
+        pytest.param(
+            [
+                infos.TargetInfo(
+                    name='foo',
+                    signals=[]
+                ),
+                infos.TargetInfo(
+                    name='foo',
+                    signals=[]
+                ),
+            ],
+            [],
+            [],
+            id='conflicting target ids'
+        ),
+        pytest.param(
+            [
+                infos.TargetInfo(
+                    name='foo',
+                    signals=[
+                        infos.SignalInfo(
+                            name='baz',
+                            min=0, max=1
+                        )
+                    ]
+                ),
+            ],
+            [
+                infos.LoggingInfo(
+                    target='bar',
+                    signal='baz'
+                )
+            ],
+            [],
+            id='logging target not found'
+        ),
+        pytest.param(
+            [
+                infos.TargetInfo(
+                    name='foo',
+                    signals=[
+                        infos.SignalInfo(
+                            name='baz',
+                            min=0, max=1
+                        )
+                    ]
+                ),
+            ],
+            [
+                infos.LoggingInfo(
+                    target='bar',
+                    signal='foobar'
+                )
+            ],
+            [],
+            id='signal not found'
+        ),
+        pytest.param(
+            [
+                infos.TargetInfo(
+                    name='foo',
+                    signals=[
+                        infos.SignalInfo(
+                            name='baz',
+                            min=0, max=1
+                        )
+                    ]
+                ),
+            ],
+            [
+                infos.LoggingInfo(
+                    target='bar',
+                    signal='baz',
+                    period=None
+                ),
+                infos.LoggingInfo(
+                    target='bar',
+                    signal='baz',
+                    period=1.0
+                )
+            ],
+            [],
+            id='double logging request'
+        ),
+        pytest.param(
+            [
+                infos.TargetInfo(
+                    name='foo',
+                    signals=[
+                        infos.SignalInfo(
+                            name='baz',
+                            min=0, max=1
+                        )
+                    ]
+                ),
+            ],
+            [],
+            [
+                infos.PhaseInfo(
+                    duration=1.0,
+                    commands=[
+                        infos.CommandInfo(
+                            time=0.0,
+                            command='bar',
+                            target='baz'
+                        )
+                    ]
+                )
+            ],
+            id='command target not found'
+        ),
+    ])
+    def test_failure(self, targets, logging, phases):
+        with pytest.raises(errors.InfoError):
+            infos.TestInfo(targets, logging, phases)
+
 
     def test_from_dict(self):
         data = {

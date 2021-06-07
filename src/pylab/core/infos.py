@@ -47,7 +47,7 @@ class TestInfo:
             try:
                 target = next(elem for elem in self.targets if request.target == elem.name)
             except StopIteration:
-                raise errors.InfoError(f'Invalid TestInfo: Found no target for logging request "{request.name}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
+                raise errors.InfoError(f'Invalid TestInfo: Found no target for logging request "{request.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
             try:
                 signal = next(elem for elem in target.signals if request.signal == elem.name)
             except StopIteration:
@@ -59,7 +59,7 @@ class TestInfo:
         for phase in self.phases:
             for command in phase.commands:
                 try:
-                    next(elem for elem in self.targets if command.target == target.name)
+                    next(elem for elem in self.targets if command.target == elem.name)
                 except StopIteration:
                     raise errors.InfoError(f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
 
