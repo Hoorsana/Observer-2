@@ -98,10 +98,10 @@ def run(driver: api.AbstractDriver,
     if asserts is None:
         asserts = []
 
-    test = driver.create(info, details)  # TODO Rename this in the simulink driver!
+    test = driver.create(info, details)
 
     report = test.execute()
-    if dump:
+    if dump is not None:
         report.dump(dump)
     if report.failed:
         raise RuntimeError('Test execution failed. Logbook:\n\n' + report.what)

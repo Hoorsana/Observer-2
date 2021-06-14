@@ -4,9 +4,10 @@
 
 - type: AlmostEverywhereClose
   data:
-    result: adder.sum
     expected:
       !TimeSeries
       time: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
       values: [[100], [125], [100], [50], [0], [100], [200], [100], [0], [0]]
     rtol: 0.2
+  args:
+    result: adder.sum
