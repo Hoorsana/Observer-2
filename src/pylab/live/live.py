@@ -790,6 +790,9 @@ class _LoggingRequest(AbstractFuture):
         """
         assert self.done
         result = self._future.get_result()
+        # TODO It seems like it's expected that the result is a
+        # timeseries. This is a bad idea. The conversion to timeseries
+        # should happen here, not in the plugin.
         if isinstance(result, timeseries.TimeSeries):
             result.kind = self._info.kind
             result.transform(self._transform)
