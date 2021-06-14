@@ -15,11 +15,9 @@ from typing import Any, Optional
 from pylab.core import api  # For typing only...
 from pylab.core import loader
 from pylab.core import infos
-from pylab.core import verification
+from pylab.core import testing
 from pylab.core import report
 from pylab.core import utils
-
-# TODO Rename verification -> asserts?
 
 
 class AbstractLoader(abc.ABC):
@@ -72,7 +70,7 @@ def run_from_files(driver: Union[str, api.AbstractDriver],
 def run(driver: api.AbstractDriver,
         info: infos.TestInfo,
         details: Any,
-        asserts: Optional[list[verification.AbstractVerification]] = None,
+        asserts: Optional[list[testing.AbstractVerification]] = None,
         dump: Optional[str] = None) -> report.Report:
     """Create and execute test, and assert results.
 
@@ -111,13 +109,13 @@ def run(driver: api.AbstractDriver,
 
 
 def check_report(report: report.Report,
-                 asserts: list[verification.AbstractVerification]) -> None:
+                 asserts: list[testing.AbstractVerification]) -> None:
     """Assert results.
 
     Raises:
         AssertionError: If any of the assertions fail
     """
-    checks = [each.verify(report.results) for each in asserts]
+    checks = [each.apply(report.results) for each in asserts]
     failed = [each for each in checks if each.failed]
     if not failed:
         return

@@ -244,7 +244,7 @@ def assert_almost_everywhere_close(actual: TimeSeries,
                                    upper: float = None,
                                    rtol: float = 1e-07,
                                    atol: float = 1e-07) -> None:
-    """Raise an ``AssertionError`` is two time series are not equal up to tolerance in L^2 space.
+    """Raise an ``AssertionError`` if two time series are not equal up to tolerance in L^2 space.
 
     Args:
         actual: The time series under test
@@ -264,37 +264,6 @@ def assert_almost_everywhere_close(actual: TimeSeries,
         f'Time series not almost everywhere close '
         f'(rtol={rtol}, atol={atol}):\n'
         f'\n'
-        f'actual =   {actual}\n\n'
+        f'actual   = {actual}\n\n'
         f'expected = {expected}\n\n'
-        f'dist =     {dist}')
-
-
-def assert_close(actual: TimeSeries,
-                 expected: TimeSeries,
-                 lower: float = None,
-                 upper: float = None,
-                 rtol: float = 1e-07, atol: float = 1e-07) -> None:
-    """Raise an ``AssertionError`` is two time series are not equal up
-    to tolerance in C^0 space.
-
-    Args:
-        actual: The time series under test
-        expected: The expected time series
-        rtol: Relative tolerance
-        atol: Absolute tolerance
-    """
-
-    # FIXME
-    #
-    # dist = c0distance(actual, expected, lower, upper)
-    # norm = c0norm(expected, lower, upper)
-    # if dist <= atol + rtol*norm:
-    #     return
-
-    # raise AssertionError(
-    #     f'Time series not almost everywhere close '
-    #     f'(rtol={rtol}, atol={atol}):\n'
-    #     f'\n'
-    #     f'actual =   {actual}\n\n'
-    #     f'expected = {expected}\n\n'
-    #     f'dist =     {dist}')
+        f'dist     = {dist}')

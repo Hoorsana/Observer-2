@@ -7,7 +7,7 @@ import unittest.mock
 
 from pylab.core import workflow
 from pylab.core import report
-from pylab.core import verification
+from pylab.core import testing
 
 
 # FIXME This test needs 1) less mocking; 2) more cases [no dump, etc.]
@@ -29,12 +29,7 @@ def test_run_from_files(mocker):
     loader.load_test.assert_called_once_with(test)
     loader.load_asserts.assert_called_once_with(asserts)
     driver.load_details.assert_called_once_with(details)
-    run.assert_called_once_with(
-    driver,
-    info,
-    driver.load_details.return_value,
-    asserts_,
-     dump)
+    run.assert_called_once_with(driver, info, driver.load_details.return_value, asserts_, dump)
 
 
 @pytest.mark.parametrize('dump', [None, '/path/to/dump'])
@@ -91,23 +86,21 @@ def test_run_failure(mocker, dump):
 
 def test_check_report_success(mocker):
     report = mocker.Mock(name='report')
-    checks = [verification.Check(),
-              verification.Check(),
-              verification.Check()]
-    asserts = [mocker.Mock(verify=mocker.Mock(return_value=each)) for each in checks]
+    checks = [testing.Result(), testing.Result(), testing.Result()]
+    asserts = [mocker.Mock(apply=mocker.Mock(return_value=each)) for each in checks]
 
     workflow.check_report(report, asserts)
 
     for each in asserts:
-        each.verify.assert_called_once_with(report.results)
+        each.apply.assert_called_once_with(report.results)
 
 
 def test_check_report_failure(mocker):
     report = mocker.Mock(name='report', what='report.what')
-    checks = [verification.Check(),
-              verification.Check(),
-              verification.Check(True, 'what')]
-    asserts = [mocker.Mock(verify=mocker.Mock(return_value=each))
+    checks = [testing.Result(),
+              testing.Result(),
+              testing.Result(False, 'what')]
+    asserts = [mocker.Mock(apply=mocker.Mock(return_value=each))
                for each in checks]
 
     with pytest.raises(AssertionError) as e:
@@ -116,4 +109,4 @@ def test_check_report_failure(mocker):
         'Test failed due to the following assertions:\n\nwhat\n\nLogbook:\n\nreport.what'
 
     for each in asserts:
-        each.verify.assert_called_once_with(report.results)
+        each.apply.assert_called_once_with(report.results)

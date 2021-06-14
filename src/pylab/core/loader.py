@@ -11,8 +11,8 @@ import os
 
 import yaml
 
+from pylab.core import testing
 from pylab.core import infos
-from pylab.core import verification
 
 PHASE_DIR = 'PYLAB_PHASE_DIR'
 
@@ -67,7 +67,7 @@ def load_asserts(path: str) -> list[AbstractVerification]:
         content = f.read()
     data = yaml.safe_load(content)
     info = [infos.AssertionInfo(**each) for each in data]
-    return [verification.load_info(each) for each in info]
+    return [testing.load_info(each) for each in info]
 
 
 def _find_phase_path(root: str, path: str) -> str:

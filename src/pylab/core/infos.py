@@ -360,6 +360,7 @@ class AssertionInfo:
     """
     type: str
     data: dict[str, Any]
+    args: dict[str, str]
 
 
 def _load_range(expr: str) -> tuple[float, float]:

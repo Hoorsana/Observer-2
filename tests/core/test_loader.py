@@ -4,13 +4,14 @@
 
 import pytest
 
+from pylab.core import testing
 from pylab.core import loader
 from pylab.core import infos
 from pylab.core import timeseries
 
 
 def test_load_test():
-    test = loader.load_test('resources/tests/core/loader/test.yml')
+    test = loader.load_test('resources/tests/core/loader/load_test.yml')
 
     targets = [
         infos.TargetInfo(
@@ -20,17 +21,20 @@ def test_load_test():
                     name='temp1',
                     flags=['input'],
                     min=0, max=100,
-                    description='bla bla bla'),
+                    description='bla bla bla'
+                ),
                 infos.SignalInfo(
                     name='temp2',
                     flags=['input'],
                     min=0, max=100,
-                    description='bla bla bla'),
+                    description='bla bla bla'
+                ),
                 infos.SignalInfo(
                     name='sum',
                     flags=['output'],
                     min=0, max=200,
-                    description='lalala')
+                    description='lalala'
+                ),
             ]
         )
     ]
@@ -47,39 +51,30 @@ def test_load_test():
                 time=0.0,
                 command='CmdSetSignal',
                 target='system_under_test',
-                data={'signal': 'temp1', 'value': 2.0}),
+                data={'signal': 'temp1', 'value': 2.0}
+            ),
             infos.CommandInfo(
                 time=0.0,
                 command='CmdSetSignal',
                 target='system_under_test',
-                data={'signal': 'temp2', 'value': 3.0}),
+                data={'signal': 'temp2', 'value': 3.0}
+            ),
             infos.CommandInfo(
                 time=1.0,
                 command='CmdSetSignal',
                 target='system_under_test',
-                data={'signal': 'temp2', 'value': 0.0}),
-        ])
+                data={'signal': 'temp2', 'value': 0.0}
+            ),
+        ]
+    )
     assert test.phases == [phase, phase]
 
 
-class _Assert:
-
-    def __init__(self, value):
-        self.value = value
-
-
-def test_load_asserts(mocker):
-    content = """
-- type: IsEqual
-  data:
-    result: output
-    expected:
-      !TimeSeries
-      time: [-2, -1, 0, 1, 2]
-      values: [[4], [1], [0], [1], [4]]
-    """
-    mocker.patch('builtins.open', mocker.mock_open(read_data=content))
-    result = loader.load_asserts('/path/to/asserts')
-    open.assert_called_once_with('/path/to/asserts', 'r')
-    open().read.assert_called_once()
-    assert result[0]._expected == timeseries.TimeSeries([-2, -1, 0, 1, 2], [[4], [1], [0], [1], [4]])
+def test_load_asserts():
+    asserts = loader.load_asserts('resources/tests/core/loader/asserts.yml')
+    assert len(asserts) == 2
+    [is_equal, almost_equal] = asserts
+    assert type(is_equal._assertion) == testing.Equal
+    assert type(almost_equal._assertion) == testing.TimeseriesAlmostEqual
+    assert is_equal._assertion._expected == 1.23
+    assert almost_equal._assertion._expected == timeseries.TimeSeries([-2, -1, 0, 1, 2], [[4], [1], [0], [1], [4]])

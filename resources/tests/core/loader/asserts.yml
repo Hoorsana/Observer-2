@@ -1,0 +1,13 @@
+- type: Equal
+  data:
+    expected: 1.23
+  args:
+    actual: target.signal
+- type: TimeseriesAlmostEqual
+  data:
+    expected:
+      !TimeSeries
+      time: [-2, -1, 0, 1, 2]
+      values: [[4], [1], [0], [1], [4]]
+  args:
+    actual: target2.signal2
