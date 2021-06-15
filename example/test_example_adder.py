@@ -6,7 +6,6 @@ import pytest
 
 from pylab.core import timeseries
 from pylab.core import loader
-from pylab.core import verification
 from pylab.core import report
 from pylab.core import workflow
 from pylab.live import live

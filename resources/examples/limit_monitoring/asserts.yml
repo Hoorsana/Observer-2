@@ -2,10 +2,11 @@
 # 
 # SPDX-License-Identifier: CC0-1.0
 
-- type: IntegralAlmostEqualTo
+- type: TimeseriesIntegralAlmostEqual
   data:
-    result: monitor.result
     expected: 0.2
     atol: 0.02
     lower: 0.4
     upper: 0.8
+  args:
+    actual: monitor.result

@@ -110,7 +110,7 @@ class BaseAssertion(AbstractAssertion):
 
     @classmethod
     def create_with_dispatcher(cls, data: dict[str, Any],
-                           args: dict[str, str]) -> Dispatcher:
+                               args: dict[str, str]) -> Dispatcher:
         a = cls(**data)
         return Dispatcher(a, args)
 
@@ -185,6 +185,26 @@ class TimeseriesAlmostEqual(BaseAssertion):
                 upper=self._expected.upper,
                 rtol=self._rtol,
                 atol=self._atol)
+        except AssertionError as e:
+            return Result.from_error(e)
+        return Result()
+
+
+class TimeseriesIntegralAlmostEqual(BaseAssertion):
+
+    def __init__(self, expected: float, rtol: float = 1e-05, atol: float = 1e-05,
+                 lower: Optional[float] = None, upper: Optional[float] = None) -> None:
+        self._expected = expected
+        self._atol = atol
+        self._rtol = rtol
+        self._lower = lower
+        self._upper = upper
+
+    def apply(self, actual: timeseries.TimeSeries) -> Check:
+        try:
+            numpy.testing.assert_allclose(
+                timeseries.l2norm(actual, self._lower, self._upper),
+                self._expected, rtol=self._rtol, atol=self._atol)
         except AssertionError as e:
             return Result.from_error(e)
         return Result()
