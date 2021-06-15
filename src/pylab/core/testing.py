@@ -102,14 +102,14 @@ def load_info(info: infos.AssertionInfo) -> list[Dispatcher]:
         type_ = utils.module_getattr(info.type)
     else:  # No absolute path specified, use local block module!
         type_ = globals()[info.type]
-    return type_.wrap_in_dispatcher(info.data, info.args)
+    return type_.create_with_dispatcher(info.data, info.args)
 
 
 class BaseAssertion(AbstractAssertion):
     """Convenience ABC which handles access to the results."""
 
     @classmethod
-    def wrap_in_dispatcher(cls, data: dict[str, Any],
+    def create_with_dispatcher(cls, data: dict[str, Any],
                            args: dict[str, str]) -> Dispatcher:
         a = cls(**data)
         return Dispatcher(a, args)
@@ -117,6 +117,13 @@ class BaseAssertion(AbstractAssertion):
     def assert_(self, *args, **kwargs) -> Result:
         result = self.apply(*args, **kwargs)
         result.throw_if_failed()
+
+    def wrap_in_dispatcher(self, args: dict[str, str]) -> Dispatcher:
+        return Dispatcher(self, args)
+
+    def wrapped_in_dispatcher(self, args: dict[str, str]) -> Dispatcher:
+        a = copy.deepcopy(self)
+        return a.wrap_in_dispatcher(args)
 
 
 class Dispatcher(BaseAssertion):
@@ -138,12 +145,12 @@ class Dispatcher(BaseAssertion):
         self._args = args
 
     @classmethod
-    def wrap_in_dispatcher(cls, *args, **kwargs) -> None:
+    def create_with_dispatcher(cls, *args, **kwargs) -> None:
         raise NotImplementedError()
 
     def apply(self, results: dict[str, Any]) -> Result:
         try:
-            kwargs = {k: results[v] for k, v in self._args}
+            kwargs = {k: results[v] for k, v in self._args.items()}
         except KeyError as e:
             return Result.from_error(e)
         return self._assertion.apply(**kwargs)

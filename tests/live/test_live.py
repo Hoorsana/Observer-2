@@ -9,28 +9,28 @@ import pytest
 from pylab.core import infos
 from pylab.core import timeseries
 from pylab.core import workflow
-from pylab.core import verification
+from pylab.core import testing
 from pylab.live import live
 from pylab.live.plugin import controllino
 
 
 @pytest.fixture
 def assertion():
-    return verification.AlmostEverywhereClose(
-        'adder.sum',
+    a = testing.TimeseriesAlmostEqual(
         timeseries.TimeSeries(
             list(range(10)),
             [[100], [125], [100], [50], [0], [100], [200], [100], [0], [0]]
         ),
         rtol=0.2
     )
+    return a.wrap_in_dispatcher({'actual': 'adder.sum'})
 
 
 @pytest.mark.xfail
 def test_functional_fake(adder, details_fake, assertion):
     report = workflow.run(live, adder, details_fake)
     result = report.results['adder.sum']
-    assertion.deploy(report.results)
+    assertion.assert_(report.results)
 
 
 @pytest.mark.timeout(20.0)
@@ -39,7 +39,7 @@ def test_functional_arduino(adder, details_arduino, assertion):
     result = report.results['adder.sum']
     result.shift(-0.30)
     timeseries.pretty_print(result)
-    assertion.deploy(report.results)
+    assertion.assert_(report.results)
 
 
 @pytest.fixture

@@ -9,11 +9,31 @@ from pylab.core import testing
 from pylab.core import timeseries
 
 
+class TestDispatcher:
+
+    def test_apply(self, mocker):
+        a = mocker.Mock()
+        a.apply = mocker.Mock(return_value=testing.Result())
+        dispatcher = testing.Dispatcher(a, {'arg1': 'sig1', 'arg2': 'sig2'})
+        results = {'sig1': 0.12, 'sig2': 3.45}
+        ret = dispatcher.apply(results)
+        assert ret.success
+        a.apply.assert_called_once_with(arg1=0.12, arg2=3.45)
+
+    def test_apply_failure(self, mocker):
+        a = mocker.Mock()
+        dispatcher = testing.Dispatcher(a, {'arg1': 'sig1', 'arg2': 'sig2'})
+        results = {'sig1': 0.12, 'sig3': 3.45}
+        ret = dispatcher.apply(results)
+        assert ret.failed
+        a.apply.assert_not_called()
+
+
 class TestLoadInfo:
 
     def test_success(self, mocker):
         type_mock = mocker.Mock()
-        type_mock.wrap_in_dispatcher = mocker.Mock(return_value='assertion')
+        type_mock.create_with_dispatcher = mocker.Mock(return_value='assertion')
         mock = mocker.Mock(return_value=type_mock)
         mocker.patch('pylab.core.utils.module_getattr', mock)
         info = infos.AssertionInfo(
@@ -23,7 +43,7 @@ class TestLoadInfo:
         )
         result = testing.load_info(info)
         mock.assert_called_once_with('this.module.does.exist')
-        type_mock.wrap_in_dispatcher.assert_called_once_with(info.data, info.args)
+        type_mock.create_with_dispatcher.assert_called_once_with(info.data, info.args)
         assert result == 'assertion'
 
     def test_failure(self):
