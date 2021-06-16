@@ -20,7 +20,7 @@ setuptools.setup(
     package_dir={'': 'src'},
     entry_points={
         'console_scripts': [
-            'pylab-cli = pylab.cli:main'
+            'pylab-cli = pylab._commandline:main'
         ]
     },
     include_package_data=True,
