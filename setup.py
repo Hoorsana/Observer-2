@@ -18,7 +18,11 @@ setuptools.setup(
     license='GPL v3.0',
     packages=setuptools.find_packages('src'),
     package_dir={'': 'src'},
-    scripts=['src/pylab-cli'],
+    entry_points={
+        'console_scripts': [
+            'pylab-cli = pylab.cli:main'
+        ]
+    },
     include_package_data=True,
     classifiers=[
         'Development Status :: 1',

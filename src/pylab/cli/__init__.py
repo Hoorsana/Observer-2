@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -36,7 +35,3 @@ def main():
         e = _format_exception_with_traceback(e)
         print(f'pylab-cli: error: {e}\n', file=sys.stderr)
         sys.exit(9)
-
-
-if __name__ == '__main__':
-    main()
