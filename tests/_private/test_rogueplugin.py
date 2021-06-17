@@ -20,15 +20,14 @@ class TestGlobal:
                     name='adder',
                     module='pylab._private.rogueplugin',
                     type='Device',
-                    data={
-                        'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1'))
-                    },
+                    data={},
                     extension={
                         'defaults': {
                             'DAC0': 0.0,
                             'A0': 0.0,
                             'A1': 0.0,
                         },
+                        'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1'))
                     },
                     interface=infos.ElectricalInterface(
                         ports=[

@@ -27,10 +27,11 @@ def assertion():
 
 
 @pytest.mark.timeout(20.0)
-def test_functional_arduino(adder, details_arduino, assertion):
-    report = workflow.run(live, adder, details_arduino)
+def test_functional_arduino(adder, details, assertion):
+    report = workflow.run(live, adder, details)
+    print('\n'.join(str(each) for each in report.logbook))
     result = report.results['adder.sum']
-    result.shift(-0.30)
+    # result.shift(-0.30)
     timeseries.pretty_print(result)
     assertion.assert_(report.results)
 
@@ -127,7 +128,7 @@ def adder():
     )
 
 @pytest.fixture
-def details_arduino():
+def details():
     return live.Details(
         devices=[
             live.DeviceDetails(
@@ -144,6 +145,7 @@ def details_arduino():
                         'A1': 0.0,
                         'DAC0': 0.0,
                     },
+                    'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1')),
                 },
                 interface=infos.ElectricalInterface(
                     ports=[

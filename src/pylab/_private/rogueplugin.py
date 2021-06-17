@@ -46,7 +46,7 @@ def init(info: infos.TestInfo, details: live.Details) -> None:
         # Note that no ``Device`` objects are created here!
         channels = [info.channel for info in dev.interface.ports]
         ports = {channel: dev.extension.get('defaults', {})[channel] for channel in channels}
-        loop = dev.data.get('loop')
+        loop = dev.extension.get('loop')
         _server.add_client(dev.name, ports, loop)
     connections = [
         item for item in _init_connections(details)
@@ -104,7 +104,7 @@ class Future:
                  result: Optional[Any] = None
                  ) -> None:
         self._what = what
-        self._log = report.LogEntry(severity, what)
+        self._log = report.LogEntry(what, severity)
         self._result = result
         self._done_event = threading.Event()
 

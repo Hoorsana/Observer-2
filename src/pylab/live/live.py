@@ -158,8 +158,8 @@ class Test:
                     each for each in self._commands if each not in commands]
                 for cmd in commands:
                     future = cmd.execute(self._test_object)
-                    self._controller.put(future, timeout=DEFAULT_TIMEOUT)
-                logbook += self._controller.run()
+                    self._controller.put(future, current_time, timeout=DEFAULT_TIMEOUT)
+                logbook += self._controller.run(current_time)
                 if _panic(logbook):
                     return report.Report(logbook, {})
                 time.sleep(HEARTBEAT)
@@ -843,25 +843,30 @@ class _FutureController:
     def __init__(self):
         self._futures = []
 
-    def put(self, future: AbstractFuture, timeout: Optional[float] = None) -> None:
+    def put(self, future: AbstractFuture, current_time: float, timeout: Optional[float] = None) -> None:
         """Pass ownership of future to the controller and imbue it with
         a timeout.
 
         Args:
             future: The future to take control of
+            current_time: The time of submission
             timeout: The timeout in seconds
         """
         if timeout is not None:
             timeout = time.time() + timeout
+        future.log.data['submit_time'] = current_time
         self._futures.append(_DeadlineFuture(future, timeout))
 
-    def run(self) -> list[report.LogEntry]:
+    def run(self, current_time: float) -> list[report.LogEntry]:
         """Check all controlled futures for completion.
 
         This method will remove any controlled futures that are done and
         return a logbook detailing the results. If any of the futures
         timed out *with proper cause* then this method will raise that
         error.
+
+        Args:
+            current_time: The current test time
 
         Returns:
             The log entries of the completed futures
@@ -881,6 +886,8 @@ class _FutureController:
             # stange, as well. Why would we only raise if we know
             # exactly what's going on?
         logbook += [elem.log for elem in timed_out]
+        for log in logbook:
+            log.data['done_time'] = current_time
         return logbook
 
 

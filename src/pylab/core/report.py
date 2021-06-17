@@ -43,7 +43,10 @@ PANIC = _Severity('PANIC', 3)
 class LogEntry:
     what: str
     severity: _Severity = INFO
-    data: Optional[Any] = None
+    data: Optional[dict[str, Any]] = dataclasses.field(default_factory=dict)
+
+    def __str__(self):
+        return f'{self.severity}: {self.what}; {self.data}'
 
     @property
     def failed(self):
