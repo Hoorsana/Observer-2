@@ -18,7 +18,7 @@ class _Severity:
         self._text = text
         self._value = value
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return self._text
 
     def __lt__(self, other) -> bool:
@@ -27,10 +27,10 @@ class _Severity:
         return self._value < other._value
 
 
-INFO = _Severity('info', 0)
-WARNING = _Severity('warning', 1)
-FAILED = _Severity('failed', 2)
-PANIC = _Severity('panic', 3)
+INFO = _Severity('INFO', 0)
+WARNING = _Severity('WARNING', 1)
+FAILED = _Severity('FAILED', 2)
+PANIC = _Severity('PANIC', 3)
 
 
 # FIXME Do error reporting using a global logger object. That makes it
@@ -52,6 +52,15 @@ class LogEntry:
     @property
     def msg(self):  # TODO Rename?
         return f'{self.severity}: {self.what}; {self.data}'
+
+    def expect(self, severity: _Severity = INFO) -> None:
+        """Raise an assertion error if the severity is not as expected.
+
+        Args:
+            severity: The expected severity
+        """
+        if self.severity != severity:
+            raise AssertionError(f'Log has severity "{self.severity}", expected severity "{severity}". Logbook: {self.what}')
 
 
 @dataclasses.dataclass(frozen=True)

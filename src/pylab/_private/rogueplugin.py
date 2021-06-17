@@ -151,29 +151,29 @@ class Device:
                    port: str,
                    period: float
                    ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
-        if not port in self._ports:
-            return live.NoOpFuture(report.LogEntry(f'Device {id} has no port {port}', report.FAILED)), None
         future = Future('log signal')
-        self._requests[port] = LoggingRequest(port, period, future)
         try:
             _server.listen(self._id, port)
-        except rogue.RogueException:
-            # TODO Error handling!
-            pass
+        except rogue.RogueException as e:
+            return live.NoOpFuture(report.LogEntry(f'rogue: failed to log signal {self._id}.{port} with the following error: {e}', report.FAILED)), future
+        self._requests[port] = LoggingRequest(port, period, future)
         return live.NoOpFuture(report.LogEntry(f'begin log signal')), future
 
     def end_log_signal(self, port: str) -> live.AbstractFuture:
-        data = _server.lazy_data[self._id][port]
-        # This could be done in parallel, but we want to use rogueplugin
-        # for testing purposes, so we try to avoid multiple threads as
-        # much as possible.
-        # TODO Cleanup the timeseries...
-        self._requests[port].future.set_result(timeseries.TimeSeries(data.time, data.values))
+        try:
+            data = _server.lazy_data[self._id][port]
+            # TODO Use correct period on timeseries.
+            # This could be done in parallel, but we want to use rogueplugin
+            # for testing purposes, so we try to avoid multiple threads as
+            # much as possible.
+            self._requests[port].future.set_result(timeseries.TimeSeries(data.time, data.values))
+        except KeyError as e:
+            return live.NoOpFuture(f'rogue: failed to find data for signal {self._id}.{port}: {e}')
         return live.NoOpFuture('end log signal')
 
     def set_signal(self, port: str, value: ArrayLike) -> live.AbstractFuture:
         try:
             _server.set_value(self._id, port, value)
         except rogue.RogueException as e:
-            return live.NoOpFuture(report.LogEntry(str(e), severity=report.FAILURE))
+            return live.NoOpFuture(report.LogEntry(str(e), severity=report.FAILED))
         return live.NoOpFuture(report.LogEntry(f'set {port} to {value}'))

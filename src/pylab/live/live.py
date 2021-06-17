@@ -401,7 +401,8 @@ class NoOpFuture(AbstractFuture):
     def done(self) -> bool:
         return True
 
-    def wait(self, _: Optional[float] = None) -> bool:
+    def wait(self, timeout: Optional[float] = None) -> bool:
+        del timeout
         return True
 
 
