@@ -45,7 +45,7 @@ def init(info: infos.TestInfo, details: live.Details) -> None:
     for dev in devices:
         # Note that no ``Device`` objects are created here!
         channels = [info.channel for info in dev.interface.ports]
-        ports = {channel: dev.extension['defaults'][channel] for channel in channels}
+        ports = {channel: dev.extension.get('defaults', {})[channel] for channel in channels}
         loop = dev.data.get('loop')
         _server.add_client(dev.name, ports, loop)
     connections = [
@@ -168,8 +168,8 @@ class Device:
             # much as possible.
             self._requests[port].future.set_result(timeseries.TimeSeries(data.time, data.values))
         except KeyError as e:
-            return live.NoOpFuture(f'rogue: failed to find data for signal {self._id}.{port}: {e}')
-        return live.NoOpFuture('end log signal')
+            return live.NoOpFuture(report.LogEntry(f'rogue: failed to find data for signal {self._id}.{port}: {e}', report.FAILED))
+        return live.NoOpFuture(report.LogEntry('end log signal'))
 
     def set_signal(self, port: str, value: ArrayLike) -> live.AbstractFuture:
         try:
