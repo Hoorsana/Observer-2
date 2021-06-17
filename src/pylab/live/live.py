@@ -226,6 +226,7 @@ class DeviceDetails:
     module: str
     interface: infos.ElectricalInterface
     data: dict = dataclasses.field(default_factory=dict)
+    extension: dict = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:
@@ -234,7 +235,8 @@ class DeviceDetails:
         module = data['module']
         interface = infos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward...!
-        return cls(name, type, module, interface, args)
+        extension = data.get('extension', {})
+        return cls(name, type, module, interface, args, extension)
 
 
 # }}} frontend

@@ -21,12 +21,14 @@ class TestGlobal:
                     module='pylab._private.rogueplugin',
                     type='Device',
                     data={
+                        'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1'))
+                    },
+                    extension={
                         'defaults': {
                             'DAC0': 0.0,
                             'A0': 0.0,
                             'A1': 0.0,
                         },
-                        'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1'))
                     },
                     interface=infos.ElectricalInterface(
                         ports=[
@@ -52,7 +54,8 @@ class TestGlobal:
                     name='gpio',
                     module='pylab._private.rogueplugin',
                     type='Device',
-                    data={
+                    data={},
+                    extension={
                         'defaults': {
                             'DAC0': 0.0,
                             'DAC1': 0.0,
@@ -119,7 +122,7 @@ class TestGlobal:
         yield _gpio
         _gpio.close()
 
-    def test_minimal(self, server, adder, gpio):
+    def test_start_stop(self, server, adder, gpio):
         rogueplugin.post_init('unused', 'unused', 'unused')
         time.sleep(0.1)
         rogueplugin._server.process_errors()
@@ -141,6 +144,7 @@ class TestGlobal:
         future.wait()
         rogueplugin._server.process_errors()
         result = future.get_result()
+        print(result.values)
         assert result(0.05) == 0.0
         assert result(0.15) == 25.0
         assert result(0.25) == 100.0
@@ -151,15 +155,14 @@ class TestDevice:
 
     @pytest.fixture
     def server(self):
-        # TODO This type of info appears in many tests. Refactor in conftest?
-        info = infos.TestInfo([], [], [])  # Remains unused!
         details = live.Details(
             devices=[
                 live.DeviceDetails(
                     name='device',
                     module='pylab._private.rogueplugin',
                     type='Device',
-                    data={'defaults': {'port': 0.0}},
+                    data={},
+                    extension={'defaults': {'port': 0.0}},
                     interface=infos.ElectricalInterface(
                         ports=[
                             infos.PortInfo(

@@ -45,7 +45,7 @@ def init(info: infos.TestInfo, details: live.Details) -> None:
     for dev in devices:
         # Note that no ``Device`` objects are created here!
         channels = [info.channel for info in dev.interface.ports]
-        ports = {channel: dev.data['defaults'][channel] for channel in channels}
+        ports = {channel: dev.extension['defaults'][channel] for channel in channels}
         loop = dev.data.get('loop')
         _server.add_client(dev.name, ports, loop)
     connections = [
