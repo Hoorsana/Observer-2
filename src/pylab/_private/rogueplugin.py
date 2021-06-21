@@ -15,14 +15,14 @@ from pylab.live import live
 class Server(rogue.Server):
 
     def __init__(self):
-        super().__init__(grain=0.1)
+        super().__init__(duration=0.001)
         self._lazy_data = None
 
     @property
     def lazy_data(self):
         if self._lazy_data is None:
             self.kill()
-            self._lazy_data = self.data()
+            self._lazy_data = self.data
         return self._lazy_data
 
     def reset(self):

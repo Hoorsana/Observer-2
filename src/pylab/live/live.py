@@ -84,22 +84,22 @@ def create(info: infos.TestInfo, details: Details) -> Test:
     """Implementation of :meth:`core.api.create
     <pylab.core.api.create>`.
     """
-    inits = []
-    post_inits = []
+    inits = {}
+    post_inits = {}
     for each in details.devices:
         module = importlib.import_module(each.module)
         init = getattr(module, 'init', None)
         if init is not None:
-            inits.append(init)
+            inits[each.module] = init
         post_init = getattr(module, 'post_init', None)
         if post_init is not None:
-            post_inits.append(post_init)
+            post_inits[each.module] = post_init
         # FIXME This is seriously broken! post_init is called multiple times!
 
-    for each in inits:
+    for _, each in inits.items():
         each(info, details)
     test_object = _TestObject(details, info.targets)
-    for each in post_inits:
+    for _, each in post_inits.items():
         each(info, details, test_object)
 
     commands: list[AbstractCommand] = []

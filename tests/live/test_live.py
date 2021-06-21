@@ -14,25 +14,27 @@ from pylab.live import live
 from pylab._private import rogueplugin
 
 
+STEP_SIZE = 0.1
+
+
 @pytest.fixture
 def assertion():
     a = testing.TimeseriesAlmostEqual(
         timeseries.TimeSeries(
-            list(range(10)),
+            [t*STEP_SIZE for t in range(10)],
             [[100], [125], [100], [50], [0], [100], [200], [100], [0], [0]]
         ),
-        rtol=0.2
+        rtol=0.01
     )
     return a.wrap_in_dispatcher({'actual': 'adder.sum'})
 
 
 @pytest.mark.timeout(20.0)
-def test_functional_arduino(adder, details, assertion):
+def test_functional(adder, details, assertion):
     report = workflow.run(live, adder, details)
     print('\n'.join(str(each) for each in report.logbook))
-    result = report.results['adder.sum']
-    # result.shift(-0.30)
-    timeseries.pretty_print(result)
+    ts = report.results['adder.sum']
+    timeseries.pretty_print(ts)
     assertion.assert_(report.results)
 
 
@@ -67,7 +69,7 @@ def adder():
         [infos.LoggingInfo(target='adder', signal='sum', period=0.1)],
         [
             infos.PhaseInfo(
-                duration=5.0,
+                duration=5.0*STEP_SIZE,
                 commands=[
                     infos.CommandInfo(
                         time=0.0, command='CmdSetSignal', target='adder',
@@ -78,29 +80,29 @@ def adder():
                         data={'signal': 'val2', 'value': 50}
                     ),
                     infos.CommandInfo(
-                        time=1.0, command='CmdSetSignal', target='adder',
+                        time=1.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 75}
                     ),
                     infos.CommandInfo(
-                        time=2.0, command='CmdSetSignal', target='adder',
+                        time=2.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val2', 'value': 25}
                     ),
                     infos.CommandInfo(
-                        time=3.0, command='CmdSetSignal', target='adder',
+                        time=3.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 25}
                     ),
                     infos.CommandInfo(
-                        time=4.0, command='CmdSetSignal', target='adder',
+                        time=4.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 0}
                     ),
                     infos.CommandInfo(
-                        time=4.0, command='CmdSetSignal', target='adder',
+                        time=4.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val2', 'value': 0}
                     ),
                 ]
             ),
             infos.PhaseInfo(
-                duration=4.0,
+                duration=4.0*STEP_SIZE,
                 commands=[
                     infos.CommandInfo(
                         time=0.0, command='CmdSetSignal', target='adder',
@@ -111,15 +113,15 @@ def adder():
                         data={'signal': 'val2', 'value': 100}
                     ),
                     infos.CommandInfo(
-                        time=1.0, command='CmdSetSignal', target='adder',
+                        time=1.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 100}
                     ),
                     infos.CommandInfo(
-                        time=2.0, command='CmdSetSignal', target='adder',
+                        time=2.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val2', 'value': 0}
                     ),
                     infos.CommandInfo(
-                        time=3.0, command='CmdSetSignal', target='adder',
+                        time=3.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 0}
                     ),
                 ]
