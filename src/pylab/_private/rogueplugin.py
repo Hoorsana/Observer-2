@@ -15,7 +15,7 @@ from pylab.live import live
 class Server(rogue.Server):
 
     def __init__(self):
-        super().__init__(grain=0.01)
+        super().__init__(grain=0.1)
         self._lazy_data = None
 
     @property

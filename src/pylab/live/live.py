@@ -94,6 +94,7 @@ def create(info: infos.TestInfo, details: Details) -> Test:
         post_init = getattr(module, 'post_init', None)
         if post_init is not None:
             post_inits.append(post_init)
+        # FIXME This is seriously broken! post_init is called multiple times!
 
     for each in inits:
         each(info, details)
