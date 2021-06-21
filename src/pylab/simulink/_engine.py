@@ -34,14 +34,14 @@ _engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
 def engine() -> matlab.engine.matlabengine.MatlabEngine:
     """Lazily create and return the global engine object.
 
-    This wrapper prevents that the matlab.engine is engaged upon import.
-    This is inconvenient, for example when creating sphinx docs.
+    This wrapper also prevents that the matlab.engine is engaged upon
+    import. This is inconvenient, for example when creating sphinx docs.
 
     Returns:
         The global MATLAB engine handle
     """
-    import matlab.engine
     global _engine
+    import matlab.engine
     if _engine is None:
         _engine = matlab.engine.start_matlab()
     return _engine
@@ -110,7 +110,6 @@ def _timeseries_to_python(time: Sequence[Sequence[float]],
         for k in range(breakpoint_count):
             elem = [[data[i][j][k] for j in range(cols)] for i in range(rows)]
             reordered.append(elem)
-
         return timeseries.TimeSeries(time, reordered)
 
     raise ValueError('failed to discover data type of MATLAB object')

@@ -40,16 +40,6 @@ The following targets are available for make:
 - `saleae`
 - `saleae-flash`
 
-Furthermore, if you must set `PYLAB_MATLAB_PATH` equal to the directory
-of your MATLAB installation in order for pylab to find the `setup.py` of
-the MATLAB engine. If you don't set the variable, the MATLAB engine will
-not be installed.
-
-You must set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB
-installation in order for pylab to find the `setup.py` of the MATLAB
-engine. If you don't set the variable, the MATLAB engine will not be
-installed along with the other modules.
-
 Running the `live` and `example-adder` test requires two Arduino Due
 boards. The GPIO board must run the [Controllino
 implementation](git@bitbucket.org:8tronix/testcenter-arduinodue-gpio.git),
@@ -71,6 +61,17 @@ Both examples can be run _with flashing_ by calling `example-*-flash`.
 Note that `resources/examples/adder/arduino_details.yml` is created from
 `arduino_details.yml.in` by entering the USB serial numbers stored in
 the environment variables using the `freeze` script.
+
+
+#### Testing `simulink`
+
+You must set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB
+installation in order for pylab to find the `setup.py` of the MATLAB
+engine. If you don't set the variable, the MATLAB engine will not be
+installed to the virtual envrionment.
+
+You must also define the environment variable `MATLABPATH` to include
+`resources/tests/simulink`.
 
 
 #### Testing `live.plugin.saleae`
@@ -102,7 +103,8 @@ the tests. If you experience blocking or crashes during the tests, try
 that.
 
 Note that you need at least commit
-877178f67618cdb3355054eae3666d99dce36aaa.
+`877178f67618cdb3355054eae3666d99dce36aaa` from the saleae-python
+repository.
 
 
 #### Testing `live.plugin.can`

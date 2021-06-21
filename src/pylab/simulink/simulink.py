@@ -201,7 +201,7 @@ class Test:
         # running the test, this is our fault (because we apparently
         # messed up the LoggingInfo), should be raised and should not
         # appear in the report.
-        _engine.reset()
+        _engine.reset()  # FIXME Make this a post_test?
         with tempfile.TemporaryDirectory() as tmpdir:
             for each in TOOLBOX:
                 raw = importlib.resources.read_text(RESOURCES, each)

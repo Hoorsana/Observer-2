@@ -31,10 +31,8 @@ def load_test(path: str) -> infos.TestInfo:
     """
     data = _yaml_safe_load_from_file(path)
 
-    targets = [infos.TargetInfo.from_dict(each)
-               for each in data['targets']]
-    logging = [infos.LoggingInfo(**each)
-               for each in data.get('logging', [])]
+    targets = [infos.TargetInfo.from_dict(each) for each in data['targets']]
+    logging = [infos.LoggingInfo(**each) for each in data.get('logging', [])]
 
     # If a phase info is a string, use it as a filesystem path to find
     # the file which holds the actual phase info data. If ``data`` is a
