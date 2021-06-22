@@ -157,11 +157,18 @@ class Dispatcher(BaseAssertion):
 
 
 class Equal(BaseAssertion):
+    """Assertion for _exact_ equality implemented by ``__eq__``."""
 
-    def __init__(self, expected: _T) -> None:
+    def __init__(self, expected: Any) -> None:
+        """Args:
+            expected: The expected value
+        """
         self._expected = expected
 
-    def apply(self, actual: _T) -> Result:
+    def apply(self, actual: Any) -> Result:
+        """Args:
+            actual: The actual result
+        """
         return Result(
             self._expected == result,
             f'{actual} not equal to expected {expected}'
@@ -169,9 +176,30 @@ class Equal(BaseAssertion):
 
 
 class TimeseriesAlmostEqual(BaseAssertion):
+    """Assert that two time series are almost everywhere close.
+
+    The assertion succeeds if the following is true: Take the absolute
+    difference of the expected time series f and the actual time
+    series g (as functions) and integrate the result over the domain
+    [a, b] of the _expected_ time series, then compare that result to
+    the absolute integral of the expected time series:
+
+    \\int_a^b |f - g| dt < t_{rel} \\cdot \\int_a^b |f| dt + t_{abs}
+
+    Note that if the domain of integration exceeds the bounds of the
+    domain of g, then the values of g are extrapolated using the
+    interpolation/extrapolation kind provided by the underlying time
+    series.
+    """
 
     def __init__(self, expected: timeseries.TimeSeries,
                  rtol: float = 1e-05, atol: float = 1e-05) -> None:
+        """Args:
+            expected: The expected time series
+            rtol: The relative tolerance
+            atol: The absolute tolerance
+        """
+        self._expected = expected
         self._expected = expected
         self._atol = atol
         self._rtol = rtol
@@ -191,9 +219,21 @@ class TimeseriesAlmostEqual(BaseAssertion):
 
 
 class TimeseriesIntegralAlmostEqual(BaseAssertion):
+    """Assert that the integral of a time series over a certain domain
+    is almost equal to an expected value:
+
+    \\int_l^u actual dt < t_{rel} \\cdot expected + t_{abs}
+    """
 
     def __init__(self, expected: float, rtol: float = 1e-05, atol: float = 1e-05,
                  lower: Optional[float] = None, upper: Optional[float] = None) -> None:
+        """Args:
+            expected: The expected value
+            rtol: The relative tolerance
+            atol: The absolute Tolerance
+            lower: The lower bound of the domain of integration
+            upper: The upper bound of the domain of integration
+        """
         self._expected = expected
         self._atol = atol
         self._rtol = rtol
@@ -211,9 +251,20 @@ class TimeseriesIntegralAlmostEqual(BaseAssertion):
 
 
 class CloseAtTime(BaseAssertion):
+    """Assert that the value of a time series at a specified time is
+    close to an expected value:
+
+    |expected(t_0) - actual(t_0)| < t_{rel} \\cdot expected(t_0) + t_{abs}
+    """
 
     def __init__(self, expected: ArrayLike, time: float,
                  rtol: float = 1e-05, atol: float = 1e-05) -> None:
+        """Args:
+            expected: The expected value
+            time: The time of comparison
+            rtol: The relative tolerance
+            atol: The absolute tolerance
+        """
         self._expected = expected
         self._time = time
         self._rtol = rtol
@@ -229,18 +280,28 @@ class CloseAtTime(BaseAssertion):
         return Result()
 
 
-class EqualOnce(BaseAssertion):
+class EqualAtLeastOnce(BaseAssertion):
+    """Assert that a timeseries assumes a certain value at least once.
+    """
 
-    def __init__(self, expected: ArrayLike, lo: float, hi: float) -> None:
+    def __init__(self, expected: ArrayLike,
+                 lower: Optional[flowerat] = None, upper: Optional[flowerat] = None) -> None:
         self._expected = expected
-        self._lo = lo
-        self._hi = hi
+        self._lower = lower
+        self._upper = upper
 
     def apply(self, ts: timeseries.TimeSeries) -> Result:
-        hits = [t for t in ts.time
-                if self._lo <= t and t <= self._hi
-                and self._result(t) == self._expected]
+        if self._lower is None:
+            lower = self._lower
+        else:
+            lower = ts.lower
+        if self._upper is None:
+            upper = self.upper
+        else:
+            upper = ts.upper
+        hits = [t for t in ts.time if lower <=
+                t and t <= upper and ts(t) == self._expected]
         return Result(
             bool(hits),
-            f'TimeSeries not once equal to {self._expected} on [{self._lo}, {self._hi}]'
+            f'TimeSeries not at least once equal to {self._expected} on [{self._lower}, {self._upper}]'
         )
