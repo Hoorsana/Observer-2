@@ -120,6 +120,22 @@ _stderr = io.StringIO()
 # frontend {{{
 
 
+def _find_nth(text: str, pattern: str, n: int) -> int:
+    index = -1
+    for _ in range(n):
+        offset = index + 1
+        index = text[offset:].find(pattern) + offset
+    return index
+
+
+def _mark_line(text: str, line: int) -> str:
+    MARKER = '-->'
+    if line == 0:
+        return MARKER + text
+    index = _find_nth(text, '\n', line-1)
+    return text[:index+1] + MARKER + text[index+1:]
+
+
 def create(info: infos.TestInfo, details: Details) -> Test:
     """Create and return a ``Test`` object from info and device details.
 
@@ -224,7 +240,13 @@ class Test:
 
         if failed:
             results = {}  # FIXME Try to pull as much information as possible.
-            data = {'script': self._code, 'requests': self._logging_requests}
+            code = self._code
+            for log in logbook:
+                stack = log.data.get('stack')
+                if stack is not None:
+                    line = int(stack[0]['line'])
+                    code = _mark_line(code, line)
+            data = {'script': code, 'requests': self._logging_requests}
         else:
             results = {each.path(): each.result()
                        for each in self._logging_requests}
