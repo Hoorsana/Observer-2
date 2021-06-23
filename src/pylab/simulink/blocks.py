@@ -12,12 +12,88 @@ necessary to specify the full path for these blocks.
 
 from __future__ import annotations
 
+import abc
 import json
 from typing import Any, Optional
 
 from numpy.typing import ArrayLike
 
 from pylab.simulink import simulink
+
+
+class AbstractBlock(abc.ABC):
+    """Collections of methods called by commands. The blocks may
+    implemented these methods."""
+
+    @abc.abstractmethod
+    def set_signal(self, channel: str, value: ArrayLike) -> list[str]:
+        """Return code snippet for setting output of ``channel`` to
+        ``value``.
+
+        See https://www.mathworks.com/help/simulink/slref/constant.html
+        for details.
+
+        Args:
+            channel: The target port
+            value: The new output value
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_signal_ramp(self,
+                        channel: str,
+                        slope: ArrayLike,
+                        start_time: ArrayLike,
+                        initial_output: ArrayLike) -> list[str]:
+        """Return code snippet for setting the output of ``channel`` to
+        a ramp.
+
+        See https://www.mathworks.com/help/simulink/slref/ramp.html for
+        details.
+
+        Args:
+            channel: The target port
+            slope: The slope of the ramp
+            start_time: The time at which the ramp engages
+            initial_output: The value before the ramp engages
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_signal_sine(self,
+                        channel: str,
+                        amplitude: ArrayLike,
+                        frequency: ArrayLike,
+                        phase: Optional[ArrayLike] = 0.0,
+                        bias: Optional[ArrayLike] = 0.0) -> list[str]:
+        """Return the code snippet for setting the output of ``channel``
+        to a sine wave.
+
+        See https://www.mathworks.com/help/simulink/slref/sinewave.html
+        for details.
+
+        Args:
+            channel: The target port
+            amplitude: Amplitude of the wave
+            frequency: Frequency of the wave in Hz
+            phase: Phase of the wave in radians
+            bias: Bias of the wave
+        """
+        pass
+
+    @abc.abstractmethod
+    def log_signal(self,
+                   var: str,
+                   channel: str,
+                   period: Optional[float] = None) -> list[str]:
+        """Return the code snippet for logging ``channel``.
+
+        Args:
+            var: Workspace variable for storing data
+            channel: The target port
+            period: The period at which the signal is logged
+        """
+        pass
 
 
 class Block(simulink.AbstractBlock):
@@ -49,72 +125,6 @@ class Block(simulink.AbstractBlock):
 
     def setup(self) -> list[str]:
         return [f"add_block('{self._type}', '{self.absolute_path}')"]
-
-    def set_signal(self, channel: str, value: ArrayLike) -> list[str]:
-        """Return code snippet for setting output of ``channel`` to
-        ``value``.
-
-        See https://www.mathworks.com/help/simulink/slref/constant.html
-        for details.
-
-        Args:
-            channel: The target port
-            value: The new output value
-        """
-        raise NotImplementedError()
-
-    def set_signal_ramp(self,
-                        channel: str,
-                        slope: ArrayLike,
-                        start_time: ArrayLike,
-                        initial_output: ArrayLike) -> list[str]:
-        """Return code snippet for setting the output of ``channel`` to
-        a ramp.
-
-        See https://www.mathworks.com/help/simulink/slref/ramp.html for
-        details.
-
-        Args:
-            channel: The target port
-            slope: The slope of the ramp
-            start_time: The time at which the ramp engages
-            initial_output: The value before the ramp engages
-        """
-        raise NotImplementedError()
-
-    def set_signal_sine(self,
-                        channel: str,
-                        amplitude: ArrayLike,
-                        frequency: ArrayLike,
-                        phase: Optional[ArrayLike] = 0.0,
-                        bias: Optional[ArrayLike] = 0.0) -> list[str]:
-        """Return the code snippet for setting the output of ``channel``
-        to a sine wave.
-
-        See https://www.mathworks.com/help/simulink/slref/sinewave.html
-        for details.
-
-        Args:
-            channel: The target port
-            amplitude: Amplitude of the wave
-            frequency: Frequency of the wave in Hz
-            phase: Phase of the wave in radians
-            bias: Bias of the wave
-        """
-        raise NotImplementedError()
-
-    def log_signal(self,
-                   var: str,
-                   channel: str,
-                   period: Optional[float] = None) -> list[str]:
-        """Return the code snippet for logging ``channel``.
-
-        Args:
-            var: Workspace variable for storing data
-            channel: The target port
-            period: The period at which the signal is logged
-        """
-        raise NotImplementedError()
 
 
 class Model(Block):

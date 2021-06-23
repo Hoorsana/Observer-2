@@ -682,7 +682,10 @@ class TestObject:
         configuring the logger.
         """
         # FIXME Why is this a _Command_? Shouldn't it just be a code block?
-        device, port = self.trace_forward(info.target, info.signal)
+        gen = self._trace_forward_gen(info.target, info.signal)
+        device, port = None, None
+        while device is None:
+            device, port = next((device, port) for device, port in gen if hasattr(device.block, 'log_signal'))
         var = _unpack_log_entry(info)
         code = device.block.log_signal(var, port.channel, info.period)
         what = str(info)
