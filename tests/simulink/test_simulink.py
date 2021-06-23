@@ -17,6 +17,8 @@ from pylab.core import timeseries
 from pylab.simulink import simulink
 
 
+@pytest.mark.dependency('simulink')
+@pytest.mark.slow
 class TestTest:
 
     @pytest.mark.parametrize('code, requests, results, severity, effect', [
@@ -101,6 +103,8 @@ class TestLoadDetails:
         assert details == data[1]
 
 
+@pytest.mark.dependency('simulink')
+@pytest.mark.slow
 class TestExamples:
 
     def test_adder(self, adder):

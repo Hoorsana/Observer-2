@@ -720,6 +720,11 @@ class TestObject:
             raise ValueError(f'Target "{target}" has no signal "{signal}"')
         return signal_obj
 
+    def _trace_back_gen(self, target: str, signal: str):
+        device = next(each for each in self._devices if each.name == target)
+        channel = device.interface.get_port(signal).channel
+        return ((line.sender, line.sender_port) for line in self._lines if line.receiver.name == target and line.receiver_port.channel == channel)
+
     def trace_back(self, target: str, signal: str) -> tuple[Device, infos.PortInfo]:
         """Return the output that is connected to the input ``signal``
         of ``target``.
@@ -727,12 +732,14 @@ class TestObject:
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
+        return next(self._trace_back_gen(target, signal))
+
+    def _trace_forward_gen(self, target: str, signal: str):
         device = next(each for each in self._devices if each.name == target)
         channel = device.interface.get_port(signal).channel
-        line = next(each for each in self._lines
-                    if each.receiver.name == target
-                    and each.receiver_port.channel == channel)
-        return line.sender, line.sender_port
+        return ((each.receiver, each.receiver_port) for each in self._lines
+                if each.sender.name == target
+                and each.sender_port.channel == channel)
 
     def trace_forward(self, target: str, signal: str) -> tuple[Device, infos.PortInfo]:
         """Return the output that is connected to ``signal`` of
@@ -741,12 +748,7 @@ class TestObject:
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
-        device = next(each for each in self._devices if each.name == target)
-        channel = device.interface.get_port(signal).channel
-        line = next(each for each in self._lines
-                    if each.sender.name == target
-                    and each.sender_port.channel == channel)
-        return line.receiver, line.receiver_port
+        return next(self._trace_forward_gen(target, signal))
 
     def setup(self):
         """Return code snippet for creating the referenced blocks and
