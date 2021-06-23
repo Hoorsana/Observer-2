@@ -76,6 +76,7 @@ class Report:
     """
     logbook: list[LogEntry]  # Contains everything that happened during the test.
     results: dict[str, Any] = dataclasses.field(default_factory=dict)
+    data: Optional[dict[str, Any]] = dataclasses.field(default_factory=dict)
     # map: name -> logged_data
 
     @property
@@ -84,7 +85,10 @@ class Report:
 
     @property
     def what(self) -> str:
-        return '\n'.join(each.msg for each in self.logbook)
+        result = '\n'.join(each.msg for each in self.logbook)
+        if self.data:
+            result += '\n\nDATA:\n\n' + '\t\n'.join(f'{k}: {str(v)}' for k, v in self.data.items())
+        return result
 
     def dump(self, path: str) -> None:
         """Dump the results to file.
@@ -98,6 +102,18 @@ class Report:
         data = self.serialize()
         with open(path, 'wb') as f:
             f.write(data)
+
+    def dump_log(self, path: str) -> None:
+        """Dump the raw log to file.
+
+        Args:
+            path: The path to dump to
+
+        Raises:
+            OSError: If writing to ``path`` fails
+        """
+        with open(path, 'w') as f:
+            f.write(self.what)
 
     def serialize(self) -> bytes:
         return pickle.dumps(self)
