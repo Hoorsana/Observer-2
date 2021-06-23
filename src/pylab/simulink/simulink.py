@@ -224,11 +224,13 @@ class Test:
 
         if failed:
             results = {}  # FIXME Try to pull as much information as possible.
+            data = {'script': self._code, 'requests': self._logging_requests}
         else:
             results = {each.path(): each.result()
                        for each in self._logging_requests}
+            data = {}
 
-        return report.Report(logbook, results)
+        return report.Report(logbook, results, data)
 
 
 def load_details(path: str) -> Details:
