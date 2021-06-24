@@ -7,7 +7,7 @@ from __future__ import annotations
 import importlib
 from typing import Any, Sequence, TypeVar
 
-from numpy.typing import ArrayLike
+from pylab.core.typing import ArrayLike
 
 _T = TypeVar('T')
 

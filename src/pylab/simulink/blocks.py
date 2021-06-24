@@ -17,8 +17,7 @@ import abc
 import json
 from typing import Any, Optional
 
-from numpy.typing import ArrayLike
-
+from pylab.core.typing import ArrayLike
 from pylab.simulink import simulink
 
 

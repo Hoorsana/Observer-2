@@ -25,6 +25,7 @@ from typing import Any, List, Optional, Sequence, Tuple
 
 import matlab
 
+from pylab.core.typing import ArrayLike
 from pylab.core import timeseries
 
 # Global engine object.

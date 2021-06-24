@@ -69,10 +69,10 @@ import posixpath
 import shutil
 import tempfile
 
-from numpy.typing import ArrayLike
 import matlab
 import yaml
 
+from pylab.core.typing import ArrayLike
 from pylab.simulink import _engine
 from pylab.core import timeseries
 from pylab.core import utils
