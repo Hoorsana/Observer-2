@@ -90,7 +90,7 @@ class Report:
             result += '\n\nDATA:\n\n' + '\t\n'.join(f'{k}: {str(v)}' for k, v in self.data.items())
         return result
 
-    def dump(self, path: str) -> None:
+    def dump(self, PathLike: str) -> None:
         """Dump the results to file.
 
         Args:
@@ -103,7 +103,7 @@ class Report:
         with open(path, 'wb') as f:
             f.write(data)
 
-    def dump_log(self, path: str) -> None:
+    def dump_log(self, PathLike: str) -> None:
         """Dump the raw log to file.
 
         Args:
@@ -119,6 +119,6 @@ class Report:
         return pickle.dumps(self)
 
 
-def load(path: str) -> Report:
+def load(path: PathLike) -> Report:
     with open(path, 'rb') as f:
         return pickle.load(f)
