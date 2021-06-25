@@ -39,9 +39,13 @@ def test_load_test():
         )
     ]
     assert test.targets == targets
-    logging = [infos.LoggingInfo(target='system_under_test',
-                                 signal='sum',
-                                 period=0.5)]
+    logging = [
+        infos.LoggingInfo(
+            target='system_under_test',
+            signal='sum',
+            period=0.5
+        )
+    ]
     assert test.logging == logging
     phase = infos.PhaseInfo(
         description='Set some values...',
