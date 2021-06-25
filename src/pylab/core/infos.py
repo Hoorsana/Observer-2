@@ -225,9 +225,9 @@ class SignalInfo:
                 raise ValueError(
                     'Failed to init SignalInfo: SignalInfo.range '
                     'and SignalInfo.min or SignalInfo.max specified.')
-            min, max = _load_range(range)
-            object.__setattr__(self, 'min', min)
-            object.__setattr__(self, 'max', max)
+            min_, max_ = _load_range(range)
+            object.__setattr__(self, 'min', min_)
+            object.__setattr__(self, 'max', max_)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -297,9 +297,9 @@ class PortInfo:
                 raise ValueError(
                     'failed to init PortInfo: SignalInfo.range '
                     'and SignalInfo.min or SignalInfo.max specified.')
-            min, max = _load_range(range)
-            object.__setattr__(self, 'min', min)
-            object.__setattr__(self, 'max', max)
+            min_, max_ = _load_range(range)
+            object.__setattr__(self, 'min', min_)
+            object.__setattr__(self, 'max', max_)
 
 
 @dataclasses.dataclass(frozen=True)

@@ -140,7 +140,7 @@ class TestPhaseInfo:
     @pytest.mark.parametrize('duration, commands', [
         pytest.param(
             -0.3, [],
-            id='negative duration'
+            id='Negative duration'
         ),
         pytest.param(
             1.23,
@@ -151,7 +151,7 @@ class TestPhaseInfo:
                     target='bar'
                 )
             ],
-            id='cmd time exceeds phase duration'
+            id='Execution time exceeds phase duration'
         )
     ])
     def test_failure(self, duration, commands):
@@ -190,6 +190,14 @@ class TestPhaseInfo:
             description='foobar'
         )
         assert phase == expected
+
+    @pytest.mark.parametrize('data', [
+        pytest.param({}, id='Missing duration'),
+        pytest.param({'duration': 1.2, 'foo': 'bar'}, id='Unexpected field')
+    ])
+    def test_from_dict_failure(self, data):
+        with pytest.raises(errors.InfoError):
+            infos.PhaseInfo.from_dict(data)
 
 
 class TestLoggingInfo:
@@ -282,6 +290,14 @@ class TestTargetInfo:
         )
         assert info == expected
 
+    @pytest.mark.parametrize('data', [
+        pytest.param({}, id='Missing name'),
+        pytest.param({'name': 'foo', 'foo': 'bar'}, id='Unexpected field')
+    ])
+    def test_from_dict_failure(self, data):
+        with pytest.raises(errors.InfoError):
+            infos.TargetInfo.from_dict(data)
+
 
 class TestPortInfo:
 
@@ -329,6 +345,13 @@ class TestElectricalInterface:
         }
         info = infos.ElectricalInterface.from_dict(data)
         assert info == inf
+
+    @pytest.mark.parametrize('data', [
+        pytest.param({'foo': 'bar'}, id='Unexpected field')
+    ])
+    def test_from_dict_failure(self, data):
+        with pytest.raises(errors.InfoError):
+            infos.ElectricalInterface.from_dict(data)
 
     def test_get_port_success(self, inf):
         assert inf.get_port('foo') == inf.ports[0]
