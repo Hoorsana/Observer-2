@@ -84,21 +84,22 @@ def create(info: infos.TestInfo, details: Details) -> Test:
     """Implementation of :meth:`core.api.create
     <pylab.core.api.create>`.
     """
-    inits = []
-    post_inits = []
+    inits = {}
+    post_inits = {}
     for each in details.devices:
         module = importlib.import_module(each.module)
         init = getattr(module, 'init', None)
         if init is not None:
-            inits.append(init)
+            inits[each.module] = init
         post_init = getattr(module, 'post_init', None)
         if post_init is not None:
-            post_inits.append(post_init)
+            post_inits[each.module] = post_init
+        # FIXME This is seriously broken! post_init is called multiple times!
 
-    for each in inits:
+    for _, each in inits.items():
         each(info, details)
     test_object = _TestObject(details, info.targets)
-    for each in post_inits:
+    for _, each in post_inits.items():
         each(info, details, test_object)
 
     commands: list[AbstractCommand] = []
@@ -158,8 +159,8 @@ class Test:
                     each for each in self._commands if each not in commands]
                 for cmd in commands:
                     future = cmd.execute(self._test_object)
-                    self._controller.put(future, timeout=DEFAULT_TIMEOUT)
-                logbook += self._controller.run()
+                    self._controller.put(future, current_time, timeout=DEFAULT_TIMEOUT)
+                logbook += self._controller.run(current_time)
                 if _panic(logbook):
                     return report.Report(logbook, {})
                 time.sleep(HEARTBEAT)
@@ -226,6 +227,7 @@ class DeviceDetails:
     module: str
     interface: infos.ElectricalInterface
     data: dict = dataclasses.field(default_factory=dict)
+    extension: dict = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:
@@ -234,7 +236,8 @@ class DeviceDetails:
         module = data['module']
         interface = infos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward...!
-        return cls(name, type, module, interface, args)
+        extension = data.get('extension', {})
+        return cls(name, type, module, interface, args, extension)
 
 
 # }}} frontend
@@ -401,7 +404,8 @@ class NoOpFuture(AbstractFuture):
     def done(self) -> bool:
         return True
 
-    def wait(self, _: Optional[float] = None) -> bool:
+    def wait(self, timeout: Optional[float] = None) -> bool:
+        del timeout
         return True
 
 
@@ -840,25 +844,30 @@ class _FutureController:
     def __init__(self):
         self._futures = []
 
-    def put(self, future: AbstractFuture, timeout: Optional[float] = None) -> None:
+    def put(self, future: AbstractFuture, current_time: float, timeout: Optional[float] = None) -> None:
         """Pass ownership of future to the controller and imbue it with
         a timeout.
 
         Args:
             future: The future to take control of
+            current_time: The time of submission
             timeout: The timeout in seconds
         """
         if timeout is not None:
             timeout = time.time() + timeout
+        future.log.data['submit_time'] = current_time
         self._futures.append(_DeadlineFuture(future, timeout))
 
-    def run(self) -> list[report.LogEntry]:
+    def run(self, current_time: float) -> list[report.LogEntry]:
         """Check all controlled futures for completion.
 
         This method will remove any controlled futures that are done and
         return a logbook detailing the results. If any of the futures
         timed out *with proper cause* then this method will raise that
         error.
+
+        Args:
+            current_time: The current test time
 
         Returns:
             The log entries of the completed futures
@@ -878,6 +887,8 @@ class _FutureController:
             # stange, as well. Why would we only raise if we know
             # exactly what's going on?
         logbook += [elem.log for elem in timed_out]
+        for log in logbook:
+            log.data['done_time'] = current_time
         return logbook
 
 

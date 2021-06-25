@@ -131,8 +131,8 @@ import threading
 import time
 
 import saleae
-from numpy.typing import ArrayLike
 
+from pylab.core.typing import ArrayLike
 from pylab.live import live
 from pylab.core import report
 from pylab.core import timeseries

@@ -15,10 +15,10 @@ from typing import Any, Callable, Optional, Sequence
 import yaml
 
 import numpy as np
-from numpy.typing import ArrayLike
 import scipy.interpolate
 import scipy.integrate
 
+from pylab.core.typing import ArrayLike
 from pylab.tools import yamltools
 
 

@@ -10,6 +10,7 @@ import abc
 import typing
 
 # typing:
+from pylab.core.typing import PathLike
 from pylab.core import infos
 from pylab.core import report
 
@@ -39,7 +40,7 @@ class AbstractDriver:
                 If test creation fails due to faulty driver details
         """
 
-    def load_details(path: str) -> Details:
+    def load_details(path: PathLik) -> Details:
         """Load details from file ``path``.
 
         Raises:

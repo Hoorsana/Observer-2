@@ -10,9 +10,9 @@ import inspect
 from typing import Optional
 
 import numpy.testing
-from numpy.typing import ArrayLike
 import yaml
 
+from pylab.core.typing import ArrayLike
 from pylab.core import timeseries
 from pylab.core import infos
 from pylab.core import utils

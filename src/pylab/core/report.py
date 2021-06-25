@@ -18,7 +18,7 @@ class _Severity:
         self._text = text
         self._value = value
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return self._text
 
     def __lt__(self, other) -> bool:
@@ -27,10 +27,10 @@ class _Severity:
         return self._value < other._value
 
 
-INFO = _Severity('info', 0)
-WARNING = _Severity('warning', 1)
-FAILED = _Severity('failed', 2)
-PANIC = _Severity('panic', 3)
+INFO = _Severity('INFO', 0)
+WARNING = _Severity('WARNING', 1)
+FAILED = _Severity('FAILED', 2)
+PANIC = _Severity('PANIC', 3)
 
 
 # FIXME Do error reporting using a global logger object. That makes it
@@ -43,7 +43,10 @@ PANIC = _Severity('panic', 3)
 class LogEntry:
     what: str
     severity: _Severity = INFO
-    data: Optional[Any] = None
+    data: Optional[dict[str, Any]] = dataclasses.field(default_factory=dict)
+
+    def __str__(self):
+        return f'{self.severity}: {self.what}; {self.data}'
 
     @property
     def failed(self):
@@ -52,6 +55,15 @@ class LogEntry:
     @property
     def msg(self):  # TODO Rename?
         return f'{self.severity}: {self.what}; {self.data}'
+
+    def expect(self, severity: _Severity = INFO) -> None:
+        """Raise an assertion error if the severity is not as expected.
+
+        Args:
+            severity: The expected severity
+        """
+        if self.severity != severity:
+            raise AssertionError(f'Log has severity "{self.severity}", expected severity "{severity}". Logbook: {self.what}')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -64,6 +76,7 @@ class Report:
     """
     logbook: list[LogEntry]  # Contains everything that happened during the test.
     results: dict[str, Any] = dataclasses.field(default_factory=dict)
+    data: Optional[dict[str, Any]] = dataclasses.field(default_factory=dict)
     # map: name -> logged_data
 
     @property
@@ -72,9 +85,12 @@ class Report:
 
     @property
     def what(self) -> str:
-        return '\n'.join(each.msg for each in self.logbook)
+        result = '\n'.join(each.msg for each in self.logbook)
+        if self.data:
+            result += '\n\nDATA:\n\n' + '\t\n'.join(f'{k}: {str(v)}' for k, v in self.data.items())
+        return result
 
-    def dump(self, path: str) -> None:
+    def dump(self, PathLike: str) -> None:
         """Dump the results to file.
 
         Args:
@@ -87,10 +103,22 @@ class Report:
         with open(path, 'wb') as f:
             f.write(data)
 
+    def dump_log(self, PathLike: str) -> None:
+        """Dump the raw log to file.
+
+        Args:
+            path: The path to dump to
+
+        Raises:
+            OSError: If writing to ``path`` fails
+        """
+        with open(path, 'w') as f:
+            f.write(self.what)
+
     def serialize(self) -> bytes:
         return pickle.dumps(self)
 
 
-def load(path: str) -> Report:
+def load(path: PathLike) -> Report:
     with open(path, 'rb') as f:
         return pickle.load(f)

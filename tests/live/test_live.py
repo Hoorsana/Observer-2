@@ -11,34 +11,30 @@ from pylab.core import timeseries
 from pylab.core import workflow
 from pylab.core import testing
 from pylab.live import live
-from pylab.live.plugin import controllino
+from pylab._private import rogueplugin
+
+
+STEP_SIZE = 0.1
 
 
 @pytest.fixture
 def assertion():
     a = testing.TimeseriesAlmostEqual(
         timeseries.TimeSeries(
-            list(range(10)),
+            [t*STEP_SIZE for t in range(10)],
             [[100], [125], [100], [50], [0], [100], [200], [100], [0], [0]]
         ),
-        rtol=0.2
+        rtol=0.01
     )
     return a.wrap_in_dispatcher({'actual': 'adder.sum'})
 
 
-@pytest.mark.xfail
-def test_functional_fake(adder, details_fake, assertion):
-    report = workflow.run(live, adder, details_fake)
-    result = report.results['adder.sum']
-    assertion.assert_(report.results)
-
-
 @pytest.mark.timeout(20.0)
-def test_functional_arduino(adder, details_arduino, assertion):
-    report = workflow.run(live, adder, details_arduino)
-    result = report.results['adder.sum']
-    result.shift(-0.30)
-    timeseries.pretty_print(result)
+def test_functional(adder, details, assertion):
+    report = workflow.run(live, adder, details)
+    print('\n'.join(str(each) for each in report.logbook))
+    ts = report.results['adder.sum']
+    timeseries.pretty_print(ts)
     assertion.assert_(report.results)
 
 
@@ -73,7 +69,7 @@ def adder():
         [infos.LoggingInfo(target='adder', signal='sum', period=0.1)],
         [
             infos.PhaseInfo(
-                duration=5.0,
+                duration=5.0*STEP_SIZE,
                 commands=[
                     infos.CommandInfo(
                         time=0.0, command='CmdSetSignal', target='adder',
@@ -84,29 +80,29 @@ def adder():
                         data={'signal': 'val2', 'value': 50}
                     ),
                     infos.CommandInfo(
-                        time=1.0, command='CmdSetSignal', target='adder',
+                        time=1.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 75}
                     ),
                     infos.CommandInfo(
-                        time=2.0, command='CmdSetSignal', target='adder',
+                        time=2.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val2', 'value': 25}
                     ),
                     infos.CommandInfo(
-                        time=3.0, command='CmdSetSignal', target='adder',
+                        time=3.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 25}
                     ),
                     infos.CommandInfo(
-                        time=4.0, command='CmdSetSignal', target='adder',
+                        time=4.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 0}
                     ),
                     infos.CommandInfo(
-                        time=4.0, command='CmdSetSignal', target='adder',
+                        time=4.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val2', 'value': 0}
                     ),
                 ]
             ),
             infos.PhaseInfo(
-                duration=4.0,
+                duration=4.0*STEP_SIZE,
                 commands=[
                     infos.CommandInfo(
                         time=0.0, command='CmdSetSignal', target='adder',
@@ -117,15 +113,15 @@ def adder():
                         data={'signal': 'val2', 'value': 100}
                     ),
                     infos.CommandInfo(
-                        time=1.0, command='CmdSetSignal', target='adder',
+                        time=1.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 100}
                     ),
                     infos.CommandInfo(
-                        time=2.0, command='CmdSetSignal', target='adder',
+                        time=2.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val2', 'value': 0}
                     ),
                     infos.CommandInfo(
-                        time=3.0, command='CmdSetSignal', target='adder',
+                        time=3.0*STEP_SIZE, command='CmdSetSignal', target='adder',
                         data={'signal': 'val1', 'value': 0}
                     ),
                 ]
@@ -134,119 +130,42 @@ def adder():
     )
 
 @pytest.fixture
-def details_arduino():
+def details():
     return live.Details(
         devices=[
             live.DeviceDetails(
                 name='adder',
-                module='pylab.live.live',
-                type='UsbSerialDevice.from_serial_number',
-                data={'serial_number': os.environ['PYLAB_USB_SERIAL_NUMBER_DEVICE']},
+                module='pylab._private.rogueplugin',
+                type='Device',
+                data={
+                    'id': 'adder',
+                    'ports': ['A0', 'A1', 'DAC0'],
+                },
+                extension={
+                    'defaults': {
+                        'A0': 0.0,
+                        'A1': 0.0,
+                        'DAC0': 0.0,
+                    },
+                    'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1')),
+                },
                 interface=infos.ElectricalInterface(
                     ports=[
                         infos.PortInfo(
                             'val1',
                             'A0',
-                            min=168, max=852,
+                            min=0, max=100,
                             flags=['input', 'analog']
                         ),
                         infos.PortInfo(
                             'val2',
                             'A1',
-                            min=168, max=852,
-                            flags=['input', 'analog']
-                        ),
-                        infos.PortInfo(
-                            'sum',
-                            'DAC0',
-                            min=0, max=255,
-                            flags=['output', 'analog']
-                        ),
-                    ]
-                )
-            ),
-            live.DeviceDetails(
-                name='gpio',
-                module='pylab.live.plugin.controllino.controllino',
-                type='PylabControllino.from_serial_number',
-                data={
-                    'serial_number': os.environ['PYLAB_USB_SERIAL_NUMBER_CONTROLLINO'],
-                    'baudrate': 19200
-                },
-                interface=infos.ElectricalInterface(
-                    ports=[
-                        infos.PortInfo(
-                            'out1',
-                            'DAC0',
-                            min=0, max=255,
-                            flags=['output', 'analog'],
-                        ),
-                        infos.PortInfo(
-                            'out2',
-                            'DAC1',
-                            min=0, max=255,
-                            flags=['output', 'analog'],
-                        ),
-                        infos.PortInfo(
-                            'sum',
-                            'A0',
-                            min=168, max=852,
-                            flags=['input', 'analog']
-                        ),
-                    ]
-                )
-            )
-        ],
-        connections=[
-            infos.ConnectionInfo(
-                sender='gpio', sender_port='out1',
-                receiver='adder', receiver_port='val1'
-            ),
-            infos.ConnectionInfo(
-                sender='gpio', sender_port='out2',
-                receiver='adder', receiver_port='val2'
-            ),
-            infos.ConnectionInfo(
-                sender='adder', sender_port='sum',
-                receiver='gpio', receiver_port='sum'
-            ),
-        ]
-    )
-
-
-@pytest.fixture
-def details_fake():
-    return live.Details(
-        devices=[
-            live.DeviceDetails(
-                name='adder',
-                module='pylab.live.plugin.fake.fake',
-                type='Device',
-                data={
-                    'name': 'adder',
-                    'ports': [
-                        {'channel': 'IN1'},
-                        {'channel': 'IN2'},
-                        {'channel': 'OUT'},
-                    ]
-                },
-                interface=infos.ElectricalInterface(
-                    ports=[
-                        infos.PortInfo(
-                            'val1',
-                            'IN1',
-                            min=0, max=100,
-                            flags=['input', 'analog']
-                        ),
-                        infos.PortInfo(
-                            'val2',
-                            'IN2',
                             min=0, max=100,
                             flags=['input', 'analog']
                         ),
                         infos.PortInfo(
                             'sum',
-                            'OUT',
+                            'DAC0',
                             min=0, max=200,
                             flags=['output', 'analog']
                         ),
@@ -255,33 +174,36 @@ def details_fake():
             ),
             live.DeviceDetails(
                 name='gpio',
-                module='pylab.live.plugin.fake.fake',
-                type='Logger',
+                module='pylab._private.rogueplugin',
+                type='Device',
                 data={
-                    'name': 'gpio',
-                    'ports': [
-                        {'channel': 'OUT1'},
-                        {'channel': 'OUT2'},
-                        {'channel': 'IN'},
-                    ]
+                    'id': 'gpio',
+                    'ports': ['A0', 'DAC0', 'DAC1'],
+                },
+                extension={
+                    'defaults': {
+                        'A0': 0.0,
+                        'DAC0': 0.0,
+                        'DAC1': 0.0,
+                    },
                 },
                 interface=infos.ElectricalInterface(
                     ports=[
                         infos.PortInfo(
                             'out1',
-                            'OUT1',
+                            'DAC0',
                             min=0, max=100,
                             flags=['output', 'analog'],
                         ),
                         infos.PortInfo(
                             'out2',
-                            'OUT2',
+                            'DAC1',
                             min=0, max=100,
                             flags=['output', 'analog'],
                         ),
                         infos.PortInfo(
                             'sum',
-                            'IN',
+                            'A0',
                             min=0, max=200,
                             flags=['input', 'analog']
                         ),

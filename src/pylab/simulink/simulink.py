@@ -69,10 +69,10 @@ import posixpath
 import shutil
 import tempfile
 
-from numpy.typing import ArrayLike
 import matlab
 import yaml
 
+from pylab.core.typing import ArrayLike
 from pylab.simulink import _engine
 from pylab.core import timeseries
 from pylab.core import utils
@@ -118,6 +118,22 @@ _stderr = io.StringIO()
 
 
 # frontend {{{
+
+
+def _find_nth(text: str, pattern: str, n: int) -> int:
+    index = -1
+    for _ in range(n):
+        offset = index + 1
+        index = text[offset:].find(pattern) + offset
+    return index
+
+
+def _mark_line(text: str, line: int) -> str:
+    MARKER = '-->'
+    if line == 0:
+        return MARKER + text
+    index = _find_nth(text, '\n', line-1)
+    return text[:index+1] + MARKER + text[index+1:]
 
 
 def create(info: infos.TestInfo, details: Details) -> Test:
@@ -201,7 +217,7 @@ class Test:
         # running the test, this is our fault (because we apparently
         # messed up the LoggingInfo), should be raised and should not
         # appear in the report.
-        _engine.reset()
+        _engine.reset()  # FIXME Make this a post_test?
         with tempfile.TemporaryDirectory() as tmpdir:
             for each in TOOLBOX:
                 raw = importlib.resources.read_text(RESOURCES, each)
@@ -224,11 +240,19 @@ class Test:
 
         if failed:
             results = {}  # FIXME Try to pull as much information as possible.
+            code = self._code
+            for log in logbook:
+                stack = log.data.get('stack')
+                if stack is not None:
+                    line = int(stack[0]['line'])
+                    code = _mark_line(code, line)
+            data = {'script': code, 'requests': self._logging_requests}
         else:
             results = {each.path(): each.result()
                        for each in self._logging_requests}
+            data = {}
 
-        return report.Report(logbook, results)
+        return report.Report(logbook, results, data)
 
 
 def load_details(path: str) -> Details:
@@ -680,7 +704,10 @@ class TestObject:
         configuring the logger.
         """
         # FIXME Why is this a _Command_? Shouldn't it just be a code block?
-        device, port = self.trace_forward(info.target, info.signal)
+        gen = self._trace_forward_gen(info.target, info.signal)
+        device, port = None, None
+        while device is None:
+            device, port = next((device, port) for device, port in gen if hasattr(device.block, 'log_signal'))
         var = _unpack_log_entry(info)
         code = device.block.log_signal(var, port.channel, info.period)
         what = str(info)
@@ -718,6 +745,11 @@ class TestObject:
             raise ValueError(f'Target "{target}" has no signal "{signal}"')
         return signal_obj
 
+    def _trace_back_gen(self, target: str, signal: str):
+        device = next(each for each in self._devices if each.name == target)
+        channel = device.interface.get_port(signal).channel
+        return ((line.sender, line.sender_port) for line in self._lines if line.receiver.name == target and line.receiver_port.channel == channel)
+
     def trace_back(self, target: str, signal: str) -> tuple[Device, infos.PortInfo]:
         """Return the output that is connected to the input ``signal``
         of ``target``.
@@ -725,12 +757,14 @@ class TestObject:
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
+        return next(self._trace_back_gen(target, signal))
+
+    def _trace_forward_gen(self, target: str, signal: str):
         device = next(each for each in self._devices if each.name == target)
         channel = device.interface.get_port(signal).channel
-        line = next(each for each in self._lines
-                    if each.receiver.name == target
-                    and each.receiver_port.channel == channel)
-        return line.sender, line.sender_port
+        return ((each.receiver, each.receiver_port) for each in self._lines
+                if each.sender.name == target
+                and each.sender_port.channel == channel)
 
     def trace_forward(self, target: str, signal: str) -> tuple[Device, infos.PortInfo]:
         """Return the output that is connected to ``signal`` of
@@ -739,12 +773,7 @@ class TestObject:
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
-        device = next(each for each in self._devices if each.name == target)
-        channel = device.interface.get_port(signal).channel
-        line = next(each for each in self._lines
-                    if each.sender.name == target
-                    and each.sender_port.channel == channel)
-        return line.receiver, line.receiver_port
+        return next(self._trace_forward_gen(target, signal))
 
     def setup(self):
         """Return code snippet for creating the referenced blocks and

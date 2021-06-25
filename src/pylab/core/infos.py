@@ -120,8 +120,12 @@ class PhaseInfo:
 
     @classmethod
     def from_dict(cls, data: dict) -> PhaseInfo:
+        _assert_keys_equal_to(
+            data, {'duration'}, {'commands', 'description'},
+            'Error when loading PhaseInfo: '
+        )
         duration = data['duration']
-        commands = [CommandInfo(**each) for each in data['commands']]
+        commands = [CommandInfo(**each) for each in data.get('commands', [])]
         description = data.get('description', '')
         return cls(duration, commands, description)
 
@@ -251,8 +255,12 @@ class TargetInfo:
 
     @classmethod
     def from_dict(cls, data: dict) -> TargetInfo:
+        _assert_keys_equal_to(
+            data, {'name'}, {'signals', 'description'},
+            'Error when loading TargetInfo: '
+        )
         name = data['name']
-        signals = [SignalInfo(**each) for each in data['signals']]
+        signals = [SignalInfo(**each) for each in data.get('signals', [])]
         description = data.get('description', '')
         return TargetInfo(name, signals, description)
 
@@ -325,7 +333,11 @@ class ElectricalInterface:
 
     @classmethod
     def from_dict(cls, data: dict) -> ElectricalInterface:
-        ports = [PortInfo(**each) for each in data['ports']]
+        _assert_keys_equal_to(
+            data, set(), {'ports', 'description'},
+            'Error when loading ElectricalInterface: '
+        )
+        ports = [PortInfo(**each) for each in data.get('ports', [])]
         description = data.get('description', '')
         return cls(ports, description)
 
@@ -394,3 +406,32 @@ def _is_valid_id(id: str):
         id: The id to check
     """
     return '.' not in id
+
+
+def _assert_keys_equal_to(d: dict[_T, Any],
+                          required_keys: Optional[set[_T]] = None,
+                          optional_keys: Optional[set[_T]] = None,
+                          prefix: str = ''
+                          ) -> None:
+    """Raise InfoError if dict does not have the prescibed keys.
+
+    Args:
+        d: The dict to check
+        required_keys: The keys that must be present
+        optional_keys:
+            The keys that may, in addition to the required keys, be present
+
+    Raises:
+        errors.InfoError:
+            If not all required keys are present or a non-required,
+            non-optional key is present
+    """
+    def pretty_print(s: set[str]):
+        return ', '.join(str(elem) for elem in s)
+    keys = set(d.keys())
+    required_diff = required_keys - keys
+    if required_diff:
+        raise errors.InfoError(prefix + 'Missing keys: ' + pretty_print(required_diff) + '. Expected keys: ' + pretty_print(required_keys))
+    optional_diff = keys - required_keys - optional_keys
+    if optional_diff:
+        raise errors.InfoError(prefix + 'Unexpected keys: ' + pretty_print(optional_diff))

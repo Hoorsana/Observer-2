@@ -22,19 +22,19 @@ from pylab.core import utils
 
 class AbstractLoader(abc.ABC):
 
-    def load_test(self, path: str) -> infos.TestInfo:
+    def load_test(self, path: PathLike) -> infos.TestInfo:
         pass
 
-    def load_asserts(self, path: str) -> infos.AssertionInfo:
+    def load_asserts(self, path: PathLike) -> infos.AssertionInfo:
         pass
 
 
 def run_from_files(driver: Union[str, api.AbstractDriver],
-                   test: str,
-                   details: str,
-                   asserts: Optional[str] = None,
+                   test: PathLike,
+                   details: PathLike,
+                   asserts: Optional[PathLike] = None,
                    loader: AbstractLoader = loader,
-                   dump: Optional[str] = None) -> report.Report:
+                   dump: Optional[PathLike] = None) -> report.Report:
     """Load, create and execute test, and assert results.
 
     Use this method to load a test from file, create and execute it, and
@@ -71,7 +71,7 @@ def run(driver: api.AbstractDriver,
         info: infos.TestInfo,
         details: Any,
         asserts: Optional[list[testing.AbstractVerification]] = None,
-        dump: Optional[str] = None) -> report.Report:
+        dump: Optional[PathLike] = None) -> report.Report:
     """Create and execute test, and assert results.
 
     Use this method to create a test, execute the test and check the

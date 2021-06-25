@@ -12,12 +12,100 @@ necessary to specify the full path for these blocks.
 
 from __future__ import annotations
 
+import uuid
+import abc
 import json
 from typing import Any, Optional
 
-from numpy.typing import ArrayLike
-
+from pylab.core.typing import ArrayLike
 from pylab.simulink import simulink
+
+
+def _random_id() -> str:
+    """Create a random id.
+
+    We use this to avoid collisions between certain MATLAB/Simulink
+    parameter names.
+    """
+    id_ = str(uuid.uuid4())
+    id_ = id_.replace('-', '_')
+    id_ = 'pylab_' + id_
+    return id_
+
+
+class AbstractBlock(abc.ABC):
+    """Collections of methods called by commands. The blocks may
+    implemented these methods."""
+
+    @abc.abstractmethod
+    def set_signal(self, channel: str, value: ArrayLike) -> list[str]:
+        """Return code snippet for setting output of ``channel`` to
+        ``value``.
+
+        See https://www.mathworks.com/help/simulink/slref/constant.html
+        for details.
+
+        Args:
+            channel: The target port
+            value: The new output value
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_signal_ramp(self,
+                        channel: str,
+                        slope: ArrayLike,
+                        start_time: ArrayLike,
+                        initial_output: ArrayLike) -> list[str]:
+        """Return code snippet for setting the output of ``channel`` to
+        a ramp.
+
+        See https://www.mathworks.com/help/simulink/slref/ramp.html for
+        details.
+
+        Args:
+            channel: The target port
+            slope: The slope of the ramp
+            start_time: The time at which the ramp engages
+            initial_output: The value before the ramp engages
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_signal_sine(self,
+                        channel: str,
+                        amplitude: ArrayLike,
+                        frequency: ArrayLike,
+                        phase: Optional[ArrayLike] = 0.0,
+                        bias: Optional[ArrayLike] = 0.0) -> list[str]:
+        """Return the code snippet for setting the output of ``channel``
+        to a sine wave.
+
+        See https://www.mathworks.com/help/simulink/slref/sinewave.html
+        for details.
+
+        Args:
+            channel: The target port
+            amplitude: Amplitude of the wave
+            frequency: Frequency of the wave in Hz
+            phase: Phase of the wave in radians
+            bias: Bias of the wave
+        """
+        pass
+
+    @abc.abstractmethod
+    def log_signal(self,
+                   var: str,
+                   channel: str,
+                   period: Optional[float] = None) -> list[str]:
+        """Return the code snippet for logging ``channel``.
+
+        Args:
+            var: Workspace variable for storing data
+            channel: The target port
+            period: The period at which the signal is logged
+        """
+        pass
 
 
 class Block(simulink.AbstractBlock):
@@ -50,71 +138,18 @@ class Block(simulink.AbstractBlock):
     def setup(self) -> list[str]:
         return [f"add_block('{self._type}', '{self.absolute_path}')"]
 
-    def set_signal(self, channel: str, value: ArrayLike) -> list[str]:
-        """Return code snippet for setting output of ``channel`` to
-        ``value``.
+    # def get_path_of_port(self, port: Union[int, str], direction: str) -> str:
+    #     """Return the path of the specified port.
 
-        See https://www.mathworks.com/help/simulink/slref/constant.html
-        for details.
+    #     Args:
+    #         port: The id of the port
+    #         direction: 'in' or 'out'
 
-        Args:
-            channel: The target port
-            value: The new output value
-        """
-        raise NotImplementedError()
-
-    def set_signal_ramp(self,
-                        channel: str,
-                        slope: ArrayLike,
-                        start_time: ArrayLike,
-                        initial_output: ArrayLike) -> list[str]:
-        """Return code snippet for setting the output of ``channel`` to
-        a ramp.
-
-        See https://www.mathworks.com/help/simulink/slref/ramp.html for
-        details.
-
-        Args:
-            channel: The target port
-            slope: The slope of the ramp
-            start_time: The time at which the ramp engages
-            initial_output: The value before the ramp engages
-        """
-        raise NotImplementedError()
-
-    def set_signal_sine(self,
-                        channel: str,
-                        amplitude: ArrayLike,
-                        frequency: ArrayLike,
-                        phase: Optional[ArrayLike] = 0.0,
-                        bias: Optional[ArrayLike] = 0.0) -> list[str]:
-        """Return the code snippet for setting the output of ``channel``
-        to a sine wave.
-
-        See https://www.mathworks.com/help/simulink/slref/sinewave.html
-        for details.
-
-        Args:
-            channel: The target port
-            amplitude: Amplitude of the wave
-            frequency: Frequency of the wave in Hz
-            phase: Phase of the wave in radians
-            bias: Bias of the wave
-        """
-        raise NotImplementedError()
-
-    def log_signal(self,
-                   var: str,
-                   channel: str,
-                   period: Optional[float] = None) -> list[str]:
-        """Return the code snippet for logging ``channel``.
-
-        Args:
-            var: Workspace variable for storing data
-            channel: The target port
-            period: The period at which the signal is logged
-        """
-        raise NotImplementedError()
+    #     This allows a block to define certain abstractions for making
+    #     connections. For example, the block may now consist of multiple
+    #     (Simulink) blocks and a re-implementation of get_path_of_port
+    #     may be used to define which port are exposed, and in what role.
+    #     """
 
 
 class Model(Block):
@@ -254,14 +289,91 @@ class MiniLogger(Block):
     def __init__(self, name):
         super().__init__(name, 'simulink/Sinks/To Workspace')
 
+    def setup(self):
+        result = super().setup()
+        # Use ``_random_id`` to avoid collisions between two or more
+        # blocks that use the To Workspace block. In fact, without the
+        # use of a random id, the following problem occurs: The
+        # ``VariableName`` parameter is set in the ``log_signal``
+        # function, which may not be called with the ``MiniLogger`` is
+        # not connected to another device. Thus, two or more unconnected
+        # ``MiniLogger`` blocks will have the same ``VariableName``,
+        # resulting in a MATLAB/Simulink error.
+        result.append(f"set_param('{self.absolute_path}', 'VariableName', '{_random_id()}')")
+        return result
+
     def log_signal(self,
                    var: str,
                    channel: str,
                    period: Optional[float] = None) -> list[str]:
         assert channel in {1, '1'}
         result = []
-        result.append(
-            f"set_param('{self.absolute_path}', 'SampleTime', '[{period} 0.0]')")
+        if period is not None:
+            result.append(
+                f"set_param('{self.absolute_path}', 'SampleTime', '[{period} 0.0]')")
         result.append(
             f"set_param('{self.absolute_path}', 'VariableName', '{var}')")
+        return result
+
+
+class Subsystem(Block):
+
+    def __init__(self,
+                 name: str,
+                 blocks: dict[str, str],
+                 lines: list[tuple[str, str]]) -> None:
+        """Args:
+            name: The block name
+            blocks:
+                The subsystem's blocks, specified in the following
+                format: ``{name: type, ...}``
+            lines:
+                The subsystems's lines (connections), specified in the
+                following format:
+                ``[('src_name/src_port', 'dst_name/dst_port')]``
+
+        """
+        super().__init__(name, 'simulink/Ports & Subsystems/Subsystem')
+        self._blocks = blocks
+        self._lines = lines
+
+    def setup(self) -> list[str]:
+        result = super().setup()
+        # Delete the default blocks.
+        result.append(f"delete_block('{self.absolute_path}/In1')")
+        result.append(f"delete_block('{self.absolute_path}/Out1')")
+        for name, type_ in self._blocks.items():
+            result.append(f"add_block('{type_}', '{self.absolute_path}/{name}')")
+        for elem in self._lines:
+            result.append(f"add_line('{self.absolute_path}', '{elem[0]}', '{elem[1]}')")
+        return result
+
+
+class PassthruLogger(Subsystem):
+    """Logger block with one input and a passthru output."""
+
+    def __init__(self, name):
+        super().__init__(
+            name,
+            {'in': 'simulink/Sources/In1', 'out': 'simulink/Sinks/Out1',
+             'to_workspace': 'simulink/Sinks/To Workspace'},
+            [('in/1', 'out/1'), ('in/1', 'to_workspace/1')]
+        )
+
+    def setup(self) -> list[str]:
+        result = super().setup()
+        # Use ``_random_id`` to avoid collisions between two or more
+        # blocks that use the To Workspace block. See
+        # ``MiniLogger.setup`` for details.
+        path = self.absolute_path + '/to_workspace'
+        result.append(f"set_param('{path}', 'VariableName', '{_random_id()}')")
+        return result
+
+    def log_signal(self, var: str, channel: str, period: Optional[float] = None) -> list[str]:
+        assert channel in {1, '1'}
+        result = []
+        path = self.absolute_path + '/to_workspace'
+        result.append(f"set_param('{path}', 'VariableName', '{var}')")
+        if period is not None:
+            result.append(f"set_param('{path}', 'SampleTime', '[{period} 0.0]')")
         return result

@@ -16,6 +16,8 @@ import serial
 
 # FIXME Rename this module or the controllino serial module.
 from controllino import controllino as controllino_serial
+
+from pylab.core.typing import ArrayLike
 from pylab.core import report
 from pylab.core import timeseries
 from pylab.live import live

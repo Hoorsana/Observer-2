@@ -11,6 +11,7 @@ import os
 
 import yaml
 
+from pylab.core.typing import PathLike
 from pylab.core import testing
 from pylab.core import infos
 
@@ -20,7 +21,7 @@ PHASE_DIR = 'PYLAB_PHASE_DIR'
 # FIXME Implement loader using `from_yaml` and `yaml.YAMLObject`?
 
 
-def load_test(path: str) -> infos.TestInfo:
+def load_test(path: PathLike) -> infos.TestInfo:
     """Load test info from ``path``.
 
     Even on non-UNIX systems, the path must be specified as UNIX
@@ -31,10 +32,8 @@ def load_test(path: str) -> infos.TestInfo:
     """
     data = _yaml_safe_load_from_file(path)
 
-    targets = [infos.TargetInfo.from_dict(each)
-               for each in data['targets']]
-    logging = [infos.LoggingInfo(**each)
-               for each in data.get('logging', [])]
+    targets = [infos.TargetInfo.from_dict(each) for each in data['targets']]
+    logging = [infos.LoggingInfo(**each) for each in data.get('logging', [])]
 
     # If a phase info is a string, use it as a filesystem path to find
     # the file which holds the actual phase info data. If ``data`` is a
@@ -51,7 +50,7 @@ def load_test(path: str) -> infos.TestInfo:
 
 
 # FIXME Do assertion loading using `from_yaml` and `yaml.YAMLObject`.
-def load_asserts(path: str) -> list[AbstractVerification]:
+def load_asserts(path: PathLike) -> list[AbstractVerification]:
     """Load a list of assertions from filesystem path.
 
     Args:
@@ -70,7 +69,7 @@ def load_asserts(path: str) -> list[AbstractVerification]:
     return [testing.load_info(each) for each in info]
 
 
-def _find_phase_path(root: str, path: str) -> str:
+def _find_phase_path(root: PathLike, path: PathLike) -> str:
     """Find a phase file.
 
     Args:
@@ -111,7 +110,7 @@ def _find_phase_path(root: str, path: str) -> str:
     raise ValueError(f'File {path} not found')
 
 
-def _yaml_safe_load_from_file(path: str) -> dict:
+def _yaml_safe_load_from_file(path: PathLike) -> dict:
     with open(path, 'r') as f:
         content = f.read()
     return yaml.safe_load(content)

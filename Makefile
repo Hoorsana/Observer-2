@@ -41,6 +41,10 @@ default: venv
 	make example-adder-flash
 	make example-limit-flash
 
+.PHONY: rogueplugin
+rogueplugin: venv
+	$(PYTEST) -vv tests/_private/test_rogueplugin.py
+
 .PHONY: saleae-flash
 saleae-flash: venv
 	cd arduino/pulsar && make flash
