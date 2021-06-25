@@ -8,12 +8,18 @@ from pylab.core import report
 from pylab.live import live
 
 
+STEP_SIZE = 0.1
+TIMEOUT = 0.1
+PERIOD = 0.01
+MIN = 0
+MAX = 100
+
+
 class TestGlobal:
 
     @pytest.fixture
     def server(self):
-        # TODO This type of info appears in many tests. Refactor in conftest?
-        info = infos.TestInfo([], [], [])  # Remains unused!
+        info = None  # Remains unused!
         details = live.Details(
             devices=[
                 live.DeviceDetails(
@@ -34,17 +40,17 @@ class TestGlobal:
                             infos.PortInfo(
                                 'val1',
                                 'A0',
-                                min=0, max=100,
+                                min=MIN, max=MAX,
                             ),
                             infos.PortInfo(
                                 'val2',
                                 'A1',
-                                min=0, max=100,
+                                min=MIN, max=MAX,
                             ),
                             infos.PortInfo(
                                 'sum',
                                 'DAC0',
-                                min=0, max=200,
+                                min=MIN, max=2*MAX,
                             ),
                         ]
                     )
@@ -66,17 +72,17 @@ class TestGlobal:
                             infos.PortInfo(
                                 'out1',
                                 'DAC0',
-                                min=0, max=100
+                                min=MIN, max=MAX
                             ),
                             infos.PortInfo(
                                 'out2',
                                 'DAC1',
-                                min=0, max=100
+                                min=MIN, max=MAX
                             ),
                             infos.PortInfo(
                                 'sum',
                                 'A0',
-                                min=0, max=200
+                                min=MIN, max=2*MAX
                             ),
                         ]
                     )
@@ -123,31 +129,31 @@ class TestGlobal:
 
     def test_start_stop(self, server, adder, gpio):
         rogueplugin.post_init('unused', 'unused', 'unused')
-        time.sleep(0.1)
+        time.sleep(TIMEOUT)
         rogueplugin._server.process_errors()
 
     def test_set_signal_get_signal(self, server, adder, gpio):
         # `log_signal` and `post_init` occur in the opposite order in the
         # live driver, but the order used here makes testing easier.
-        accept, future = gpio.log_signal('A0', 0.01)
-        assert accept.wait(timeout=0.02)
+        accept, future = gpio.log_signal('A0', PERIOD)
+        assert accept.wait(timeout=TIMEOUT)
         rogueplugin.post_init('unused', 'unused', 'unused')
-        time.sleep(0.1)
+        time.sleep(TIMEOUT)
         gpio.set_signal('DAC0', 25).wait()
-        time.sleep(0.1)
+        time.sleep(TIMEOUT)
         gpio.set_signal('DAC1', 75).wait()
-        time.sleep(0.1)
+        time.sleep(TIMEOUT)
         gpio.set_signal('DAC1', 50).wait()
-        time.sleep(0.1)
+        time.sleep(TIMEOUT)
         gpio.end_log_signal('A0').wait()
         future.wait()
         rogueplugin._server.process_errors()
         result = future.get_result()
         print(result.values)
-        assert result(0.05) == 0.0
-        assert result(0.15) == 25.0
-        assert result(0.25) == 100.0
-        assert result(0.35) == 75.0
+        assert result(0*STEP_SIZE + 0.05) == 0.0
+        assert result(1*STEP_SIZE + 0.05) == 25.0
+        assert result(2*STEP_SIZE + 0.05) == 100.0
+        assert result(3*STEP_SIZE + 0.05) == 75.0
 
 
 class TestDevice:
@@ -167,7 +173,7 @@ class TestDevice:
                             infos.PortInfo(
                                 'port_frontend',
                                 'port',
-                                min=0, max=100
+                                min=MIN, max=MAX
                             ),
                         ]
                     )
@@ -185,35 +191,35 @@ class TestDevice:
 
     def test_open(self, server, device):
         f = device.open()
-        assert f.wait(timeout=0.1)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.INFO)
 
     def test_close(self, server, device):
         f = device.close()
-        assert f.wait(timeout=0.1)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.INFO)
 
     def test_setup(self, server, device):
         f = device.setup()
-        assert f.wait(timeout=0.1)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.INFO)
 
     def test_log_signal(self, server, device):
-        f, _ = device.log_signal('port', 0.1)
-        assert f.wait(timeout=0.1)
+        f, _ = device.log_signal('port', PERIOD)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.INFO)
 
     def test_log_signal_failure(self, server, device):
-        f, _ = device.log_signal('this port does not exist', 0.1)
-        assert f.wait(timeout=0.1)
+        f, _ = device.log_signal('this port does not exist', PERIOD)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.FAILED)
 
     def test_set_signal(self, server, device):
-        f = device.set_signal('port', 1.23)
-        assert f.wait(timeout=0.1)
+        f = device.set_signal('port', 1.2)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.INFO)
 
     def test_set_signal_failed(self, server, device):
-        f = device.set_signal('this port does not exist', 1.23)
-        assert f.wait(timeout=0.1)
+        f = device.set_signal('this port does not exist', 1.2)
+        assert f.wait(timeout=TIMEOUT)
         f.log.expect(report.FAILED)
