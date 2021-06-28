@@ -22,11 +22,15 @@ class TestPortInfo:
             id='From range expression'
         )
     ])
-    def test___init__success(self, kwargs, expected):
+    def test__init__success(self, kwargs, expected):
         info = infos.PortInfo(**kwargs)
         assert info == expected
 
     @pytest.mark.parametrize('kwargs', [
+        pytest.param(
+            {'signal': 'foo.bar', 'channel': 'ch1', 'min': 1.2, 'max': 3.4},
+            id='Invalid id'
+        ),
         pytest.param(
             {'signal': 'foo', 'channel': 'ch1', 'min': 1.2, 'range': '1.2..3.4'},
             id='range and min specified'
