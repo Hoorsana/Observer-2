@@ -41,6 +41,10 @@ default: venv
 	make example-adder-flash
 	make example-limit-flash
 
+.PHONY: shared
+shared: venv
+	$(PYTEST) -vv tests/shared
+
 .PHONY: rogueplugin
 rogueplugin: venv
 	$(PYTEST) -vv tests/_private/test_rogueplugin.py
@@ -81,7 +85,7 @@ core: venv
 	$(PYTEST) -vv tests/core
 
 .PHONY: quick
-quick: core cli tools
+quick: core cli tools shared
 
 .PHONY: plugin-fake
 plugin-fake: venv

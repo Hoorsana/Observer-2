@@ -7,6 +7,7 @@ import os
 import pytest
 
 from pylab.core import infos
+from pylab.shared import infos as sharedinfos
 from pylab.core import timeseries
 from pylab.core import workflow
 from pylab.core import testing
@@ -149,21 +150,21 @@ def details():
                     },
                     'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1')),
                 },
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'val1',
                             'A0',
                             min=0, max=100,
                             flags=['input', 'analog']
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'val2',
                             'A1',
                             min=0, max=100,
                             flags=['input', 'analog']
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'sum',
                             'DAC0',
                             min=0, max=200,
@@ -187,21 +188,21 @@ def details():
                         'DAC1': 0.0,
                     },
                 },
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'out1',
                             'DAC0',
                             min=0, max=100,
                             flags=['output', 'analog'],
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'out2',
                             'DAC1',
                             min=0, max=100,
                             flags=['output', 'analog'],
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'sum',
                             'A0',
                             min=0, max=200,
@@ -212,15 +213,15 @@ def details():
             )
         ],
         connections=[
-            infos.ConnectionInfo(
+            sharedinfos.ConnectionInfo(
                 sender='gpio', sender_port='out1',
                 receiver='adder', receiver_port='val1'
             ),
-            infos.ConnectionInfo(
+            sharedinfos.ConnectionInfo(
                 sender='gpio', sender_port='out2',
                 receiver='adder', receiver_port='val2'
             ),
-            infos.ConnectionInfo(
+            sharedinfos.ConnectionInfo(
                 sender='adder', sender_port='sum',
                 receiver='gpio', receiver_port='sum'
             ),

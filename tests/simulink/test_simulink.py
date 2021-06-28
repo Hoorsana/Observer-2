@@ -12,6 +12,7 @@ import yaml
 import matlab.engine
 
 from pylab.core import infos
+from pylab.shared import infos as sharedinfos
 from pylab.core import report
 from pylab.core import timeseries
 from pylab.simulink import simulink
@@ -221,21 +222,21 @@ def adder():
                 name='adder',
                 type='Model',
                 data={'filename': 'adder.slx'},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'val1',
                             1,
                             min=0, max=1,
                             flags=['input', 'analog']
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'val2',
                             2,
                             min=0, max=1,
                             flags=['input', 'analog']
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'sum',
                             1,
                             min=0, max=2,
@@ -248,9 +249,9 @@ def adder():
                 name='gpio1',
                 type='MiniGenerator',
                 data={},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'value',
                             1,
                             min=0, max=1,
@@ -263,9 +264,9 @@ def adder():
                 name='gpio2',
                 type='MiniGenerator',
                 data={},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'value',
                             1,
                             min=0, max=1,
@@ -278,9 +279,9 @@ def adder():
                 name='logger',
                 type='MiniLogger',
                 data={},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'sum',
                             1,
                             min=0, max=2,
@@ -291,9 +292,9 @@ def adder():
             ),
         ],
         connections=[
-            infos.ConnectionInfo('gpio1', 'value', 'adder', 'val1'),
-            infos.ConnectionInfo('gpio2', 'value', 'adder', 'val2'),
-            infos.ConnectionInfo('adder', 'sum', 'logger', 'sum'),
+            sharedinfos.ConnectionInfo('gpio1', 'value', 'adder', 'val1'),
+            sharedinfos.ConnectionInfo('gpio2', 'value', 'adder', 'val2'),
+            sharedinfos.ConnectionInfo('adder', 'sum', 'logger', 'sum'),
         ]
     )
     return info, details
@@ -387,15 +388,15 @@ def limit():
                 name='monitor',
                 type='Model',
                 data={'filename': 'limit_monitoring.slx'},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'temperature',
                             1,
                             min=-100, max=100,
                             flags=['input', 'analog']
                         ),
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'result',
                             1,
                             min=0, max=1,
@@ -408,9 +409,9 @@ def limit():
                 name='gpio',
                 type='MiniGenerator',
                 data={},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'value',
                             1,
                             min=-100, max=100,
@@ -423,9 +424,9 @@ def limit():
                 name='logger',
                 type='MiniLogger',
                 data={},
-                interface=infos.ElectricalInterface(
+                interface=sharedinfos.ElectricalInterface(
                     ports=[
-                        infos.PortInfo(
+                        sharedinfos.PortInfo(
                             'result',
                             1,
                             min=0, max=1,
@@ -436,8 +437,8 @@ def limit():
             ),
         ],
         connections=[
-            infos.ConnectionInfo('gpio', 'value', 'monitor', 'temperature'),
-            infos.ConnectionInfo('monitor', 'result', 'logger', 'result'),
+            sharedinfos.ConnectionInfo('gpio', 'value', 'monitor', 'temperature'),
+            sharedinfos.ConnectionInfo('monitor', 'result', 'logger', 'result'),
         ]
     )
     return info, details

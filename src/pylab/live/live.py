@@ -57,6 +57,7 @@ import yaml
 
 from pylab.core import errors
 from pylab.core import infos
+from pylab.shared import infos as sharedinfos
 from pylab.core import timeseries
 from pylab.core import report
 from pylab.core import utils as coreutility
@@ -94,7 +95,6 @@ def create(info: infos.TestInfo, details: Details) -> Test:
         post_init = getattr(module, 'post_init', None)
         if post_init is not None:
             post_inits[each.module] = post_init
-        # FIXME This is seriously broken! post_init is called multiple times!
 
     for _, each in inits.items():
         each(info, details)
@@ -181,7 +181,7 @@ def load_details(path: str) -> Details:
     The file must be a valid YAML file with the following fields:
 
         - ``devices`` (see ``DeviceDetails`` for details)
-        - ``connections`` (see ``infos.ConnectionInfo`` for details)
+        - ``connections`` (see ``pylab.shared.infos.ConnectionInfo`` for details)
 
     Args:
         path: A filesystem path to a YAML file which contains
@@ -207,13 +207,13 @@ def load_details(path: str) -> Details:
 @dataclasses.dataclass(frozen=True)
 class Details:
     devices: list[DeviceDetails]
-    connections: list[infos.ConnectionInfo]
+    connections: list[pylab.shared.infos.ConnectionInfo]
     extension: dict = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> Details:
         details = [DeviceDetails.from_dict(each) for each in data['devices']]
-        connections = [infos.ConnectionInfo(*each)
+        connections = [sharedinfos.ConnectionInfo(*each)
                        for each in data['connections']]
         extension = data.get('extension', {})
         return cls(details, connections, extension)
@@ -225,7 +225,7 @@ class DeviceDetails:
     name: str
     type: str
     module: str
-    interface: infos.ElectricalInterface
+    interface: pylab.shared.infos.ElectricalInfo
     data: dict = dataclasses.field(default_factory=dict)
     extension: dict = dataclasses.field(default_factory=dict)
 
@@ -234,7 +234,7 @@ class DeviceDetails:
         name = data['name']
         type = data['type']
         module = data['module']
-        interface = infos.ElectricalInterface.from_dict(data['interface'])
+        interface = sharedinfos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward...!
         extension = data.get('extension', {})
         return cls(name, type, module, interface, args, extension)
@@ -697,7 +697,9 @@ class _TestObject:
         """
         return self._execute_for_all_and_wait('setup', timeout=timeout)
 
-    def _create_solid_connection(self, info: infos.ConnectionInfo) -> _SolidConnection:
+    def _create_solid_connection(self,
+                                 info: pylab.shared.infos.ConnectionInfo
+                                 ) -> _SolidConnection:
         """Create a solid connection from ``info``.
 
         Raises:

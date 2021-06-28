@@ -17,7 +17,9 @@ import itertools
 import re
 from typing import Any, Optional
 
+from pylab._private import utils
 from pylab.core import errors
+
 
 
 @dataclasses.dataclass(frozen=True)
@@ -120,10 +122,13 @@ class PhaseInfo:
 
     @classmethod
     def from_dict(cls, data: dict) -> PhaseInfo:
-        _assert_keys_equal_to(
-            data, {'duration'}, {'commands', 'description'},
-            'Error when loading PhaseInfo: '
-        )
+        try:
+            utils.assert_keys(
+                data, {'duration'}, {'commands', 'description'},
+                'Error when loading PhaseInfo: '
+            )
+        except AssertionError as e:
+            raise errors.InfoError from e
         duration = data['duration']
         commands = [CommandInfo(**each) for each in data.get('commands', [])]
         description = data.get('description', '')
@@ -211,23 +216,23 @@ class SignalInfo:
         Raises:
             ValueError: If ``range`` is not correctly formatted
         """
-        self._set_range(range)
-        if not _is_valid_id(self.name):
+        if not utils.is_valid_id(self.name):
             raise errors.InfoError(
                 f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
+        if range is not None:
+            if self.min is not None:
+                raise ValueError('Failed to initialize SignalInfo: range and min specified')
+            if self.max is not None:
+                raise ValueError('Failed to initialize SignalInfo: range and max specified')
+            self._set_range(range)
         if self.min > self.max:
             raise errors.InfoError(
                 f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
 
     def _set_range(self, range):
-        if range is not None:
-            if not (self.min is None and self.max is None):
-                raise ValueError(
-                    'Failed to init SignalInfo: SignalInfo.range '
-                    'and SignalInfo.min or SignalInfo.max specified.')
-            min_, max_ = _load_range(range)
-            object.__setattr__(self, 'min', min_)
-            object.__setattr__(self, 'max', max_)
+        min_, max_ = utils.load_range(range)
+        object.__setattr__(self, 'min', min_)
+        object.__setattr__(self, 'max', max_)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -243,7 +248,7 @@ class TargetInfo:
     description: Optional[str] = ''
 
     def __post_init__(self):
-        if not _is_valid_id(self.name):
+        if not utils.is_valid_id(self.name):
             raise errors.InfoError(
                 f'Invalid TargetInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         seen = set()
@@ -255,107 +260,17 @@ class TargetInfo:
 
     @classmethod
     def from_dict(cls, data: dict) -> TargetInfo:
-        _assert_keys_equal_to(
-            data, {'name'}, {'signals', 'description'},
-            'Error when loading TargetInfo: '
-        )
+        try:
+            utils.assert_keys(
+                data, {'name'}, {'signals', 'description'},
+                'Error when loading TargetInfo: '
+            )
+        except AssertionError as e:
+            raise errors.InfoError from e
         name = data['name']
         signals = [SignalInfo(**each) for each in data.get('signals', [])]
         description = data.get('description', '')
         return TargetInfo(name, signals, description)
-
-
-@dataclasses.dataclass(frozen=True)
-class PortInfo:
-    """Physical to electrical interface of a port on a device
-
-    Attributes:
-        signal: The physical signal
-        channel: The electrical channel represented by the port
-        min: Lower bound on the value of the electrical signal
-        min: Upper bound on the value of the electrical signal
-        flags: A list of additional info
-        description: For documentation purposes
-
-    The ``flags`` attribute may or may not be used by the driver to
-    improve performance or raise errors which may otherwise not have
-    been spotted.
-    """
-    signal: str
-    channel: str
-    min: float = None
-    max: float = None
-    flags: list[str] = dataclasses.field(default_factory=list)
-    description: Optional[str] = ''
-    range: InitVar[str] = None
-
-    # FIXME Code duplication (see SignalInfo.__post_init__). Fix by
-    # introducing ``class RangeInfo`` and replacing min, max with it.
-    def __post_init__(self, range: str):
-        if range is not None:
-            if not (self.min is None and self.max is None):
-                raise ValueError(
-                    'failed to init PortInfo: SignalInfo.range '
-                    'and SignalInfo.min or SignalInfo.max specified.')
-            min_, max_ = _load_range(range)
-            object.__setattr__(self, 'min', min_)
-            object.__setattr__(self, 'max', max_)
-
-
-@dataclasses.dataclass(frozen=True)
-class ConnectionInfo:
-    """Class for representing wires or lines between ports.
-
-    Attributes:
-        sender: The ID of the sending device
-        sender_port: The ID of the sending port
-        receiver: The ID of the receiving device
-        receiver_port: The ID of the receiving port
-        description: For documentation purposes
-    """
-    sender: str
-    sender_port: str
-    receiver: str
-    receiver_port: str
-    description: Optional[str] = ''
-
-
-@dataclasses.dataclass(frozen=True)
-class ElectricalInterface:
-    """Info class for the electrical interface of a device.
-
-    Attributes:
-        ports: The electrical ports of the device
-        description: For documentation purposes
-    """
-    ports: list[PortInfo]
-    description: Optional[str] = ''
-
-    @classmethod
-    def from_dict(cls, data: dict) -> ElectricalInterface:
-        _assert_keys_equal_to(
-            data, set(), {'ports', 'description'},
-            'Error when loading ElectricalInterface: '
-        )
-        ports = [PortInfo(**each) for each in data.get('ports', [])]
-        description = data.get('description', '')
-        return cls(ports, description)
-
-    def get_port(self, signal: str) -> PortInfo:
-        """Return the electrical port associated with the physical
-        ``signal``.
-
-        Args:
-            signal: The ID of the physical signal
-
-        Raises:
-            ValueError if the interface doesn't have a port representing
-            ``signal``
-        """
-        info = next((each for each in self.ports if each.signal == signal), None)
-        if info is None:
-            raise ValueError(f'port for signal "{signal}" not found')
-        return info
 
 
 @dataclasses.dataclass(frozen=True)
@@ -373,65 +288,3 @@ class AssertionInfo:
     type: str
     data: dict[str, Any]
     args: dict[str, str]
-
-
-def _load_range(expr: str) -> tuple[float, float]:
-    """Extract ``lo`` and ``hi`` from a range expression ``lo..hi``.
-
-    Args:
-        expr: A range expression of the form ``"lo..hi"``
-
-    Returns:
-        The numbers ``lo`` and ``hi``
-    """
-    # Regex for numbers:
-    #      Optional sign
-    #                  With comma
-    #                                 Or...
-    #                                  Optional signl
-    #                                             No comma
-    num = '[\\+-]{0,1}[0-9]+[.,][0-9]+|[\\+-]{0,1}[0-9]+'
-    matches = re.match(f'({num})\\.+({num})', expr)
-    if matches is None or matches.lastindex != 2:
-        raise ValueError(f'Failed to read range expression: {expr}')
-    min_, max_ = map(float, [matches.group(1), matches.group(2)])
-
-    return min_, max_
-
-
-def _is_valid_id(id: str):
-    """Check if ``id`` is a valid id in the sense of the pylab specification.
-
-    Args:
-        id: The id to check
-    """
-    return '.' not in id
-
-
-def _assert_keys_equal_to(d: dict[_T, Any],
-                          required_keys: Optional[set[_T]] = None,
-                          optional_keys: Optional[set[_T]] = None,
-                          prefix: str = ''
-                          ) -> None:
-    """Raise InfoError if dict does not have the prescibed keys.
-
-    Args:
-        d: The dict to check
-        required_keys: The keys that must be present
-        optional_keys:
-            The keys that may, in addition to the required keys, be present
-
-    Raises:
-        errors.InfoError:
-            If not all required keys are present or a non-required,
-            non-optional key is present
-    """
-    def pretty_print(s: set[str]):
-        return ', '.join(str(elem) for elem in s)
-    keys = set(d.keys())
-    required_diff = required_keys - keys
-    if required_diff:
-        raise errors.InfoError(prefix + 'Missing keys: ' + pretty_print(required_diff) + '. Expected keys: ' + pretty_print(required_keys))
-    optional_diff = keys - required_keys - optional_keys
-    if optional_diff:
-        raise errors.InfoError(prefix + 'Unexpected keys: ' + pretty_print(optional_diff))

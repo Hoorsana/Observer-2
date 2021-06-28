@@ -7,6 +7,7 @@ from numpy.typing import ArrayLike
 import rogue
 
 from pylab.core import infos
+from pylab.shared import infos as sharedinfos
 from pylab.core import report
 from pylab.core import timeseries
 from pylab.live import live
@@ -58,7 +59,7 @@ def init(info: infos.TestInfo, details: live.Details) -> None:
                          (con.receiver, con.receiver_port) )
 
 
-def _init_connections(details: live.Details) -> list[infos.ConnectionInfo]:
+def _init_connections(details: live.Details) -> list[pylab.shared.infos.ConnectionInfo]:
     """Translate connection on abstract level to driver liver.
 
     Args:
@@ -72,7 +73,7 @@ def _init_connections(details: live.Details) -> list[infos.ConnectionInfo]:
         sender_port = sender.interface.get_port(conn.sender_port)
         receiver = next(dev for dev in details.devices if dev.name == conn.receiver)
         receiver_port = receiver.interface.get_port(conn.receiver_port)
-        c = infos.ConnectionInfo(conn.sender, sender_port.channel, conn.receiver, receiver_port.channel)
+        c = sharedinfos.ConnectionInfo(conn.sender, sender_port.channel, conn.receiver, receiver_port.channel)
         result.append(c)
     return result
 

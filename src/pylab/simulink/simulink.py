@@ -24,7 +24,7 @@ The details file must satisfy the following specification.
   - ``name`` (str): The unique identifier of the device.
   - ``type`` (str): A Python function which returns an object of a
     subclass of ``AbstractBlock``.
-  - ``interface`` (map): A list of data from which ``infos.PortInfo``
+  - ``interface`` (map): A list of data from which ``pylab.shared.infos.PortInfo``
     objects can be created.
 
   If the device implements a target, then it *must* carry the same
@@ -72,6 +72,7 @@ import tempfile
 import matlab
 import yaml
 
+from pylab.shared import infos as sharedinfos
 from pylab.core.typing import ArrayLike
 from pylab.simulink import _engine
 from pylab.core import timeseries
@@ -261,7 +262,7 @@ def load_details(path: str) -> Details:
     The file must be a valid YAML file with the following fields:
 
         - ``devices`` (see ``DeviceDetails`` for details)
-        - ``connections`` (see ``infos.ConnectionInfo`` for details)
+        - ``connections`` (see ``pylab.shared.infos.ConnectionInfo`` for details)
 
     Args:
         path: A filesystem path to a YAML file which contains
@@ -301,12 +302,12 @@ def _load_details(path: str, data: dict) -> Details:
 @dataclass(frozen=True)
 class Details:
     devices: list[DeviceDetails]
-    connections: list[infos.ConnectionInfo]
+    connections: list[pylab.shared.infos.ConnectionInfo]
 
     @classmethod
     def from_dict(cls, data: dict) -> Details:
         details = [DeviceDetails.from_dict(each) for each in data['devices']]
-        connections = [infos.ConnectionInfo(*each)
+        connections = [sharedinfos.ConnectionInfo(*each)
                        for each in data['connections']]
         return cls(details, connections)
 
@@ -315,14 +316,14 @@ class Details:
 class DeviceDetails:
     name: str
     type: str
-    interface: infos.ElectricalInterface
+    interface: pylab.shared.infos.ElectricalInterface
     data: dict = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:
         name = data['name']
         type = data['type']
-        interface = infos.ElectricalInterface.from_dict(data['interface'])
+        interface = sharedinfos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward
         return cls(name, type, interface, args)
 
@@ -638,7 +639,7 @@ class Device:
     """Wrapper that wraps a Simulink block and electrical interface."""
     name: str
     block: AbstractBlock
-    interface: infos.ElectricalInterface
+    interface: pylab.shared.infos.ElectricalInterface
 
     @classmethod
     def from_details(cls, details: DeviceDetails) -> Device:
@@ -750,7 +751,7 @@ class TestObject:
         channel = device.interface.get_port(signal).channel
         return ((line.sender, line.sender_port) for line in self._lines if line.receiver.name == target and line.receiver_port.channel == channel)
 
-    def trace_back(self, target: str, signal: str) -> tuple[Device, infos.PortInfo]:
+    def trace_back(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to the input ``signal``
         of ``target``.
 
@@ -766,7 +767,7 @@ class TestObject:
                 if each.sender.name == target
                 and each.sender_port.channel == channel)
 
-    def trace_forward(self, target: str, signal: str) -> tuple[Device, infos.PortInfo]:
+    def trace_forward(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to ``signal`` of
         ``target``.
 
@@ -784,9 +785,9 @@ class TestObject:
         result += sum([each.setup() for each in self._lines], [])
         return result
 
-    def _create_line(self, info: infos.ConnectionInfo) -> _Line:
+    def _create_line(self, info: pylab.shared.infos.ConnectionInfo) -> _Line:
         """Create an instance of ``_Line`` from an instance of
-        ``infos.ConnectionInfo``.
+        ``pylab.shared.infos.ConnectionInfo``.
 
         Raises:
             StopIteration:
@@ -806,9 +807,9 @@ class TestObject:
 class _Line:
     """Class for representing Simulink connection lines."""
     sender: AbstractBlock
-    sender_port: infos.PortInfo
+    sender_port: pylab.shared.infos.PortInfo
     receiver: AbstractBlock
-    receiver_port: infos.PortInfo
+    receiver_port: pylab.shared.infos.PortInfo
 
     def setup(self):
         return [f"add_line('{SYSTEM}', '{self.sender.name}/{self.sender_port.channel}', "
