@@ -215,38 +215,62 @@ class TestLoggingInfo:
 
 class TestSignalInfo:
 
-    @pytest.mark.parametrize('name, min, max', [
+    @pytest.mark.parametrize('kwargs, expected', [
         pytest.param(
-            'foo', 2.0, 1.0,
-            id='min larger than max'
+            {'name': 'foo', 'min': 1.2, 'max': 3.4},
+            infos.SignalInfo(name='foo', min=1.2, max=3.4),
+            id='Using min/max'
         ),
         pytest.param(
-            'foo.bar', 1.0, 2.0,
-            id='invalid id'
+            {'name': 'bar', 'range': '1.2..3.4'},
+            infos.SignalInfo(name='bar', min=1.2, max=3.4),
+            id='Using range'
         )
     ])
-    def test_failure(self, name, min, max):
-        with pytest.raises(errors.InfoError):
-            infos.SignalInfo(name, min, max)
-
-    @pytest.mark.parametrize('kwargs, expected', [
-        ({'name': 'foo', 'min': 123, 'max': 456},
-         infos.SignalInfo(name='foo', min=123, max=456)),
-        ({'name': 'bar', 'range': '123.0..456'},
-         infos.SignalInfo(name='bar', min=123, max=456))
-    ])
-    def test___init__success(self, kwargs, expected):
+    def test__init__success(self, kwargs, expected):
         info = infos.SignalInfo(**kwargs)
         assert info == expected
 
     @pytest.mark.parametrize('kwargs', [
-        {'name': 'foo', 'min': 123, 'range': '123..456'},
-        {'name': 'bar', 'max': 234, 'range': '123.0..456'},
-        {'name': 'bar', 'min': 123, 'max': 234, 'range': '123.0..456'},
-        pytest.param({'name': 'bar'}, id='No range specified', marks=pytest.mark.xfail),
+        pytest.param(
+            {'name': 'foo.bar', 'min': 1.0, 'max': 2.0},
+            id='Invalid id'
+        ),
+        pytest.param(
+            {'name': 'foo', 'min': 1.2, 'range': '1.2..3.4'},
+            id='range and in specified'
+        ),
+        pytest.param(
+            {'name': 'bar', 'max': 234, 'range': '1.2.0..3.4'},
+            id='range and max specified'
+        ),
+        pytest.param(
+            {'name': 'bar', 'min': 1.2, 'max': 234, 'range': '1.2.0..3.4'},
+            id='range and min/max specified'
+        ),
+        pytest.param(
+            {'name': 'foo', 'min': 1.2},
+            id='No max specified'
+        ),
+        pytest.param(
+            {'name': 'foo', 'max': 3.4},
+            id='No min specified'
+        ),
+        pytest.param(
+            {'name': 'foo', 'min': 1.2},
+            id='No min specified'
+        ),
+        pytest.param(
+            {'name': 'foo', 'min': 3.4, 'max': 1.2},
+            id='min > max'
+        ),
+        pytest.param(
+            {'name': 'bar'},
+            id='No range specified'
+        ),
     ])
-    def test___init__failure(self, kwargs):
-        with pytest.raises(ValueError):
+    def test__init__failure(self, kwargs):
+        with pytest.raises(errors.InfoError):
             infos.SignalInfo(**kwargs)
 
 
@@ -255,7 +279,7 @@ class TestTargetInfo:
     @pytest.mark.parametrize('name, signals', [
         pytest.param(
             'foo.bar', [],
-            id='invalid id'
+            id='Invalid id'
         ),
         pytest.param(
             'foo',
@@ -263,7 +287,7 @@ class TestTargetInfo:
                 infos.SignalInfo(name='bar', min=0, max=1),
                 infos.SignalInfo(name='bar', min=1, max=2),
             ],
-            id='duplicate signal id'
+            id='Duplicate signal id'
         )
     ])
     def test_failure(self, name, signals):
@@ -274,8 +298,8 @@ class TestTargetInfo:
         data = {
             'name': 'foo',
             'signals': [
-                {'name': 'bar', 'min': 123, 'max': 456},
-                {'name': 'baz', 'min': 0, 'max': 1.234},
+                {'name': 'bar', 'min': 1.2, 'max': 3.4},
+                {'name': 'baz', 'min': 0, 'max': 1.2},
             ],
             'description': 'foobar'
         }
@@ -283,8 +307,8 @@ class TestTargetInfo:
         expected = infos.TargetInfo(
             name='foo',
             signals=[
-                infos.SignalInfo(name='bar', min=123, max=456),
-                infos.SignalInfo(name='baz', min=0, max=1.234),
+                infos.SignalInfo(name='bar', min=1.2, max=3.4),
+                infos.SignalInfo(name='baz', min=0, max=1.2),
             ],
             description='foobar'
         )

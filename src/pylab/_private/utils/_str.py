@@ -6,8 +6,8 @@ import re
 def load_range(expr: str) -> tuple[float, float]:
     """Extract ``lo`` and ``hi`` from a range expression ``lo..hi``.
 
-    There must be at least two dots. Leading and trailing white spaces
-    are allowed. White spaces between ``lo`` resp. ``hi`` and ``..`` are
+    There must be at least two dots. Leading and trailing whitespaces
+    are allowed. Whitespaces between ``lo`` resp. ``hi`` and ``..`` are
     allowed.
 
     Args:
@@ -28,9 +28,9 @@ def load_range(expr: str) -> tuple[float, float]:
     #                    Leading whitespace
     #                                A number
     #                                                   At least two dots
-    #                                                                   A number
-    #                                                                          Trailing whitespace
-    matches = re.match(f'{whitespace}({num}){whitespace}\\.+{whitespace}({num}){whitespace}$', expr)
+    #                                                                        A number
+    #                                                                               Trailing whitespace
+    matches = re.match(f'{whitespace}({num}){whitespace}\\.{{2,}}{whitespace}({num}){whitespace}$', expr)
     if matches is None or matches.lastindex != 2:
         raise ValueError(f'Failed to read range expression: {expr}')
     min_, max_ = map(float, [matches.group(1), matches.group(2)])

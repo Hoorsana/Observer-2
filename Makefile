@@ -41,6 +41,10 @@ default: venv
 	make example-adder-flash
 	make example-limit-flash
 
+.PHONY: private
+private: venv
+	$(PYTEST) -vv tests/_private
+
 .PHONY: shared
 shared: venv
 	$(PYTEST) -vv tests/shared

@@ -4,6 +4,7 @@ import pytest
 
 from pylab._private import rogueplugin
 from pylab.core import infos
+from pylab.shared import infos as sharedinfos
 from pylab.core import report
 from pylab.live import live
 
@@ -35,19 +36,19 @@ class TestGlobal:
                         },
                         'loop': lambda d: d.set_value('DAC0', d.get_value('A0') + d.get_value('A1'))
                     },
-                    interface=infos.ElectricalInterface(
+                    interface=sharedinfos.ElectricalInterface(
                         ports=[
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'val1',
                                 'A0',
                                 min=MIN, max=MAX,
                             ),
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'val2',
                                 'A1',
                                 min=MIN, max=MAX,
                             ),
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'sum',
                                 'DAC0',
                                 min=MIN, max=2*MAX,
@@ -67,19 +68,19 @@ class TestGlobal:
                             'A0': 0.0,
                         }
                     },
-                    interface=infos.ElectricalInterface(
+                    interface=sharedinfos.ElectricalInterface(
                         ports=[
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'out1',
                                 'DAC0',
                                 min=MIN, max=MAX
                             ),
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'out2',
                                 'DAC1',
                                 min=MIN, max=MAX
                             ),
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'sum',
                                 'A0',
                                 min=MIN, max=2*MAX
@@ -89,15 +90,15 @@ class TestGlobal:
                 )
             ],
             connections=[
-                infos.ConnectionInfo(
+                sharedinfos.ConnectionInfo(
                     sender='gpio', sender_port='out1',
                     receiver='adder', receiver_port='val1'
                 ),
-                infos.ConnectionInfo(
+                sharedinfos.ConnectionInfo(
                     sender='gpio', sender_port='out2',
                     receiver='adder', receiver_port='val2'
                 ),
-                infos.ConnectionInfo(
+                sharedinfos.ConnectionInfo(
                     sender='adder', sender_port='sum',
                     receiver='gpio', receiver_port='sum'
                 ),
@@ -168,9 +169,9 @@ class TestDevice:
                     type='Device',
                     data={},
                     extension={'defaults': {'port': 0.0}},
-                    interface=infos.ElectricalInterface(
+                    interface=sharedinfos.ElectricalInterface(
                         ports=[
-                            infos.PortInfo(
+                            sharedinfos.PortInfo(
                                 'port_frontend',
                                 'port',
                                 min=MIN, max=MAX

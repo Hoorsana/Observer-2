@@ -221,10 +221,14 @@ class SignalInfo:
                 f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         if range is not None:
             if self.min is not None:
-                raise ValueError('Failed to initialize SignalInfo: range and min specified')
+                raise errors.InfoError('Failed to initialize SignalInfo: range and min specified')
             if self.max is not None:
-                raise ValueError('Failed to initialize SignalInfo: range and max specified')
+                raise errors.InfoError('Failed to initialize SignalInfo: range and max specified')
             self._set_range(range)
+        if self.min is None:
+            raise errors.InfoError('Failed to initialize SignalInfo: missing range/min not specified')
+        if self.max is None:
+            raise errors.InfoError('Failed to initialize SignalInfo: missing range/max not specified')
         if self.min > self.max:
             raise errors.InfoError(
                 f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
