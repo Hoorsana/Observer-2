@@ -46,12 +46,10 @@ class DetailInfo:
         Raises:
             StopIteration: If ``target`` or ``signal`` is not found
         """
-        dev = next(elem for elem in self.devices if elem.name == device)
-        channel = device.interface.get_port(signal).channel
         return (
             (elem.receiver, elem.receiver_port)
             for elem in self.connections
-            if elem.sender == device and elem.sender_port == channel
+            if elem.sender == device and elem.sender_port == signal
         )
 
     def trace_back(self, device: str, signal: str) -> tuple[str, str]:
@@ -67,12 +65,10 @@ class DetailInfo:
         Raises:
             StopIteration: If ``target`` or ``signal`` is not found
         """
-        dev = next(elem for elem in self.devices if elem.name == device)
-        channel = device.interface.get_port(signal).channel
         return (
             (elem.sender, elem.sender_port)
             for elem in self.connections
-            if elem.receiver == device and elem.receiver_port == channel
+            if elem.receiver == device and elem.receiver_port == signal
         )
 
 
@@ -80,6 +76,16 @@ class DetailInfo:
 class DeviceInfo:
     name: str
     interface: ElectricalInterface
+
+    @classmethod
+    def from_dict(cls, data: dict) -> cls:
+        utils.assert_keys(
+            data, {'name', 'interface'}, set(),
+            'Error when loading DetailInfo: '
+        )
+        name = data['name']
+        interface = ElectricalInterface(**data['interface'])
+        return cls(name, interface)
 
 
 @dataclasses.dataclass(frozen=True)

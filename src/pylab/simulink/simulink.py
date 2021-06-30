@@ -675,6 +675,7 @@ class TestObject:
     """Utility class for managing the test setup."""
 
     def __init__(self, details: Details, targets: list[infos.TargetInfo]) -> None:
+        self._object = sharedinfos.DetailInfo(details.devices, details.connections)
         self._devices = [Device.from_details(each) for each in details.devices]
         self._lines = details.connections  # [self._create_line(each) for each in details.connections]
         self._targets = targets
@@ -766,9 +767,11 @@ class TestObject:
         return dev.interface.get_port(signal)
 
     def _trace_back_gen(self, target: str, signal: str):
-        device = next(each for each in self._devices if each.name == target)
-        channel = device.interface.get_port(signal).channel
-        return ((self._find_device(line.sender), self._find_port(line.sender, line.sender_port)) for line in self._lines if line.receiver == target and line.receiver_port == signal)
+        g = self._object.trace_back(target, signal)
+        return (
+            (self._find_device(dev), self._find_port(dev, con))
+            for dev, con in g
+        )
 
     def trace_back(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to the input ``signal``
@@ -780,11 +783,11 @@ class TestObject:
         return next(self._trace_back_gen(target, signal))
 
     def _trace_forward_gen(self, target: str, signal: str):
-        device = next(each for each in self._devices if each.name == target)
-        channel = device.interface.get_port(signal).channel
-        return ((self._find_device(each.receiver), self._find_port(each.receiver, each.receiver_port)) for each in self._lines
-                if each.sender == target
-                and each.sender_port == signal)
+        g = self._object.trace_forward(target, signal)
+        return (
+            (self._find_device(dev), self._find_port(dev, con))
+            for dev, con in g
+        )
 
     def trace_forward(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to ``signal`` of
