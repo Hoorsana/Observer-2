@@ -688,14 +688,6 @@ class TestObject:
         return self._devices
 
     @property
-    def lines(self) -> list[_Line]:
-        """The connections/lines in the testbed/root system.
-
-        This property is considered **read-only**.
-        """
-        return self._lines
-
-    @property
     def targets(self) -> list[infos.TargetInfo]:
         """The target infos of the test.
 
@@ -766,10 +758,13 @@ class TestObject:
             raise ValueError(f'Target "{target}" has no signal "{signal}"')
         return signal_obj
 
+    def _find_device(self, name: str) -> Device:
+        return next(dev for dev in self._devices if dev.name == name)
+
     def _trace_back_gen(self, target: str, signal: str):
         device = next(each for each in self._devices if each.name == target)
         channel = device.interface.get_port(signal).channel
-        return ((line.sender, line.sender_port) for line in self._lines if line.receiver.name == target and line.receiver_port.channel == channel)
+        return ((self._find_device(line.sender), line.sender_port) for line in self._lines if line.receiver == target and line.receiver_port.channel == channel)
 
     def trace_back(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to the input ``signal``
@@ -783,8 +778,8 @@ class TestObject:
     def _trace_forward_gen(self, target: str, signal: str):
         device = next(each for each in self._devices if each.name == target)
         channel = device.interface.get_port(signal).channel
-        return ((each.receiver, each.receiver_port) for each in self._lines
-                if each.sender.name == target
+        return ((self._find_device(each.receiver), each.receiver_port) for each in self._lines
+                if each.sender == target
                 and each.sender_port.channel == channel)
 
     def trace_forward(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
@@ -820,20 +815,27 @@ class TestObject:
         receiver = next(each for each in self._devices
                         if each.name == info.receiver)
         receiver_port = receiver.interface.get_port(info.receiver_port)
-        return _Line(sender, sender_port, receiver, receiver_port)
+        return _Line(sender.name, sender_port, receiver.name, receiver_port)
+
+
+def _setup_line(connection: sharedinfos.ConnectionInfo) -> list[str]:
+    return [
+        f"add_line('{SYSTEM}', '{connection.sender}/{connection.sender_port}', "
+        f"'{self.receiver.name}/{self.receiver_port.channel}', 'autorouting', 'on')"
+    ]
 
 
 @dataclass(frozen=True)
 class _Line:
     """Class for representing Simulink connection lines."""
-    sender: AbstractBlock
+    sender: str
     sender_port: pylab.shared.infos.PortInfo
-    receiver: AbstractBlock
+    receiver: str
     receiver_port: pylab.shared.infos.PortInfo
 
     def setup(self):
-        return [f"add_line('{SYSTEM}', '{self.sender.name}/{self.sender_port.channel}', "
-                f"'{self.receiver.name}/{self.receiver_port.channel}', 'autorouting', 'on')"]
+        return [f"add_line('{SYSTEM}', '{self.sender}/{self.sender_port.channel}', "
+                f"'{self.receiver}/{self.receiver_port.channel}', 'autorouting', 'on')"]
 
 
 # }}} details
