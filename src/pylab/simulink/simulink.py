@@ -99,6 +99,8 @@ TOOLBOX = [f'{EXTRACT}.m']
 BINARIES = ['pylab_mini_generator.slx']
 INDEX0 = PREFIX + '_INDEX0'
 
+MARKER = '-->'  # Marks lines in script that cause MATLAB errors
+
 BLOCKS = 'pylab.simulink.blocks'
 COMMANDS = 'pylab.simulink.commands'
 GRAIN = 0.1
@@ -130,7 +132,6 @@ def _find_nth(text: str, pattern: str, n: int) -> int:
 
 
 def _mark_line(text: str, line: int) -> str:
-    MARKER = '-->'
     if line == 0:
         return MARKER + text
     index = _find_nth(text, '\n', line-1)

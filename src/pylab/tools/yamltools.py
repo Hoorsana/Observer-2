@@ -44,10 +44,8 @@ def yaml_object(_cls=None,
         a = yaml.safe_load('!A\nvalue: -0.12')
         assert a.value == -0.12
     """
-
     def wrap(cls):
         return _process_class(cls, loader, tag, replace_from_yaml)
-
     if _cls is None:
         return wrap  # Called with parens.
     return wrap(_cls)  # Called without parens.
