@@ -282,7 +282,22 @@ def load_details(path: str) -> Details:
         content = f.read()
     data = yaml.safe_load(content)
 
-    return _load_details(path, data)
+    return _load_details2(path, data)
+
+
+def _load_details2(path: str, data: dict) -> Details:
+    device_data = data.get('devices', {})
+    # If this is not available, we're not throwing an error just yet
+
+    # If an interface info is a string, use it as a filesystem path to
+    # find the file which holds the actual interface info data. If
+    # ``data`` is a relative path, view it as relative to ``path``.
+    for elem in device_data:
+        inf = elem['interface']
+        if isinstance(inf, str):
+            interface_path = _find_interface_path(path, inf)
+            elem['interface'] = _yaml_safe_load_from_file(interface_path)
+    return Details.from_dict(data)
 
 
 def _load_details(path: str, data: dict) -> Details:
@@ -313,12 +328,16 @@ class Details:
         return cls(details, connections)
 
 
-@dataclass(frozen=True)
-class DeviceDetails:
-    name: str
-    type: str
-    interface: pylab.shared.infos.ElectricalInterface
-    data: dict = field(default_factory=dict)
+class DeviceDetails(sharedinfos.DeviceInfo):
+
+    def __init__(self,
+                 name: str,
+                 type: str,
+                 interface: sharedinfos.ElectricalInterface,
+                 data: dict) -> None:
+        super().__init__(name, interface)
+        self.type = type
+        self.data = data
 
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:

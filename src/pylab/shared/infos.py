@@ -15,6 +15,74 @@ from pylab._private import utils
 
 
 @dataclasses.dataclass(frozen=True)
+class DetailInfo:
+    devices: list[DeviceInfo]
+    connections: list[ConnectionInfo]
+
+    def __post_init__(self):
+        # TODO Check for inconsistencies between devices and connections!
+        pass
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        utils.assert_keys(
+            data, set(), {'devices', 'connections'},
+            'Error when loading DetailInfo: '
+        )
+        devices = [DeviceInfo(**elem) for elem in data['devices']]
+        connections = [ConnectionInfo(**elem) for elem in data['connections']]
+        return cls(devices, connections)
+
+    def trace_forward(self, device: str, signal: str) -> tuple[str, str]:
+        """Return all device/ports connected via outgoing connections.
+
+        Args:
+            device: The device from which to track the connections
+            signal: The signal from which to track the connections
+
+        Returns:
+            A generator which holds all matching device/ports
+
+        Raises:
+            StopIteration: If ``target`` or ``signal`` is not found
+        """
+        dev = next(elem for elem in self.devices if elem.name == device)
+        channel = device.interface.get_port(signal).channel
+        return (
+            (elem.receiver, elem.receiver_port)
+            for elem in self.connections
+            if elem.sender == device and elem.sender_port == channel
+        )
+
+    def trace_back(self, device: str, signal: str) -> tuple[str, str]:
+        """Return all device/ports connected via ingoing connections.
+
+        Args:
+            device: The device from which to track the connections
+            signal: The signal from which to track the connections
+
+        Returns:
+            A generator which holds all matching device/ports
+
+        Raises:
+            StopIteration: If ``target`` or ``signal`` is not found
+        """
+        dev = next(elem for elem in self.devices if elem.name == device)
+        channel = device.interface.get_port(signal).channel
+        return (
+            (elem.sender, elem.sender_port)
+            for elem in self.connections
+            if elem.receiver == device and elem.receiver_port == channel
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class DeviceInfo:
+    name: str
+    interface: ElectricalInterface
+
+
+@dataclasses.dataclass(frozen=True)
 class ConnectionInfo:
     """Class for representing wires or lines between ports.
 
