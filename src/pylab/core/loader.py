@@ -14,11 +14,12 @@ import yaml
 from pylab.core.typing import PathLike
 from pylab.core import testing
 from pylab.core import infos
+from pylab._private import utils
 
 PHASE_DIR = 'PYLAB_PHASE_DIR'
 
 
-# FIXME Implement loader using `from_yaml` and `yaml.YAMLObject`?
+# TODO Implement loader using `from_yaml` and `yaml.YAMLObject`?
 
 
 def load_test(path: PathLike) -> infos.TestInfo:
@@ -30,8 +31,11 @@ def load_test(path: PathLike) -> infos.TestInfo:
     Args:
         path: A filesystem path
     """
-    data = _yaml_safe_load_from_file(path)
-
+    data = utils.yaml_safe_load_from_file(path)
+    utils.assert_keys(
+        data, {'targets', 'phases'}, {'logging'},
+        'Error when loading test: '
+    )
     targets = [infos.TargetInfo.from_dict(each) for each in data['targets']]
     logging = [infos.LoggingInfo(**each) for each in data.get('logging', [])]
 
@@ -43,7 +47,7 @@ def load_test(path: PathLike) -> infos.TestInfo:
     for index, elem in enumerate(phase_data):
         if isinstance(elem, str):
             phase_path = _find_phase_path(path, elem)
-            phase_data[index] = _yaml_safe_load_from_file(phase_path)
+            phase_data[index] = utils.yaml_safe_load_from_file(phase_path)
     phases = [infos.PhaseInfo.from_dict(each) for each in phase_data]
 
     return infos.TestInfo(targets, logging, phases)
@@ -108,9 +112,3 @@ def _find_phase_path(root: PathLike, path: PathLike) -> str:
             return each
 
     raise ValueError(f'File {path} not found')
-
-
-def _yaml_safe_load_from_file(path: PathLike) -> dict:
-    with open(path, 'r') as f:
-        content = f.read()
-    return yaml.safe_load(content)

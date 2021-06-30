@@ -21,7 +21,6 @@ from pylab._private import utils
 from pylab.core import errors
 
 
-
 @dataclasses.dataclass(frozen=True)
 class TestInfo:
     """Master info for a test, start-to-finish.

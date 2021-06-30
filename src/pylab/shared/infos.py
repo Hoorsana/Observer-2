@@ -26,11 +26,11 @@ class DetailInfo:
     @classmethod
     def from_dict(cls, data: dict):
         utils.assert_keys(
-            data, set(), {'devices', 'connections'},
+            data, {'devices'}, {'connections'},
             'Error when loading DetailInfo: '
         )
         devices = [DeviceInfo(**elem) for elem in data['devices']]
-        connections = [ConnectionInfo(**elem) for elem in data['connections']]
+        connections = [ConnectionInfo(**elem) for elem in data.get('connections', [])]
         return cls(devices, connections)
 
     def trace_forward(self, device: str, signal: str) -> tuple[str, str]:
@@ -70,22 +70,6 @@ class DetailInfo:
             for elem in self.connections
             if elem.receiver == device and elem.receiver_port == signal
         )
-
-
-@dataclasses.dataclass(frozen=True)
-class DeviceInfo:
-    name: str
-    interface: ElectricalInterface
-
-    @classmethod
-    def from_dict(cls, data: dict) -> cls:
-        utils.assert_keys(
-            data, {'name', 'interface'}, set(),
-            'Error when loading DetailInfo: '
-        )
-        name = data['name']
-        interface = ElectricalInterface(**data['interface'])
-        return cls(name, interface)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -174,7 +158,7 @@ class ElectricalInterface:
         ports: The electrical ports of the device
         description: For documentation purposes
     """
-    ports: list[PortInfo]
+    ports: list[PortInfo] = dataclasses.field(default_factory=list)
     description: Optional[str] = ''
 
     @classmethod
@@ -202,3 +186,19 @@ class ElectricalInterface:
         if info is None:
             raise ValueError(f'port for signal "{signal}" not found')
         return info
+
+
+@dataclasses.dataclass(frozen=True)
+class DeviceInfo:
+    name: str
+    interface: ElectricalInterface = dataclasses.field(default_factory=ElectricalInterface)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> cls:
+        utils.assert_keys(
+            data, {'name'}, {'interface'},
+            'Error when loading DeviceInfo: '
+        )
+        name = data['name']
+        interface = ElectricalInterface(**data.get('interface', {}))
+        return cls(name, interface)

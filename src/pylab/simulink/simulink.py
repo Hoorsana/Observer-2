@@ -831,7 +831,6 @@ class TestObject:
             f"add_line('{SYSTEM}', '{connection.sender}/{ch_sender}', "
             f"'{connection.receiver}/{ch_receiver}', 'autorouting', 'on')"
         ]
-        print(result)
         return result
 
 
