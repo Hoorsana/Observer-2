@@ -774,6 +774,8 @@ class TestObject(testobject.TestObjectBase):
         return result
 
     def _setup_line(self, connection: sharedinfos.ConnectionInfo) -> list[str]:
+        # TODO This needs to be fixed when the specification how
+        # connections are specified is changed
         sender = self.find_device(connection.sender)
         sender_channel = sender.find_port(connection.sender_port).channel
         receiver = self.find_device(connection.receiver)
