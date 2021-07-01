@@ -671,6 +671,9 @@ class Device:
         block = type_(details.name, **details.data)
         return Device(details.name, block, details.interface)
 
+    def find_port(self, signal: str) -> infos.PortInfo:
+        return self.interface.get_port(signal)
+
 
 class TestObject(testobject.TestObjectBase):
     """Utility class for managing the test setup."""
@@ -761,15 +764,11 @@ class TestObject(testobject.TestObjectBase):
             raise ValueError(f'Target "{target}" has no signal "{signal}"')
         return signal_obj
 
-    def _find_port(self, device: str, signal: str) -> str:
-        return device.interface.get_port(signal)
-
     def _trace_back_gen(self, target: str, signal: str):
-        g = super().trace_back(target, signal)
-        return (
-            (dev, self._find_port(dev, con))
-            for dev, con in g
-        )
+        return super().trace_back(target, signal)
+
+    def _trace_forward_gen(self, target: str, signal: str):
+        return super().trace_forward(target, signal)
 
     def trace_back(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to the input ``signal``
@@ -778,14 +777,7 @@ class TestObject(testobject.TestObjectBase):
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
-        return next(self._trace_back_gen(target, signal))
-
-    def _trace_forward_gen(self, target: str, signal: str):
-        g = super().trace_forward(target, signal)
-        return (
-            (dev, self._find_port(dev, con))
-            for dev, con in g
-        )
+        return next(super().trace_back(target, signal))
 
     def trace_forward(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
         """Return the output that is connected to ``signal`` of
@@ -794,7 +786,7 @@ class TestObject(testobject.TestObjectBase):
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
-        return next(self._trace_forward_gen(target, signal))
+        return next(super().trace_forward(target, signal))
 
     def setup(self):
         """Return code snippet for creating the referenced blocks and

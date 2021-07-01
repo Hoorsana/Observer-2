@@ -3,11 +3,34 @@ from __future__ import annotations
 import abc
 
 
+class Port(abc.ABC):
+
+    @property
+    @abc.abstractmethod
+    def signal(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def channel(self) -> str:
+        pass
+
+
 class Device(abc.ABC):
 
     @property
     @abc.abstractmethod
     def name(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def ports(self) -> list[Port]:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def find_port(self, port: str) -> Port:
         pass
 
 
@@ -73,9 +96,10 @@ class TestObjectBase:
             StopIteration: If ``target`` or ``signal`` is not found
         """
         return (
-            (self.find_device(elem.receiver), elem.receiver_port)
+            (device, device.find_port(elem.receiver_port))
             for elem in self._connections
             if elem.sender == device and elem.sender_port == signal
+            if (device := self.find_device(elem.receiver))
         )
 
     def trace_back(self, device: str, signal: str) -> tuple[str, str]:
@@ -92,7 +116,8 @@ class TestObjectBase:
             StopIteration: If ``target`` or ``signal`` is not found
         """
         return (
-            (self.find_device(elem.sender), elem.sender_port)
+            (device, device.find_port(elem.sender_port))
             for elem in self._connections
             if elem.receiver == device and elem.receiver_port == signal
+            if (device := self.find_device(elem.sender))
         )
