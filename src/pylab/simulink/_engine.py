@@ -20,8 +20,10 @@ the object itself in an attempt to prevent excessive use of phrases like
 from __future__ import annotations
 
 import abc
+import importlib
 import itertools
-from typing import Any, List, Optional, Sequence, Tuple
+import sys
+from typing import Any, Optional, Sequence
 
 import matlab
 
@@ -30,6 +32,33 @@ from pylab.core import timeseries
 
 # Global engine object.
 _engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
+
+
+class MonkeypatchPythonVersion:
+    """Context manager to force the engine to use the current version by
+    monkeypatching sys.version_info if the current python version is not
+    supported by MATLAB.
+    """
+    PYTHON_VERSION_FOR_MATLAB_ENGINE = (3, 7)
+
+    def __enter__(self):
+        self._stash = sys.version_info
+        sys.version_info = MonkeypatchPythonVersion.PYTHON_VERSION_FOR_MATLAB_ENGINE
+
+    def __exit__(self, type, value, traceback):
+        del type, value, traceback
+        sys.version_info = self._stash
+
+
+def import_matlab_engine():
+    try:
+        return importlib.import_module('matlab.engine')
+    except OSError as e:
+        try:
+            with MonkeypatchPythonVersion():
+                return importlib.import_module('matlab.engine')
+        except OSError:
+            raise EnvironmentError from e
 
 
 def engine() -> matlab.engine.matlabengine.MatlabEngine:
@@ -42,9 +71,9 @@ def engine() -> matlab.engine.matlabengine.MatlabEngine:
         The global MATLAB engine handle
     """
     global _engine
-    import matlab.engine
+    ml_engine = import_matlab_engine()
     if _engine is None:
-        _engine = matlab.engine.start_matlab()
+        _engine = ml_engine.start_matlab()
     return _engine
 
 

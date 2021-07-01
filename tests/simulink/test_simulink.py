@@ -9,12 +9,13 @@ import io
 import pytest
 import yaml
 
-import matlab.engine
-
 from pylab.core import infos
 from pylab.core import report
 from pylab.core import timeseries
 from pylab.simulink import simulink
+from pylab.simulink import _engine
+
+ml_engine = _engine.import_matlab_engine()
 
 
 @pytest.mark.dependency('simulink')
@@ -24,12 +25,12 @@ class TestTest:
     @pytest.mark.parametrize('code, requests, results, severity, effect', [
         pytest.param(
             "error('foo');", [], {}, '',
-            pytest.raises(matlab.engine.MatlabExecutionError),
+            pytest.raises(ml_engine.MatlabExecutionError),
             id='MATLAB engine error'
         ),
         pytest.param(
             '', [], {}, '',
-            pytest.raises(matlab.engine.MatlabExecutionError),
+            pytest.raises(ml_engine.MatlabExecutionError),
             id='Logbook not found'
         ),
         pytest.param(
@@ -42,7 +43,7 @@ class TestTest:
             ],
             {},
             '',
-            pytest.raises(matlab.engine.MatlabExecutionError),
+            pytest.raises(ml_engine.MatlabExecutionError),
             id='Logged data not found'
         ),
         pytest.param(
