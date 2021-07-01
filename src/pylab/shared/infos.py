@@ -33,44 +33,6 @@ class DetailInfo:
         connections = [ConnectionInfo(**elem) for elem in data.get('connections', [])]
         return cls(devices, connections)
 
-    def trace_forward(self, device: str, signal: str) -> tuple[str, str]:
-        """Return all device/ports connected via outgoing connections.
-
-        Args:
-            device: The device from which to track the connections
-            signal: The signal from which to track the connections
-
-        Returns:
-            A generator which holds all matching device/ports
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` is not found
-        """
-        return (
-            (elem.receiver, elem.receiver_port)
-            for elem in self.connections
-            if elem.sender == device and elem.sender_port == signal
-        )
-
-    def trace_back(self, device: str, signal: str) -> tuple[str, str]:
-        """Return all device/ports connected via ingoing connections.
-
-        Args:
-            device: The device from which to track the connections
-            signal: The signal from which to track the connections
-
-        Returns:
-            A generator which holds all matching device/ports
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` is not found
-        """
-        return (
-            (elem.sender, elem.sender_port)
-            for elem in self.connections
-            if elem.receiver == device and elem.receiver_port == signal
-        )
-
 
 @dataclasses.dataclass(frozen=True)
 class ConnectionInfo:

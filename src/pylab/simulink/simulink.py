@@ -72,6 +72,7 @@ import tempfile
 import matlab
 import yaml
 
+from pylab.shared import testobject
 from pylab.shared import infos as sharedinfos
 from pylab.core.typing import ArrayLike
 from pylab.simulink import _engine
@@ -675,9 +676,9 @@ class TestObject:
     """Utility class for managing the test setup."""
 
     def __init__(self, details: Details, targets: list[infos.TargetInfo]) -> None:
-        self._object = sharedinfos.DetailInfo(details.devices, details.connections)
+        self._object = testobject.TestObjectBase(details.devices, details.connections)
         self._devices = [Device.from_details(each) for each in details.devices]
-        self._lines = details.connections  # [self._create_line(each) for each in details.connections]
+        self._lines = details.connections
         self._targets = targets
 
     @property
