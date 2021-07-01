@@ -244,7 +244,16 @@ def assert_almost_everywhere_close(actual: TimeSeries,
                                    upper: float = None,
                                    rtol: float = 1e-07,
                                    atol: float = 1e-07) -> None:
-    """Raise an ``AssertionError`` if two time series are not equal up to tolerance in L^2 space.
+    """Raise an ``AssertionError`` if two time series are not equal up
+    to tolerance in L^2 space.
+
+    In detail, the following is verified: Take the absolute difference
+    of the expected time series f and the actual time series g (as
+    functions) and integrate the result over the domain [lower, upper],
+    then compare that result to the absolute integral of the expected
+    time series:
+
+    \int_{lower}^{upper} |f - g| dt < t_{rel} \cdot \int_{lower}^{upper} |f| dt + t_{abs}
 
     Args:
         actual: The time series under test
