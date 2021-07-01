@@ -672,13 +672,14 @@ class Device:
         return Device(details.name, block, details.interface)
 
 
-class TestObject:
+class TestObject(testobject.TestObjectBase):
     """Utility class for managing the test setup."""
 
     def __init__(self, details: Details, targets: list[infos.TargetInfo]) -> None:
-        self._object = testobject.TestObjectBase(details.devices, details.connections)
-        self._devices = [Device.from_details(each) for each in details.devices]
-        self._lines = details.connections
+        super().__init__(
+            [Device.from_details(each) for each in details.devices],
+            details.connections
+        )
         self._targets = targets
 
     @property
@@ -760,17 +761,13 @@ class TestObject:
             raise ValueError(f'Target "{target}" has no signal "{signal}"')
         return signal_obj
 
-    def _find_device(self, name: str) -> Device:
-        return next(dev for dev in self._devices if dev.name == name)
-
     def _find_port(self, device: str, signal: str) -> str:
-        dev = next(elem for elem in self._devices if elem.name == device)
-        return dev.interface.get_port(signal)
+        return device.interface.get_port(signal)
 
     def _trace_back_gen(self, target: str, signal: str):
-        g = self._object.trace_back(target, signal)
+        g = super().trace_back(target, signal)
         return (
-            (self._find_device(dev), self._find_port(dev, con))
+            (dev, self._find_port(dev, con))
             for dev, con in g
         )
 
@@ -784,9 +781,9 @@ class TestObject:
         return next(self._trace_back_gen(target, signal))
 
     def _trace_forward_gen(self, target: str, signal: str):
-        g = self._object.trace_forward(target, signal)
+        g = super().trace_forward(target, signal)
         return (
-            (self._find_device(dev), self._find_port(dev, con))
+            (dev, self._find_port(dev, con))
             for dev, con in g
         )
 
@@ -805,7 +802,7 @@ class TestObject:
         """
         result = []
         result += sum([each.block.setup() for each in self._devices], [])
-        result += sum([self._setup_line(each) for each in self._lines], [])
+        result += sum([self._setup_line(each) for each in self._connections], [])
         return result
 
     # def _create_line(self, info: pylab.shared.infos.ConnectionInfo) -> _Line:
@@ -826,8 +823,8 @@ class TestObject:
     #     return _Line(sender.name, sender_port, receiver.name, receiver_port)
 
     def _setup_line(self, connection: sharedinfos.ConnectionInfo) -> list[str]:
-        ch_sender = self._find_port(connection.sender, connection.sender_port).channel
-        ch_receiver = self._find_port(connection.receiver, connection.receiver_port).channel
+        ch_sender = self.find_device(connection.sender).interface.get_port(connection.sender_port).channel
+        ch_receiver = self.find_device(connection.receiver).interface.get_port(connection.receiver_port).channel
         result = [
             f"add_line('{SYSTEM}', '{connection.sender}/{ch_sender}', "
             f"'{connection.receiver}/{ch_receiver}', 'autorouting', 'on')"

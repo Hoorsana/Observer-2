@@ -47,6 +47,18 @@ class TestObjectBase:
         self._devices = devices
         self._connections = connections
 
+    def find_device(self, device: str) -> Device:
+        """Return the device with id ``device``.
+
+        Args:
+            device: The id of the device to find
+
+        Raises:
+            StopIteration: If the device is not found
+
+        """
+        return next(elem for elem in self._devices if elem.name == device)
+
     def trace_forward(self, device: str, signal: str) -> tuple[str, str]:
         """Return all device/ports connected via outgoing connections.
 
@@ -61,7 +73,7 @@ class TestObjectBase:
             StopIteration: If ``target`` or ``signal`` is not found
         """
         return (
-            (elem.receiver, elem.receiver_port)
+            (self.find_device(elem.receiver), elem.receiver_port)
             for elem in self._connections
             if elem.sender == device and elem.sender_port == signal
         )
@@ -80,7 +92,7 @@ class TestObjectBase:
             StopIteration: If ``target`` or ``signal`` is not found
         """
         return (
-            (elem.sender, elem.sender_port)
+            (self.find_device(elem.sender), elem.sender_port)
             for elem in self._connections
             if elem.receiver == device and elem.receiver_port == signal
         )
