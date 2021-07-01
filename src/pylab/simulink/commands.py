@@ -21,8 +21,8 @@ def set_signal(test_object: simulink.TestObject,
                time: float) -> tuple[str, str]:
     del time
 
-    device, port = test_object.trace_back(
-        command_info.target, command_info.data['signal'])
+    device, port = next(test_object.trace_back(
+        command_info.target, command_info.data['signal']))
     signal = test_object.get_signal(command_info.target, command_info.data['signal'])
 
     physical_value = command_info.data['value']
@@ -38,8 +38,8 @@ def set_signal(test_object: simulink.TestObject,
 def set_signal_ramp(test_object: simulink.TestObject,
                     command_info: infos.CommandInfo,
                     time: float) -> tuple[str, str]:
-    device, port = test_object.trace_back(
-        command_info.target, command_info.data['signal'])
+    device, port = next(test_object.trace_back(
+        command_info.target, command_info.data['signal']))
     signal = test_object.get_signal(command_info.target, command_info.data['signal'])
 
     slope = utils.linear_transform(signal.min, signal.max,
@@ -62,8 +62,8 @@ def set_signal_sine(test_object: simulink.TestObject,
     _default_bias = 0.0
     _default_phase = 0.0
 
-    device, port = test_object.trace_back(
-        command_info.target, command_info.data['signal'])
+    device, port = next(test_object.trace_back(
+        command_info.target, command_info.data['signal']))
     signal = test_object.get_signal(command_info.target, command_info.data['signal'])
 
     amplitude = utils.linear_transform(signal.min, signal.max,

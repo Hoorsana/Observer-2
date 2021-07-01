@@ -723,7 +723,7 @@ class TestObject(testobject.TestObjectBase):
         configuring the logger.
         """
         # FIXME Why is this a _Command_? Shouldn't it just be a code block?
-        gen = self._trace_forward_gen(info.target, info.signal)
+        gen = self.trace_forward(info.target, info.signal)
         device, port = None, None
         while device is None:
             device, port = next((device, port) for device, port in gen if hasattr(device.block, 'log_signal'))
@@ -764,30 +764,6 @@ class TestObject(testobject.TestObjectBase):
             raise ValueError(f'Target "{target}" has no signal "{signal}"')
         return signal_obj
 
-    def _trace_back_gen(self, target: str, signal: str):
-        return super().trace_back(target, signal)
-
-    def _trace_forward_gen(self, target: str, signal: str):
-        return super().trace_forward(target, signal)
-
-    def trace_back(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
-        """Return the output that is connected to the input ``signal``
-        of ``target``.
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` are not found
-        """
-        return next(super().trace_back(target, signal))
-
-    def trace_forward(self, target: str, signal: str) -> tuple[Device, pylab.shared.infos.PortInfo]:
-        """Return the output that is connected to ``signal`` of
-        ``target``.
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` are not found
-        """
-        return next(super().trace_forward(target, signal))
-
     def setup(self):
         """Return code snippet for creating the referenced blocks and
         links.
@@ -797,44 +773,16 @@ class TestObject(testobject.TestObjectBase):
         result += sum([self._setup_line(each) for each in self._connections], [])
         return result
 
-    # def _create_line(self, info: pylab.shared.infos.ConnectionInfo) -> _Line:
-    #     """Create an instance of ``_Line`` from an instance of
-    #     ``pylab.shared.infos.ConnectionInfo``.
-
-    #     Raises:
-    #         StopIteration:
-    #             If ``info.sender`` and ``info.receiver`` are not found
-    #             in the list of devices
-    #     """
-    #     sender = next(each for each in self._devices
-    #                   if each.name == info.sender)
-    #     sender_port = sender.interface.get_port(info.sender_port)
-    #     receiver = next(each for each in self._devices
-    #                     if each.name == info.receiver)
-    #     receiver_port = receiver.interface.get_port(info.receiver_port)
-    #     return _Line(sender.name, sender_port, receiver.name, receiver_port)
-
     def _setup_line(self, connection: sharedinfos.ConnectionInfo) -> list[str]:
-        ch_sender = self.find_device(connection.sender).interface.get_port(connection.sender_port).channel
-        ch_receiver = self.find_device(connection.receiver).interface.get_port(connection.receiver_port).channel
+        sender = self.find_device(connection.sender)
+        sender_channel = sender.find_port(connection.sender_port).channel
+        receiver = self.find_device(connection.receiver)
+        receiver_channel = receiver.find_port(connection.receiver_port).channel
         result = [
-            f"add_line('{SYSTEM}', '{connection.sender}/{ch_sender}', "
-            f"'{connection.receiver}/{ch_receiver}', 'autorouting', 'on')"
+            f"add_line('{SYSTEM}', '{connection.sender}/{sender_channel}', "
+            f"'{connection.receiver}/{receiver_channel}', 'autorouting', 'on')"
         ]
         return result
-
-
-@dataclass(frozen=True)
-class _Line:
-    """Class for representing Simulink connection lines."""
-    sender: str
-    sender_port: str
-    receiver: str
-    receiver_port: str
-
-    def setup(self):
-        return [f"add_line('{SYSTEM}', '{self.sender}/{self.sender_port.channel}', "
-                f"'{self.receiver}/{self.receiver_port.channel}', 'autorouting', 'on')"]
 
 
 # }}} details
