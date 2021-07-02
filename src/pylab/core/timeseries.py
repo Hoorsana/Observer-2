@@ -221,7 +221,7 @@ def l2distance(lhs: TimeSeries,
                rhs: TimeSeries,
                lower: Optional[float] = None,
                upper: Optional[float] = None) -> ArrayLike:
-    """Return the L^2 distance between two timeseries.
+    """Return the :math:`L^2` distance between two timeseries.
 
     If ``lower`` or ``upper`` are specified, the time series is
     restricted to the interval ``[lower, upper]``.
@@ -245,7 +245,7 @@ def assert_almost_everywhere_close(actual: TimeSeries,
                                    rtol: float = 1e-07,
                                    atol: float = 1e-07) -> None:
     """Raise an ``AssertionError`` if two time series are not equal up
-    to tolerance in L^2 space.
+    to tolerance in :math:`L^2` space.
 
     In detail, the following is verified: Take the absolute difference
     of the expected time series f and the actual time series g (as
@@ -253,7 +253,10 @@ def assert_almost_everywhere_close(actual: TimeSeries,
     then compare that result to the absolute integral of the expected
     time series:
 
-    \int_{lower}^{upper} |f - g| dt < t_{rel} \cdot \int_{lower}^{upper} |f| dt + t_{abs}
+    .. math::
+        \\int_{\\textrm{lower}}^{\\textrm{upper}} |f - g| \\, dt 
+        <
+        \\textrm{rtol} \\cdot \\int_{\\textrm{lower}}^{\\text{upper}} |f| \\, dt + \\textrm{atol}
 
     Args:
         actual: The time series under test
