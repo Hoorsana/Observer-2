@@ -124,21 +124,6 @@ _stderr = io.StringIO()
 # frontend {{{
 
 
-def _find_nth(text: str, pattern: str, n: int) -> int:
-    index = -1
-    for _ in range(n):
-        offset = index + 1
-        index = text[offset:].find(pattern) + offset
-    return index
-
-
-def _mark_line(text: str, line: int) -> str:
-    if line == 0:
-        return MARKER + text
-    index = _find_nth(text, '\n', line-1)
-    return text[:index+1] + MARKER + text[index+1:]
-
-
 def create(info: infos.TestInfo, details: Details) -> Test:
     """Create and return a ``Test`` object from info and device details.
 
@@ -208,18 +193,6 @@ class Test:
         directory will contain copies of the .M files listed in
         ``TOOLBOX`` and found in ``pylab.simulink._resources``.
         """
-        # FIXME The error handling is still pretty sketchy...
-        #   - Don't raise if an error occurs during execution (e.g.
-        #     model file not found). Only place the error in the report.
-        #   - Raise core.errors.LogicError if the test info is flawed
-        #     (this shouldn't happen here, of courses)
-        #   - Raise an error (matlab.engine.MatlabExecutionError?) if
-        #     something unexpected happens
-        # The last point goes sort of without saying and should not be
-        # part of the API. If, for example, there is no LOGBOOK after
-        # running the test, this is our fault (because we apparently
-        # messed up the LoggingInfo), should be raised and should not
-        # appear in the report.
         _engine.reset()  # FIXME Make this a post_test?
         with tempfile.TemporaryDirectory() as tmpdir:
             for each in TOOLBOX:
@@ -256,6 +229,19 @@ class Test:
             data = {}
 
         return report.Report(logbook, results, data)
+
+
+@dataclass(frozen=True)
+class Details:
+    devices: list[DeviceDetails]
+    connections: list[pylab.shared.infos.ConnectionInfo]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Details:
+        details = [DeviceDetails.from_dict(each) for each in data['devices']]
+        connections = [sharedinfos.ConnectionInfo(*each)
+                       for each in data['connections']]
+        return cls(details, connections)
 
 
 def load_details(path: str) -> Details:
@@ -314,19 +300,6 @@ def _load_details(path: str, data: dict) -> Details:
             interface_path = _find_interface_path(path, inf)
             elem['interface'] = _yaml_safe_load_from_file(interface_path)
     return Details.from_dict(data)
-
-
-@dataclass(frozen=True)
-class Details:
-    devices: list[DeviceDetails]
-    connections: list[pylab.shared.infos.ConnectionInfo]
-
-    @classmethod
-    def from_dict(cls, data: dict) -> Details:
-        details = [DeviceDetails.from_dict(each) for each in data['devices']]
-        connections = [sharedinfos.ConnectionInfo(*each)
-                       for each in data['connections']]
-        return cls(details, connections)
 
 
 class DeviceDetails(sharedinfos.DeviceInfo):
@@ -589,6 +562,21 @@ class Command:
     def __init__(self, time: float, code: str, what: str = '') -> None:
         """Initialize ``Command`` with MATLAB code snippet.
 
+
+
+def _find_nth(text: str, pattern: str, n: int) -> int:
+    index = -1
+    for _ in range(n):
+        offset = index + 1
+        index = text[offset:].find(pattern) + offset
+    return index
+
+
+def _mark_line(text: str, line: int) -> str:
+    if line == 0:
+        return MARKER + text
+    index = _find_nth(text, '\n', line-1)
+    return text[:index+1] + MARKER + text[index+1:]
         Args:
             time: Time at which the command should be executed
             code: MATLAB code snippet
@@ -785,6 +773,27 @@ class TestObject(testobject.TestObjectBase):
             f"'{connection.receiver}/{receiver_channel}', 'autorouting', 'on')"
         ]
         return result
+
+
+def _find_nth(text: str, pattern: str, n: int) -> int:
+    """Find `n`th occurence of `pattern` in `text`.
+
+    Returns:
+        The index at which the `n`th occurence starts
+    """
+    index = -1
+    for _ in range(n):
+        offset = index + 1
+        index = text[offset:].find(pattern) + offset
+    return index
+
+
+def _mark_line(text: str, line: int) -> str:
+    """Mark line `line` in `text` with a marker."""
+    if line == 0:
+        return MARKER + text
+    index = _find_nth(text, '\n', line-1)
+    return text[:index+1] + MARKER + text[index+1:]
 
 
 # }}} details
