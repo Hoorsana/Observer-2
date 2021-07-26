@@ -230,6 +230,7 @@ class DeviceDetails:
 
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:
+        print(data)
         name = data['name']
         type = data['type']
         module = data['module']
