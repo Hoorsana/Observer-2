@@ -30,7 +30,7 @@ class Device(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def find_port(self, port: str) -> Port:
+    def find_port(self, signal: str) -> Port:
         pass
 
 
@@ -82,7 +82,7 @@ class TestObjectBase:
         """
         return next(elem for elem in self._devices if elem.name == device)
 
-    def trace_forward(self, device: str, signal: str) -> tuple[str, str]:
+    def trace_forward(self, device: str, signal: str) -> tuple[Device, Port]:
         """Return all device/ports connected via outgoing connections.
 
         Args:
@@ -102,7 +102,7 @@ class TestObjectBase:
             if (device := self.find_device(elem.receiver))
         )
 
-    def trace_back(self, device: str, signal: str) -> tuple[str, str]:
+    def trace_back(self, device: str, signal: str) -> tuple[Device, Port]:
         """Return all device/ports connected via ingoing connections.
 
         Args:

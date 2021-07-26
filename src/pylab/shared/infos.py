@@ -46,9 +46,9 @@ class ConnectionInfo:
         description: For documentation purposes
     """
     sender: str
-    sender_port: str
+    sender_port: Any
     receiver: str
-    receiver_port: str
+    receiver_port: Any
     description: Optional[str] = ''
 
 

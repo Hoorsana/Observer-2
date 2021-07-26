@@ -58,6 +58,7 @@ import yaml
 from pylab.core import errors
 from pylab.core import infos
 from pylab.shared import infos as sharedinfos
+from pylab.shared import testobject
 from pylab.shared import loader
 from pylab.core import timeseries
 from pylab.core import report
@@ -276,7 +277,7 @@ class CmdSetSignal(AbstractCommand):
         self._value = value
 
     def execute(self, test_object: _TestObject) -> AbstractFuture:
-        device, port = test_object.trace_back(self._target, self._signal)
+        device, port = next(test_object.trace_back(self._target, self._signal))
         signal = test_object.get_signal(self._target, self._signal)
         value = coreutility.transform(
             signal.min, signal.max, port.min, port.max, self._value)
@@ -463,6 +464,9 @@ class _Device:
         """The device's physical-electrical interface."""
         return self._interface
 
+    def find_port(self, signal: str) -> sharedinfos.Port:
+        return self._interface.get_port(signal)
+
     def open(self) -> AbstractFuture:
         """Open the wrapped device."""
         return self._implementation.open()
@@ -560,33 +564,17 @@ class _DeviceContextManager:
 # details {{{
 
 
-# FIXME code-duplication: pylab.simulink.simulink._TestObject
-class _TestObject:
+class _TestObject(testobject.TestObjectBase):
     """Utility class for managing the test setup."""
 
     def __init__(self,
                  details: Details,
                  targets: list[infos.TargetInfo]) -> None:
-        self._devices = [_Device(each) for each in details.devices]
-        self._connections = [self._create_solid_connection(each)
-                             for each in details.connections]
+        super().__init__(
+            [_Device(each) for each in details.devices],
+            details.connections
+        )
         self._targets = targets
-
-    @property
-    def devices(self) -> list[_Device]:
-        """The devices in the testbed.
-
-        This property is considered **read-only**.
-        """
-        return self._devices
-
-    @property
-    def connections(self) -> list[_SolidConnection]:
-        """The connections between the devices in the testbed.
-
-        This property is considered **read-only**.
-        """
-        return self._connections
 
     @property
     def targets(self) -> list[infos.TargetInfo]:
@@ -595,34 +583,6 @@ class _TestObject:
         This property is considered **read-only**.
         """
         return self._targets
-
-    def trace_back(self, target: str, signal: str) -> Tuple[_Device, infos.PortInfo]:
-        """Return the output that is connected to the input ``signal``
-        of ``target``.
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` are not found
-        """
-        device = next(each for each in self._devices if each.name == target)
-        channel = device.interface.get_port(signal).channel
-        line = next(each for each in self._connections
-                    if each.receiver.name == target
-                    and each.receiver_port.channel == channel)
-        return line.sender, line.sender_port
-
-    def trace_forward(self, target: str, signal: str) -> Tuple[_Device, infos.PortInfo]:
-        """Return the output that is connected to ``signal`` of
-        ``target``.
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` are not found
-        """
-        device = next(each for each in self._devices if each.name == target)
-        channel = device.interface.get_port(signal).channel
-        line = next(each for each in self._connections
-                    if each.sender.name == target
-                    and each.sender_port.channel == channel)
-        return line.receiver, line.receiver_port
 
     def get_signal(self, target: str, signal: str) -> infos.SignalInfo:
         """Return the info of ``signal`` from ``target``.
@@ -647,13 +607,10 @@ class _TestObject:
         Raises:
             StopIteration: If ``target`` or ``signal`` are not found
         """
-        device, port = self.trace_forward(info.target, info.signal)
+        tracer = self.trace_forward(info.target, info.signal)
+        device, port = next(tracer)
         signal = self.get_signal(info.target, info.signal)
-
-        def transform(value):
-            return coreutility.transform(port.min, port.max,
-                                         signal.min, signal.max, value)
-        return _LoggingRequest(info, transform)
+        return _LoggingRequest(info, device, signal, port)
 
     def _execute_for_all_and_wait(self,
                                   attr: str,
@@ -697,7 +654,7 @@ class _TestObject:
 
     def _create_solid_connection(self,
                                  info: pylab.shared.infos.ConnectionInfo
-                                 ) -> _SolidConnection:
+                                 ) -> sharedinfos.ConnectionInfo:
         """Create a solid connection from ``info``.
 
         Raises:
@@ -711,7 +668,7 @@ class _TestObject:
         receiver = next(each for each in self._devices
                         if each.name == info.receiver)
         receiver_port = receiver.interface.get_port(info.receiver_port)
-        return _SolidConnection(sender, sender_port, receiver, receiver_port)
+        return sharedinfos.ConnectionInfo(sender, sender_port, receiver, receiver_port)
 
 
 class _LoggingRequest(AbstractFuture):
@@ -723,7 +680,10 @@ class _LoggingRequest(AbstractFuture):
 
     def __init__(self,
                  info: infos.LoggingInfo,
-                 transform: Callable[[ArrayLike], ArrayLike]) -> None:
+                 device: _Device,
+                 signal: infos.SignalInfo,
+                 port: sharedinfos.PortInfo) -> None:
+                 # transform: Callable[[ArrayLike], ArrayLike]) -> None:
         """Initialize logging request from info and electric to physical
         transform.
 
@@ -732,28 +692,24 @@ class _LoggingRequest(AbstractFuture):
             transform: Electrical-physical transform
         """
         self._info = info
-        self._transform = transform
+        self._device = device
+        self._port = port
+        self._transform = lambda value: coreutility.transform(
+            port.min, port.max, signal.min, signal.max, value)
         self._future: AbstractFuture = None
 
-    def begin(self, test_object: _TestObject) -> AbstractFuture:
+    def begin(self) -> AbstractFuture:
         """Begin logging the signal.
-
-        Args:
-            test_object: The underlying TestObject
 
         Returns:
             A future which is done if the logging request is accepted
         """
-        device, port = test_object.trace_forward(self._info.target, self._info.signal)
-        future, self._future = device.execute(
-            'log_signal', port.channel, self._info.period)
+        future, self._future = self._device.execute(
+            'log_signal', self._port.channel, self._info.period)
         return future
 
-    def end(self, test_object: _TestObject) -> AbstractFuture:
+    def end(self) -> AbstractFuture:
         """End logging the signal.
-
-        Args:
-            test_object: The underlying TestObject
 
         Returns:
             A future which is done when the request for closing the
@@ -763,8 +719,7 @@ class _LoggingRequest(AbstractFuture):
         closing the request was accepted. It does not mean that the
         logging request is done.
         """
-        device, port = test_object.trace_forward(self._info.target, self._info.signal)
-        return device.execute('end_log_signal', port.channel)
+        return self._device.execute('end_log_signal', self._port.channel)
 
     @property
     def what(self) -> str:
@@ -942,7 +897,7 @@ class _LoggingHandler:
         Returns:
             A list of log reports for the futures (even on timeout)
         """
-        futures = [elem.begin(self._test_object) for elem in self._requests]
+        futures = [elem.begin() for elem in self._requests]
         return _wait_for_all(futures, timeout)
 
     def end(self) -> Tuple[list[report.LogEntry], dict[str, timeseries.TimeSeries]]:
@@ -953,7 +908,7 @@ class _LoggingHandler:
             of the logged results
         """
         # FIXME Implement timeouts!
-        futures = [each.end(self._test_object) for each in self._requests]
+        futures = [each.end() for each in self._requests]
         logbook = _wait_for_all(futures)
 
         for elem in self._requests:
@@ -967,14 +922,6 @@ class _LoggingHandler:
 # FIXME Abstract this using a LogBook class
 def _panic(logbook: list[report.LogEntry]) -> bool:
     return any(elem.severity == report.PANIC for elem in logbook)
-
-
-@dataclasses.dataclass(frozen=True)
-class _SolidConnection:
-    sender: _Device
-    sender_port: infos.PortInfo
-    receiver: _Device
-    receiver_port: infos.PortInfo
 
 
 def _load_details(path: str, data: dict) -> Details:
