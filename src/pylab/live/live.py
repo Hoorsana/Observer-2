@@ -58,6 +58,7 @@ import yaml
 from pylab.core import errors
 from pylab.core import infos
 from pylab.shared import infos as sharedinfos
+from pylab.shared import loader
 from pylab.core import timeseries
 from pylab.core import report
 from pylab.core import utils as coreutility
@@ -175,7 +176,7 @@ class Test:
 
 
 # FIXME code-duplication: simulink.load_details
-def load_details(path: str) -> Details:
+def load_details(path: PathLike) -> Details:
     """Load testbed details from filesystem path ``path``.
 
     The file must be a valid YAML file with the following fields:
@@ -196,10 +197,7 @@ def load_details(path: str) -> Details:
     Returns:
         A ``Details`` object which contains the loaded information
     """
-    with open(path, 'r') as f:
-        content = f.read()
-    data = yaml.safe_load(content)
-
+    data = loader.yaml_safe_load_from_file(path)
     return _load_details(path, data)
 
 
@@ -979,7 +977,6 @@ class _SolidConnection:
     receiver_port: infos.PortInfo
 
 
-# FIXME code-duplication: simulink._load_details
 def _load_details(path: str, data: dict) -> Details:
     device_data = data.get('devices', {})
     # If this is not available, we're not throwing an error just yet
@@ -990,53 +987,8 @@ def _load_details(path: str, data: dict) -> Details:
     for elem in device_data:
         inf = elem['interface']
         if isinstance(inf, str):
-            interface_path = _find_interface_path(path, inf)
-            elem['interface'] = _yaml_safe_load_from_file(interface_path)
+            interface_path = loader.find_relative_path(path, inf)
+            elem['interface'] = loader.yaml_safe_load_from_file(interface_path)
     return Details.from_dict(data)
-
-
-# FIXME core-duplication: pylab.core.loader._find_phase_path
-def _find_interface_path(root: str, path: str) -> str:
-    """Find an interface file.
-
-    Args:
-        root: Path to the test file which contains a reference to the
-              interface file
-        path: Absolute or relative path to a interface file
-
-    We try to interpret ``path`` as filesystem path and find the file it
-    is pointing to. If ``path`` is relative, the function searches the
-    folder containing the original test file (``root``).
-
-    Note that this function does not check if any of the candidates is
-    in fact a valid interface file (i.e. has the correct fields, etc.).
-
-    Returns:
-        A path to an existing file
-
-    Raises:
-        ValueError:
-            If none of the viable interpretations leads to an
-            existing file
-    """
-    if posixpath.isabs(path):
-        if posixpath.exists(path):
-            return path
-        raise ValueError(f'File {path} not found')
-
-    paths = [posixpath.join(posixpath.dirname(root), path)]  # Candidates for path.
-    for each in paths:
-        if posixpath.exists(each):
-            return each
-
-    raise ValueError(f'File {path} not found')
-
-
-# FIXME code-duplication: pylab.core.loader._yaml_safe_load_from_file
-def _yaml_safe_load_from_file(path: str) -> dict:
-    with open(path, 'r') as f:
-        content = f.read()
-    return yaml.safe_load(content)
-
 
 # }}} details
