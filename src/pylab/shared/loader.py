@@ -1,37 +1,46 @@
 from __future__ import annotations
 
+import posixpath
+import yaml
+
 from pylab.shared import infos
 from pylab._private import utils
 
 
-def load_details(path: PathLike) -> infos.DetailInfo:
-    """Load detail info from ``path``.
-
-    Even on non-UNIX systems, the path must be specified as UNIX
-    filesystem path.
+def find_relative_path(root: str, path: PathLike) -> str:
+    """Find ``path`` relative to ``root``.
 
     Args:
-        path: A filesystem path
+        root: Base of the relative path
+        path: Absolute or relative path to a file
+
+    We try to interpret ``path`` as filesystem path and find the file it
+    is pointing to. If ``path`` is relative, the function searches the
+    folder containing the original test file (``root``).
+
+    Returns:
+        A path to an existing file
+
+    Raises:
+        ValueError:
+            If none of the viable interpretations leads to an existing
+            file
     """
-    data = utils.yaml_safe_load_from_file(path)
-    utils.assert_keys(
-        data, {'devices'}, {'connections'},
-        'Error when loading details: '
-    )
-    devices = [_load_device(elem) for elem in data['devices']]
-    connections = [infos.ConnectionInfo(**each) for each in data.get('connections', [])]
-    return infos.DetailInfo(devices, connections)
+    if posixpath.isabs(path):
+        if posixpath.exists(path):
+            return path
+        raise ValueError(f'File {path} not found')
+
+    paths = [posixpath.join(posixpath.dirname(root), path)]  # Candidates for path.
+    for each in paths:
+        if posixpath.exists(each):
+            return each
+
+    # If no candidates check out, throw an error.
+    raise ValueError(f'File {path} not found')
 
 
-def _load_device(data: dict) -> infos.DeviceInfo:
-    utils.assert_keys(
-        data, {'name'}, {'interface'},
-        'Error when loading DeviceInfo: '
-    )
-    interface = data.get('interface')
-    # If `interface` is a string, use that string as filesystem path to
-    # a file which contains the interface data.
-    if isinstance(interface, str):
-        interface_path = _find_instance_path(path, interface)
-        data['interface'] = utils.yaml_safe_load_from_file(interface_path)
-    return infos.DeviceInfo.from_dict(data)
+def yaml_safe_load_from_file(path: PathLike) -> dict:
+    with open(path, 'r') as f:
+        content = f.read()
+    return yaml.safe_load(content)
