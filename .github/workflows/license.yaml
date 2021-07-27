@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: REUSE license check
+on:
+  push:
+    branches: master
+  pull_request:
+    branches:
+    - master
+    - develop
+  workflow_dispatch:
+
+jobs:
+  reuse:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - name: Install REUSE
+      run: pip install reuse
+    - name: Run REUSE
+      run: reuse lint
