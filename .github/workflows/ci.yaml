@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: CI (install, test)
+on:
+  push:
+    branches: master
+  pull_request:
+    branches:
+    - master
+    - develop
+  workflow_dispatch:
+
+jobs:
+  ubuntu-latest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.MALTE_RND_SSH }}
+    - name: Install requirements
+      run: |
+        pip install -r requirements.txt
+        pip install .
+    - name: Run tests
+      run: |
+        pytest -vv tests/core
+        pytest -vv tests/tools
+        pytest -vv tests/test_pylab_cli.py
+        pytest -vv tests/live/test_live.py
