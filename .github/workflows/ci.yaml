@@ -30,4 +30,4 @@ jobs:
         pytest -vv tests/core
         pytest -vv tests/tools
         pytest -vv tests/test_pylab_cli.py
-        pytest -vv tests/live
+        pytest -vv tests/live/test_live.py
