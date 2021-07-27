@@ -13,5 +13,4 @@ PyYAML==5.3.1
 scipy==1.6.1
 tabulate==0.8.9
 sphinx_rtd_theme
-git+ssh://github.com/ppannuto/python-saleae@877178f67618cdb3355054eae3666d99dce36aaa
-git+ssh://github.com/maltekliemann/rogue@0.1.7
+git+ssh://malte-rnd@github.com/maltekliemann/rogue@0.1.7
