@@ -2,7 +2,7 @@
 # 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-name: REUSE license check
+name: CI (install, test)
 on:
   push:
     branches: master
@@ -13,12 +13,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  reuse:
+  ubuntu-latest:
     runs-on: ubuntu-latest
-    steps:
+    step:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
-    - name: Install & run REUSE
+    - name: Install requirements
       run: |
-        pip install reuse
-        reuse lint
+        pip install -r requirements.txt
+        pip install .
+    - name: Run tests
+      run: |
+        pytest -vv tests/core
+        pytest -vv tests/tools
+        pytest -vv tests/test_commandline.py
+        pytest -vv tests/live
