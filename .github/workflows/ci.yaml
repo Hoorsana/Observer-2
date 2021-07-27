@@ -18,6 +18,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
+    - uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.MALTE_RND_SSH }}
     - name: Install requirements
       run: |
         pip install -r requirements.txt
