@@ -54,7 +54,7 @@ def yaml_object(_cls=None,
 def _process_class(cls,
                    loader,
                    tag: Optional[str],
-                   replace_from_yaml):
+                   replace_from_yaml: bool = True):
     if loader is None:
         loader = yaml.SafeLoader
     if tag is None:

@@ -1,0 +1,75 @@
+devices:
+- name: adder
+  module: pylab._private.rogueplugin
+  type: Device
+  data:
+    id: adder
+    ports:
+    - A0
+    - A1
+    - DAC0
+  extension:
+    defaults:
+      A0: 0.0
+      A1: 0.0
+      DAC0: 0.0
+    loop: ...
+  interface:
+    ports:
+    - signal: val1
+      channel: A0
+      range: 0..100
+      flags:
+      - input
+      - analog
+    - signal: val2
+      channel: A1
+      range: 0..100
+      flags:
+      - input
+      - analog
+    - signal:  sum
+      channel: DAC0
+      range: 0..200
+      flags:
+      - output
+      - analog
+- name: gpio
+  module: pylab._private.rogueplugin
+  type: Device
+  data:
+    id: gpio
+    ports:
+    - A0
+    - DAC0
+    - DAC1
+  extension:
+    defaults:
+      A0: 0.0
+      DAC0: 0.0
+      DAC1: 0.0
+  interface:
+    ports:
+    - signal: out1
+      channel: DAC0
+      range: 0..100
+      flags:
+      - input
+      - analog
+    - signal: out2
+      channel: DAC1
+      range: 0..100
+      flags:
+      - input
+      - analog
+    - signal: sum
+      channel: A0
+      range: 0..200
+      flags:
+      - input
+      - analog
+
+connections:
+- [gpio, out1, adder, val1]
+- [gpio, out2, adder, val2]
+- [adder, sum, gpio, sum]

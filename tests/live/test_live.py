@@ -18,6 +18,17 @@ from pylab._private import rogueplugin
 STEP_SIZE = 0.1
 
 
+def test_load_details(details):
+    result = live.load_details('resources/tests/live/details.yml')
+    lhs = result.devices[0]
+    rhs = result.devices[0]
+    assert lhs.name == rhs.name
+    assert lhs.type == rhs.type
+    assert lhs.module == rhs.module
+    assert lhs.interface.ports == rhs.interface.ports
+    assert result.connections == details.connections
+
+
 @pytest.fixture
 def assertion():
     a = testing.TimeseriesAlmostEqual(

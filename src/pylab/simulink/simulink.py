@@ -65,7 +65,6 @@ import io
 import json
 import math
 import os
-import posixpath
 import shutil
 import tempfile
 
@@ -74,6 +73,7 @@ import yaml
 
 from pylab.shared import testobject
 from pylab.shared import infos as sharedinfos
+from pylab.shared import loader
 from pylab.core.typing import ArrayLike
 from pylab.simulink import _engine
 from pylab.core import timeseries
@@ -265,41 +265,8 @@ def load_details(path: str) -> Details:
     Returns:
         A ``Details`` object which contains the loaded information
     """
-    with open(path, 'r') as f:
-        content = f.read()
-    data = yaml.safe_load(content)
-
-    return _load_details2(path, data)
-
-
-def _load_details2(path: str, data: dict) -> Details:
-    device_data = data.get('devices', {})
-    # If this is not available, we're not throwing an error just yet
-
-    # If an interface info is a string, use it as a filesystem path to
-    # find the file which holds the actual interface info data. If
-    # ``data`` is a relative path, view it as relative to ``path``.
-    for elem in device_data:
-        inf = elem['interface']
-        if isinstance(inf, str):
-            interface_path = _find_interface_path(path, inf)
-            elem['interface'] = _yaml_safe_load_from_file(interface_path)
-    return Details.from_dict(data)
-
-
-def _load_details(path: str, data: dict) -> Details:
-    device_data = data.get('devices', {})
-    # If this is not available, we're not throwing an error just yet
-
-    # If an interface info is a string, use it as a filesystem path to
-    # find the file which holds the actual interface info data. If
-    # ``data`` is a relative path, view it as relative to ``path``.
-    for elem in device_data:
-        inf = elem['interface']
-        if isinstance(inf, str):
-            interface_path = _find_interface_path(path, inf)
-            elem['interface'] = _yaml_safe_load_from_file(interface_path)
-    return Details.from_dict(data)
+    data = loader.yaml_safe_load_from_file(path)
+    return _load_details(path, data)
 
 
 class DeviceDetails(sharedinfos.DeviceInfo):
@@ -320,50 +287,6 @@ class DeviceDetails(sharedinfos.DeviceInfo):
         interface = sharedinfos.ElectricalInterface.from_dict(data['interface'])
         args = data.get('data', {})  # FIXME This is awkward
         return cls(name, type, interface, args)
-
-
-# FIXME core-duplication (see pylab.core.loader._find_phase_path)
-def _find_interface_path(root: str, path: str) -> str:
-    """Find an interface file.
-
-    Args:
-        root: Path to the test file which contains a reference to the
-              interface file
-        path: Absolute or relative path to a interface file
-
-    We try to interpret ``path`` as filesystem path and find the file it
-    is pointing to. If ``path`` is relative, the function searches the
-    folder containing the original test file (``root``).
-
-    Note that this function does not check if any of the candidates is
-    in fact a valid interface file (i.e. has the correct fields, etc.).
-
-    Returns:
-        A path to an existing file
-
-    Raises:
-        ValueError:
-            If none of the viable interpretations leads to an existing
-            file
-    """
-    if posixpath.isabs(path):
-        if posixpath.exists(path):
-            return path
-        raise ValueError(f'File {path} not found')
-
-    paths = [posixpath.join(posixpath.dirname(root), path)]  # Candidates for path.
-    for each in paths:
-        if posixpath.exists(each):
-            return each
-
-    raise ValueError(f'File {path} not found')
-
-
-# FIXME code-duplication (see pylab.core.loader._yaml_safe_load_from_file)
-def _yaml_safe_load_from_file(path: str) -> dict:
-    with open(path, 'r') as f:
-        content = f.read()
-    return yaml.safe_load(content)
 
 
 # }}} frontend
@@ -794,6 +717,21 @@ def _mark_line(text: str, line: int) -> str:
         return MARKER + text
     index = _find_nth(text, '\n', line-1)
     return text[:index+1] + MARKER + text[index+1:]
+
+
+def _load_details(path: str, data: dict) -> Details:
+    device_data = data.get('devices', {})
+    # If this is not available, we're not throwing an error just yet
+
+    # If an interface info is a string, use it as a filesystem path to
+    # find the file which holds the actual interface info data. If
+    # ``data`` is a relative path, view it as relative to ``path``.
+    for elem in device_data:
+        inf = elem['interface']
+        if isinstance(inf, str):
+            interface_path = loader.find_relative_path(path, inf)
+            elem['interface'] = loader.yaml_safe_load_from_file(interface_path)
+    return Details.from_dict(data)
 
 
 # }}} details

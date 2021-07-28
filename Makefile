@@ -146,7 +146,7 @@ ifeq ($(OS), Windows_NT)
 else
 	[ -d $(VENV) ] || virtualenv $(VENV)
 endif
-	$(PIP) install -r requirements.txt
+	$(PIP) install -r requirements2.txt
 ifdef PYLAB_MATLAB_PATH
 	$(call activate) && \
 	cd ${PYLAB_MATLAB_PATH}/extern/engines/python && \

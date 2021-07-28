@@ -46,9 +46,9 @@ class ConnectionInfo:
         description: For documentation purposes
     """
     sender: str
-    sender_port: str
+    sender_port: Any
     receiver: str
-    receiver_port: str
+    receiver_port: Any
     description: Optional[str] = ''
 
 
@@ -129,6 +129,8 @@ class ElectricalInterface:
             data, set(), {'ports', 'description'},
             'Error when loading ElectricalInterface: '
         )
+        # TODO Check integrity of the contents of 'ports' (i.e. has the right fields, etc.)
+        [print(each) for each in data.get('ports', [])]
         ports = [PortInfo(**each) for each in data.get('ports', [])]
         description = data.get('description', '')
         return cls(ports, description)
