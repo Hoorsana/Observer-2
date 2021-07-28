@@ -48,7 +48,7 @@ def load_test(path: PathLike) -> infos.TestInfo:
         if isinstance(elem, str):
             phase_path = _find_phase_path(path, elem)
             phase_data[index] = utils.yaml_safe_load_from_file(phase_path)
-    phases = [infos.PhaseInfo.from_dict(each) for each in phase_data]
+    phases = [infos.PhaseInfo(**each) for each in phase_data]
 
     return infos.TestInfo(targets, logging, phases)
 

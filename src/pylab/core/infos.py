@@ -148,20 +148,6 @@ class PhaseInfo(pydantic.BaseModel):
                 f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
         return v
 
-    @classmethod
-    def from_dict(cls, data: dict) -> PhaseInfo:
-        try:
-            utils.assert_keys(
-                data, {'duration'}, {'commands', 'description'},
-                'Error when loading PhaseInfo: '
-            )
-        except AssertionError as e:
-            raise InfoError from e
-        duration = data['duration']
-        commands = [CommandInfo(**each) for each in data.get('commands', [])]
-        description = data.get('description', '')
-        return cls(duration=duration, commands=commands, description=description)
-
 
 @dataclasses.dataclass(frozen=True)
 class LoggingInfo:

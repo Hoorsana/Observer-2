@@ -175,7 +175,7 @@ class TestPhaseInfo:
             ],
             'description': 'foobar'
         }
-        phase = infos.PhaseInfo.from_dict(data)
+        phase = infos.PhaseInfo(**data)
         expected = infos.PhaseInfo(
             duration=12.34,
             commands=[
@@ -196,14 +196,6 @@ class TestPhaseInfo:
             description='foobar'
         )
         assert phase == expected
-
-    @pytest.mark.parametrize('data', [
-        pytest.param({}, id='Missing duration'),
-        pytest.param({'duration': 1.2, 'foo': 'bar'}, id='Unexpected field')
-    ])
-    def test_from_dict_failure(self, data):
-        with pytest.raises(infos.InfoError):
-            infos.PhaseInfo.from_dict(data)
 
 
 class TestLoggingInfo:
