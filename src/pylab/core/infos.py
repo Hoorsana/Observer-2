@@ -16,7 +16,7 @@ from dataclasses import InitVar
 import itertools
 import re
 import pydantic
-from typing import Any, Optional, Dict
+from typing import Any, List, Optional, Dict
 
 from pylab._private import utils
 from pylab.core import errors
@@ -28,6 +28,11 @@ class InfoError(errors.PylabError):
 
 class NegativeTimeError(InfoError):
     """Raised if a time point is specified using a negative float."""
+
+
+class CommandTooLateError(InfoError):
+    """Raised if a command's execution time exceeds the phase's
+    duration."""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -100,16 +105,15 @@ class CommandInfo(pydantic.BaseModel):
 
     @pydantic.validator('time')
     @classmethod
-    def time_must_be_positive(cls, value: float) -> float:
-        if value < 0:
+    def time_must_be_positive(cls, v: float) -> float:
+        if v < 0:
             raise NegativeTimeError(
-                f'Invalid CommandInfo: `time` is equal to {value}. The specification states: "`time` **must** not be negative"'
+                f'Invalid CommandInfo: `time` is equal to {v}. The specification states: "`time` **must** not be negative"'
             )
-        return value
+        return v
 
 
-@dataclasses.dataclass(frozen=True)
-class PhaseInfo:
+class PhaseInfo(pydantic.BaseModel):
     """Info for creating a test phase.
 
     Attributes:
@@ -120,16 +124,29 @@ class PhaseInfo:
     Note that ``commands`` need not be ordered by time of execution.
     """
     duration: float
-    commands: list[CommandInfo]
+    commands: List[CommandInfo]
     description: Optional[str] = ''
 
-    def __post_init__(self):
-        if self.duration < 0.0:
-            raise InfoError(
-                f'Invalid PhaseInfo: duration {self.duration} is negative. The specification states: "`duration` **must** be a non-negative float"')
-        for elem in [elem for elem in self.commands if self.duration < elem.time]:
-            raise InfoError(
-                f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {self.duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
+    @pydantic.validator('duration')
+    @classmethod
+    def duration_must_be_positive(cls, v: float) -> float:
+        if v < 0:
+            raise NegativeTimeError(
+                f'Invalid PhaseInfo: duration {v} is negative. The specification states: "`duration` **must** be a non-negative float"'
+            )
+        return v
+
+    @pydantic.validator('commands')
+    @classmethod
+    def command_time_must_not_exceed_duration(cls,
+                                              v: list[CommandInfo],
+                                              values
+                                              ) -> list[CommandInfo]:
+        duration = values['duration']
+        for elem in [elem for elem in v if duration < elem.time]:
+            raise CommandTooLateError(
+                f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
+        return v
 
     @classmethod
     def from_dict(cls, data: dict) -> PhaseInfo:
@@ -143,7 +160,7 @@ class PhaseInfo:
         duration = data['duration']
         commands = [CommandInfo(**each) for each in data.get('commands', [])]
         description = data.get('description', '')
-        return cls(duration, commands, description)
+        return cls(duration=duration, commands=commands, description=description)
 
 
 @dataclasses.dataclass(frozen=True)

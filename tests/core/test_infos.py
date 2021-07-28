@@ -142,6 +142,12 @@ class TestPhaseInfo:
             -0.3, [],
             id='Negative duration'
         ),
+    ])
+    def test_failure_due_to_negative_duration(self, duration, commands):
+        with pytest.raises(infos.NegativeTimeError):
+            infos.PhaseInfo(duration=duration, commands=commands)
+
+    @pytest.mark.parametrize('duration, commands', [
         pytest.param(
             1.23,
             [
@@ -154,9 +160,9 @@ class TestPhaseInfo:
             id='Execution time exceeds phase duration'
         )
     ])
-    def test_failure(self, duration, commands):
-        with pytest.raises(infos.InfoError):
-            infos.PhaseInfo(duration, commands)
+    def test_failure_due_to_late_execution(self, duration, commands):
+        with pytest.raises(infos.CommandTooLateError):
+            infos.PhaseInfo(duration=duration, commands=commands)
 
     def test_from_dict(self):
         data = {
