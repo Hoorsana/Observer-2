@@ -11,6 +11,7 @@ pytest-console-scripts==1.1.0
 pyserial==3.5b0
 PyYAML==5.3.1
 scipy==1.6.1
+pydantic==1.8.2
 tabulate==0.8.9
 sphinx_rtd_theme
 git+https://github.com/maltekliemann/controllino@0.1.1

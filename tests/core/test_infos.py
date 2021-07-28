@@ -124,15 +124,15 @@ class TestTestInfo:
         ),
     ])
     def test_failure(self, targets, logging, phases):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.TestInfo(targets, logging, phases)
 
 
 class TestCommandInfo:
 
     def test_failure(self):
-        with pytest.raises(errors.InfoError):
-            infos.CommandInfo(-0.1, 'foo', 'bar')
+        with pytest.raises(infos.NegativeTimeError):
+            infos.CommandInfo(time=-0.1, command='foo', target='bar')
 
 
 class TestPhaseInfo:
@@ -155,7 +155,7 @@ class TestPhaseInfo:
         )
     ])
     def test_failure(self, duration, commands):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.PhaseInfo(duration, commands)
 
     def test_from_dict(self):
@@ -196,7 +196,7 @@ class TestPhaseInfo:
         pytest.param({'duration': 1.2, 'foo': 'bar'}, id='Unexpected field')
     ])
     def test_from_dict_failure(self, data):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.PhaseInfo.from_dict(data)
 
 
@@ -209,7 +209,7 @@ class TestLoggingInfo:
         pytest.param(1.23, 'foo', id='unknown kind')
     ])
     def test_failure(self, period, kind):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.LoggingInfo('foo', 'bar', period, kind)
 
 
@@ -270,7 +270,7 @@ class TestSignalInfo:
         ),
     ])
     def test__init__failure(self, kwargs):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.SignalInfo(**kwargs)
 
 
@@ -291,7 +291,7 @@ class TestTargetInfo:
         )
     ])
     def test_failure(self, name, signals):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.TargetInfo(name, signals)
 
     def test_from_dict(self):
@@ -319,5 +319,5 @@ class TestTargetInfo:
         pytest.param({'name': 'foo', 'foo': 'bar'}, id='Unexpected field')
     ])
     def test_from_dict_failure(self, data):
-        with pytest.raises(errors.InfoError):
+        with pytest.raises(infos.InfoError):
             infos.TargetInfo.from_dict(data)

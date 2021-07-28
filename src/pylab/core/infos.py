@@ -15,10 +15,19 @@ import dataclasses
 from dataclasses import InitVar
 import itertools
 import re
-from typing import Any, Optional
+import pydantic
+from typing import Any, Optional, Dict
 
 from pylab._private import utils
 from pylab.core import errors
+
+
+class InfoError(errors.PylabError):
+    """Raised if *Info instance is invalid."""
+
+
+class NegativeTimeError(InfoError):
+    """Raised if a time point is specified using a negative float."""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -41,7 +50,7 @@ class TestInfo:
         seen = set()
         for elem in self.targets:
             if elem.name in seen:
-                raise errors.InfoError(
+                raise InfoError(
                     f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
             seen.add(elem.name)
         seen = set()
@@ -50,17 +59,17 @@ class TestInfo:
                 target = next(
                     elem for elem in self.targets if request.target == elem.name)
             except StopIteration:
-                raise errors.InfoError(
+                raise InfoError(
                     f'Invalid TestInfo: Found no target for logging request "{request.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
             try:
                 signal = next(
                     elem for elem in target.signals if request.signal == elem.name)
             except StopIteration:
-                raise errors.InfoError(
+                raise InfoError(
                     f'Invalid TestInfo: Signal "{request.signal}" for logging request "{request.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
             data = (request.target, request.signal)
             if data in seen:
-                raise errors.InfoError(
+                raise InfoError(
                     f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
             seen.add(data)
         for phase in self.phases:
@@ -68,12 +77,11 @@ class TestInfo:
                 try:
                     next(elem for elem in self.targets if command.target == elem.name)
                 except StopIteration:
-                    raise errors.InfoError(
+                    raise InfoError(
                         f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
 
 
-@dataclasses.dataclass(frozen=True)
-class CommandInfo:
+class CommandInfo(pydantic.BaseModel):
     """Info for creating a command.
 
     Attributes:
@@ -87,13 +95,17 @@ class CommandInfo:
     command: str
     target: str  # Name of the targeted physical device.
     # Data that may depend on the type of command, like signal, value, etc.
-    data: dict[str, Any] = dataclasses.field(default_factory=dict)
+    data: Dict[str, Any] = {}
     description: Optional[str] = ''
 
-    def __post_init__(self):
-        if self.time < 0.0:
-            raise errors.InfoError(
-                f'Invalid CommandInfo: `time` is equal to {self.time}. The specification states: "`time` **must** not be negative"')
+    @pydantic.validator('time')
+    @classmethod
+    def time_must_be_positive(cls, value: float) -> float:
+        if value < 0:
+            raise NegativeTimeError(
+                f'Invalid CommandInfo: `time` is equal to {value}. The specification states: "`time` **must** not be negative"'
+            )
+        return value
 
 
 @dataclasses.dataclass(frozen=True)
@@ -113,10 +125,10 @@ class PhaseInfo:
 
     def __post_init__(self):
         if self.duration < 0.0:
-            raise errors.InfoError(
+            raise InfoError(
                 f'Invalid PhaseInfo: duration {self.duration} is negative. The specification states: "`duration` **must** be a non-negative float"')
         for elem in [elem for elem in self.commands if self.duration < elem.time]:
-            raise errors.InfoError(
+            raise InfoError(
                 f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {self.duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
 
     @classmethod
@@ -127,7 +139,7 @@ class PhaseInfo:
                 'Error when loading PhaseInfo: '
             )
         except AssertionError as e:
-            raise errors.InfoError from e
+            raise InfoError from e
         duration = data['duration']
         commands = [CommandInfo(**each) for each in data.get('commands', [])]
         description = data.get('description', '')
@@ -165,11 +177,11 @@ class LoggingInfo:
             except TypeError:
                 is_pos = False
             if not is_pos:
-                raise errors.InfoError(
+                raise InfoError(
                     f'Invalid LoggingInfo: period is {self.period}. The specification states: "`period` **must** be `None` or a positive `float`"')
         if self.kind not in {'linear', 'nearest', 'nearest-up',
                              'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
-            raise errors.InfoError(f'Invalid LoggingInfo: kind "{self.kind}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
+            raise InfoError(f'Invalid LoggingInfo: kind "{self.kind}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
 
     def full_name(self) -> str:
         return f'{self.target}.{self.signal}'
@@ -216,20 +228,20 @@ class SignalInfo:
             ValueError: If ``range`` is not correctly formatted
         """
         if not utils.is_valid_id(self.name):
-            raise errors.InfoError(
+            raise InfoError(
                 f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         if range is not None:
             if self.min is not None:
-                raise errors.InfoError('Failed to initialize SignalInfo: range and min specified')
+                raise InfoError('Failed to initialize SignalInfo: range and min specified')
             if self.max is not None:
-                raise errors.InfoError('Failed to initialize SignalInfo: range and max specified')
+                raise InfoError('Failed to initialize SignalInfo: range and max specified')
             self._set_range(range)
         if self.min is None:
-            raise errors.InfoError('Failed to initialize SignalInfo: missing range/min not specified')
+            raise InfoError('Failed to initialize SignalInfo: missing range/min not specified')
         if self.max is None:
-            raise errors.InfoError('Failed to initialize SignalInfo: missing range/max not specified')
+            raise InfoError('Failed to initialize SignalInfo: missing range/max not specified')
         if self.min > self.max:
-            raise errors.InfoError(
+            raise InfoError(
                 f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
 
     def _set_range(self, range):
@@ -252,12 +264,12 @@ class TargetInfo:
 
     def __post_init__(self):
         if not utils.is_valid_id(self.name):
-            raise errors.InfoError(
+            raise InfoError(
                 f'Invalid TargetInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
         seen = set()
         for elem in self.signals:
             if elem.name in seen:
-                raise errors.InfoError(
+                raise InfoError(
                     f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The specification states: "No two elements of `signals` **must** have the same name"')
             seen.add(elem.name)
 
@@ -269,7 +281,7 @@ class TargetInfo:
                 'Error when loading TargetInfo: '
             )
         except AssertionError as e:
-            raise errors.InfoError from e
+            raise InfoError from e
         name = data['name']
         signals = [SignalInfo(**each) for each in data.get('signals', [])]
         description = data.get('description', '')
