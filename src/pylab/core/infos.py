@@ -43,6 +43,14 @@ class ConflictingDataError(InfoError):
     """Raised if specified data is ambiguous."""
 
 
+class NonPositivePeriodError(InfoError):
+    """Raised if the period of a request is not positive."""
+
+
+class InvalidKindError(InfoError):
+    """Raised if interpolation kind is invalid."""
+
+
 @dataclasses.dataclass(frozen=True)
 class TestInfo:
     """Master info for a test, start-to-finish.
@@ -157,7 +165,7 @@ class PhaseInfo(pydantic.BaseModel):
         return v
 
 
-@dataclasses.dataclass(frozen=True)
+@pydantic.dataclasses.dataclass(frozen=True)
 class LoggingInfo:
     """Info for logging a signal during a test.
 
@@ -181,18 +189,23 @@ class LoggingInfo:
     kind: str = 'previous'
     description: Optional[str] = ''
 
-    def __post_init__(self):
-        if self.period is not None:
-            try:
-                is_pos = (self.period > 0.0)
-            except TypeError:
-                is_pos = False
-            if not is_pos:
-                raise InfoError(
-                    f'Invalid LoggingInfo: period is {self.period}. The specification states: "`period` **must** be `None` or a positive `float`"')
-        if self.kind not in {'linear', 'nearest', 'nearest-up',
+    @pydantic.validator('period')
+    @classmethod
+    def _period_must_be_positive_or_none(cls, v):
+        if v is None:
+            return None
+        if v <= 0.0:
+            raise NonPositivePeriodError(
+                f'Invalid LoggingInfo: period is {v}. The specification states: "`period` **must** be `None` or a positive `float`"')
+        return v
+
+    @pydantic.validator('kind')
+    @classmethod
+    def _kind_must_be_valid(cls, v):
+        if v not in {'linear', 'nearest', 'nearest-up',
                              'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
-            raise InfoError(f'Invalid LoggingInfo: kind "{self.kind}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
+            raise InvalidKindError(f'Invalid LoggingInfo: kind "{v}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
+        return v
 
     def full_name(self) -> str:
         return f'{self.target}.{self.signal}'

@@ -200,14 +200,13 @@ class TestPhaseInfo:
 
 class TestLoggingInfo:
 
-    @pytest.mark.parametrize('period, kind', [
-        pytest.param('foo', 'next', id='wrong period type'),
-        pytest.param(-1.23, 'next', id='negative period'),
-        pytest.param(0.0, 'next', id='zero period'),
-        pytest.param(1.23, 'foo', id='unknown kind')
+    @pytest.mark.parametrize('period, kind, error', [
+        pytest.param(-1.23, 'next', infos.NonPositivePeriodError, id='negative period'),
+        pytest.param(0.0, 'next', infos.NonPositivePeriodError, id='zero period'),
+        pytest.param(1.23, 'foo', infos.InvalidKindError, id='unknown kind')
     ])
-    def test_failure(self, period, kind):
-        with pytest.raises(infos.InfoError):
+    def test_failure(self, period, kind, error):
+        with pytest.raises(error):
             infos.LoggingInfo('foo', 'bar', period, kind)
 
 
