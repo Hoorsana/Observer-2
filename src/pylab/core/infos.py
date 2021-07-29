@@ -90,7 +90,8 @@ class CommandInfo:
     def time_must_be_positive(cls, v: float) -> float:
         if v < 0:
             raise NegativeTimeError(
-                f'Invalid CommandInfo: `time` is equal to {v}. The specification states: "`time` **must** not be negative"'
+                f'Invalid CommandInfo: `time` is equal to {v}. The specification states: "`time` '
+                f'**must** not be negative"'
             )
         return v
 
@@ -115,7 +116,8 @@ class PhaseInfo:
     def _duration_must_be_positive(cls, v: float) -> float:
         if v < 0:
             raise NegativeTimeError(
-                f'Invalid PhaseInfo: duration {v} is negative. The specification states: "`duration` **must** be a non-negative float"'
+                f'Invalid PhaseInfo: duration {v} is negative. The specification states: '
+                '"`duration` **must** be a ' 'non-negative float"'
             )
         return v
 
@@ -128,7 +130,10 @@ class PhaseInfo:
         duration = values['duration']
         if v.time > duration:
             raise CommandTooLateError(
-                f'Invalid PhaseInfo: CommandInfo execution time {v.time} exceeds PhaseInfo duration {duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
+                f'Invalid PhaseInfo: CommandInfo execution time {v.time} exceeds PhaseInfo '
+                f'duration {duration}. The specification states: "For each `item in commands`, '
+                'the following **must** hold: `duration > item.time`"'
+            )
         return v
 
 
@@ -163,7 +168,9 @@ class LoggingInfo:
             return None
         if v <= 0.0:
             raise NonPositivePeriodError(
-                f'Invalid LoggingInfo: period is {v}. The specification states: "`period` **must** be `None` or a positive `float`"')
+                f'Invalid LoggingInfo: period is {v}. The '
+                'specification states: "`period` **must** be `None` or '
+                ' a positive `float`"')
         return v
 
     @pydantic.validator('kind')
@@ -171,7 +178,14 @@ class LoggingInfo:
     def _kind_must_be_valid(cls, v):
         if v not in {'linear', 'nearest', 'nearest-up',
                              'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
-            raise InvalidKindError(f'Invalid LoggingInfo: kind "{v}" is not valid. The specification states: "`kind` **must** be any value allowed by the documentation (https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, `\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, `\'previous\'`"')
+            raise InvalidKindError(
+                f'Invalid LoggingInfo: kind "{v}" is not valid. The specification states: "`kind` '
+                '**must** be any value allowed by the documentation '
+                '(https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) '
+                'of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, '
+                '`\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, '
+                '`\'previous\'`"'
+            )
         return v
 
     def full_name(self) -> str:
@@ -189,7 +203,8 @@ class RangeInfo:
         min_ = values['min']
         if min_ > v:
             raise InfoError(
-                f'Invalid SignalInfo: min {min_} exceeds max {v}. The specification states: "`min <= max` **must** hold"')
+                f'Invalid SignalInfo: min {min_} exceeds max {v}. The specification states: '
+                '"`min <= max` **must** hold"')
         return v
 
 
@@ -227,7 +242,8 @@ class SignalInfo:
     def _id_must_be_valid(cls, v: str) -> str:
         if not utils.is_valid_id(v):
             raise InvalidIdError(
-                f'Invalid SignalInfo: name "{v}" is not valid. The specification states: "`name` **must** be a valid name"'
+                f'Invalid SignalInfo: name "{v}" is not valid. The specification states: "`name` '
+                '**must** be a valid name"'
             )
         return v
 
@@ -249,7 +265,8 @@ class TargetInfo:
     def _id_must_be_valid(cls, v: str) -> str:
         if not utils.is_valid_id(v):
             raise InvalidIdError(
-                f'Invalid TargetInfo: name "{v}" is not valid. The specification states: "`name` **must** be a valid name"'
+                f'Invalid TargetInfo: name "{v}" is not valid. The specification states: "`name` '
+                '**must** be a valid name"'
             )
         return v
 
@@ -260,7 +277,9 @@ class TargetInfo:
         for elem in v:
             if elem.name in seen:
                 raise DuplicateIdError(
-                    f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The specification states: "No two elements of `signals` **must** have the same name"')
+                    f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The '
+                    'specification states: "No two elements of `signals` **must** have the same '
+                    'name"')
             seen.add(elem.name)
         return v
 
@@ -301,7 +320,9 @@ class TestInfo:
         for elem in v:
             if elem.name in seen:
                 raise DuplicateIdError(
-                    f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
+                    f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The '
+                    'pylab specification states: "All members of `targets` **must** have a unique '
+                    'name"')
             seen.add(elem.name)
         return v
 
@@ -315,7 +336,11 @@ class TestInfo:
                 elem for elem in targets if v.target == elem.name)
         except StopIteration:
             raise NoSuchTarget(
-                f'Invalid TestInfo: Found no target for logging request "{v.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
+                f'Invalid TestInfo: Found no target for logging request "{v.target}". The pylab '
+                'specification states: "For each `item` in `logging` the following **must** hold: '
+                'There exists _exactly one_ `target` in `targets` with the following properties: '
+                '`item.target == target.name`"'
+            )
         return v
 
     @pydantic.validator('logging', each_item=True)
@@ -328,7 +353,12 @@ class TestInfo:
                 elem for elem in target.signals if v.signal == elem.name)
         except StopIteration:
             raise NoSuchSignal(
-                f'Invalid TestInfo: Signal "{v.signal}" for logging request "{v.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
+                f'Invalid TestInfo: Signal "{v.signal}" for logging request "{v.name}" not found. '
+                'The pylab specification states: "For each `item` in `logging` the following '
+                '**must** hold: There exists _exactly one_ `target` in `targets` with the '
+                'following properties: There exists `signal` in `target.signals` so that '
+                '`item.signal == signal.name`"'
+            )
         return v
 
     @pydantic.validator('logging')
@@ -339,7 +369,11 @@ class TestInfo:
             data = (request.target, request.signal)
             if data in seen:
                 raise DuplicateIdError(
-                    f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
+                    f'Invalid TestInfo: Found two logging requests with the same target and signal: '
+                    f'Target "{request.target}", signal "{request.signal}". The specification '
+                    'states: "There **must** not exist two members `request1` and `request2` in '
+                    '`logging` with equal `target` and `signal` fields"'
+                )
             seen.add(data)
         return v
 
@@ -352,7 +386,11 @@ class TestInfo:
                 next(elem for elem in targets if command.target == elem.name)
             except StopIteration:
                 raise NoSuchTarget(
-                    f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
+                    f'Invalid TestInfo: Target "{command.target}" not found. The specification '
+                    'states: "For each `phase` in `phases` and each `command` in `phase.commands` '
+                    'there **must** exist _exactly one_ `target` in `targets` with '
+                    '`command.target == target.name`."'
+                )
         return v
 
 
