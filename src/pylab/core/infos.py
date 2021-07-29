@@ -51,63 +51,24 @@ class InvalidKindError(InfoError):
     """Raised if interpolation kind is invalid."""
 
 
-class ConflictingSignalIdError(InfoError):
-    """Raised if a ``TargetInfo`` is initialized with two or more
-    signals with the same id."""
+class DuplicateIdError(InfoError):
+    """Raised if a unique ID occurs twice of more."""
 
 
-@dataclasses.dataclass(frozen=True)
-class TestInfo:
-    """Master info for a test, start-to-finish.
-
-    Attributes:
-        targets: Infos on targets in the test environment
-        logging: Infos on signals to be logged during test
-        phases: Infos on the phases of the test
-        description: A detailed description of the test
-    """
-    targets: list[TargetInfo]
-    logging: list[LoggingInfo]
-    phases: list[PhaseInfo]
-    description: Optional[str] = ''
-
-    def __post_init__(self):
-        # Check for duplicates in `targets`.
-        seen = set()
-        for elem in self.targets:
-            if elem.name in seen:
-                raise InfoError(
-                    f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
-            seen.add(elem.name)
-        seen = set()
-        for request in self.logging:
-            try:
-                target = next(
-                    elem for elem in self.targets if request.target == elem.name)
-            except StopIteration:
-                raise InfoError(
-                    f'Invalid TestInfo: Found no target for logging request "{request.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
-            try:
-                signal = next(
-                    elem for elem in target.signals if request.signal == elem.name)
-            except StopIteration:
-                raise InfoError(
-                    f'Invalid TestInfo: Signal "{request.signal}" for logging request "{request.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
-            data = (request.target, request.signal)
-            if data in seen:
-                raise InfoError(
-                    f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
-            seen.add(data)
-        for phase in self.phases:
-            for command in phase.commands:
-                try:
-                    next(elem for elem in self.targets if command.target == elem.name)
-                except StopIteration:
-                    raise InfoError(
-                        f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
+class DuplicateLoggingRequest(InfoError):
+    """Raised if there are two requests for the same signal."""
 
 
-class CommandInfo(pydantic.BaseModel):
+class NoSuchTarget(InfoError):
+    """Raised if a certain target is not found."""
+
+
+class NoSuchSignal(InfoError):
+    """Raised if a certain signal is not found."""
+
+
+@pydantic.dataclasses.dataclass(frozen=True)
+class CommandInfo:
     """Info for creating a command.
 
     Attributes:
@@ -121,7 +82,7 @@ class CommandInfo(pydantic.BaseModel):
     command: str
     target: str  # Name of the targeted physical device.
     # Data that may depend on the type of command, like signal, value, etc.
-    data: Dict[str, Any] = {}
+    data: Dict[str, Any] = pydantic.Field(default_factory=dict)
     description: Optional[str] = ''
 
     @pydantic.validator('time', allow_reuse=True)
@@ -134,7 +95,8 @@ class CommandInfo(pydantic.BaseModel):
         return v
 
 
-class PhaseInfo(pydantic.BaseModel):
+@pydantic.dataclasses.dataclass(frozen=True)
+class PhaseInfo:
     """Info for creating a test phase.
 
     Attributes:
@@ -145,7 +107,7 @@ class PhaseInfo(pydantic.BaseModel):
     Note that ``commands`` need not be ordered by time of execution.
     """
     duration: float
-    commands: List[CommandInfo]
+    commands: List[CommandInfo] = pydantic.Field(default_factory=list)
     description: Optional[str] = ''
 
     @pydantic.validator('duration', allow_reuse=True)
@@ -297,7 +259,7 @@ class TargetInfo:
         seen = set()
         for elem in v:
             if elem.name in seen:
-                raise ConflictingSignalIdError(
+                raise DuplicateIdError(
                     f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The specification states: "No two elements of `signals` **must** have the same name"')
             seen.add(elem.name)
         return v
@@ -315,6 +277,69 @@ class TargetInfo:
         signals = [SignalInfo(**each) for each in data.get('signals', [])]
         description = data.get('description', '')
         return TargetInfo(name, signals, description)
+
+
+@pydantic.dataclasses.dataclass(frozen=True)
+class TestInfo:
+    """Master info for a test, start-to-finish.
+
+    Attributes:
+        targets: Infos on targets in the test environment
+        logging: Infos on signals to be logged during test
+        phases: Infos on the phases of the test
+        description: A detailed description of the test
+    """
+    targets: List[TargetInfo]
+    logging: List[LoggingInfo]
+    phases: List[PhaseInfo]
+    description: Optional[str] = ''
+
+    @pydantic.validator('targets')
+    @classmethod
+    def _target_ids_must_be_unique(cls, v):
+        seen = set()
+        for elem in v:
+            if elem.name in seen:
+                raise DuplicateIdError(
+                    f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The pylab specification states: "All members of `targets` **must** have a unique name"')
+            seen.add(elem.name)
+        return v
+
+    @pydantic.validator('logging', each_item=True)
+    @classmethod
+    def _request_signal_must_exist(cls, v, values):
+        seen = set()
+        targets = values['targets']
+        try:
+            target = next(
+                elem for elem in targets if v.target == elem.name)
+        except StopIteration:
+            raise NoSuchTarget(
+                f'Invalid TestInfo: Found no target for logging request "{v.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
+        try:
+            signal = next(
+                elem for elem in target.signals if v.signal == elem.name)
+        except StopIteration:
+            raise NoSuchSignal(
+                f'Invalid TestInfo: Signal "{v.signal}" for logging request "{v.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
+        data = (v.target, v.signal)
+        if data in seen:
+            raise DuplicateIdError(
+                f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{v.target}", signal "{v.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
+        seen.add(data)
+        return v
+
+    @pydantic.validator('phases', each_item=True)
+    @classmethod
+    def _command_target_must_exist(cls, v, values):
+        targets = values['targets']
+        for command in v.commands:
+            try:
+                next(elem for elem in targets if command.target == elem.name)
+            except StopIteration:
+                raise NoSuchTarget(
+                    f'Invalid TestInfo: Target "{command.target}" not found. The specification states: "For each `phase` in `phases` and each `command` in `phase.commands` there **must** exist _exactly one_ `target` in `targets` with `command.target == target.name`."')
+        return v
 
 
 @pydantic.dataclasses.dataclass(frozen=True)
