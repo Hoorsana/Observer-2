@@ -51,6 +51,11 @@ class InvalidKindError(InfoError):
     """Raised if interpolation kind is invalid."""
 
 
+class ConflictingSignalIdError(InfoError):
+    """Raised if a ``TargetInfo`` is initialized with two or more
+    signals with the same id."""
+
+
 @dataclasses.dataclass(frozen=True)
 class TestInfo:
     """Master info for a test, start-to-finish.
@@ -265,7 +270,7 @@ class SignalInfo:
         return v
 
 
-@dataclasses.dataclass(frozen=True)
+@pydantic.dataclasses.dataclass(frozen=True)
 class TargetInfo:
     """Info on a system under test.
 
@@ -274,19 +279,28 @@ class TargetInfo:
         signals: The signals that the target exposes
     """
     name: str
-    signals: list[SignalInfo]
+    signals: List[SignalInfo]
     description: Optional[str] = ''
 
-    def __post_init__(self):
-        if not utils.is_valid_id(self.name):
-            raise InfoError(
-                f'Invalid TargetInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
+    @pydantic.validator('name', allow_reuse=True)
+    @classmethod
+    def _id_must_be_valid(cls, v: str) -> str:
+        if not utils.is_valid_id(v):
+            raise InvalidIdError(
+                f'Invalid TargetInfo: name "{v}" is not valid. The specification states: "`name` **must** be a valid name"'
+            )
+        return v
+
+    @pydantic.validator('signals')
+    @classmethod
+    def _signal_ids_must_be_unique(cls, v):
         seen = set()
-        for elem in self.signals:
+        for elem in v:
             if elem.name in seen:
-                raise InfoError(
+                raise ConflictingSignalIdError(
                     f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The specification states: "No two elements of `signals` **must** have the same name"')
             seen.add(elem.name)
+        return v
 
     @classmethod
     def from_dict(cls, data: dict) -> TargetInfo:

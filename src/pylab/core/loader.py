@@ -36,7 +36,7 @@ def load_test(path: PathLike) -> infos.TestInfo:
         data, {'targets', 'phases'}, {'logging'},
         'Error when loading test: '
     )
-    targets = [infos.TargetInfo.from_dict(each) for each in data['targets']]
+    targets = [infos.TargetInfo(**each) for each in data['targets']]
     logging = [infos.LoggingInfo(**each) for each in data.get('logging', [])]
 
     # If a phase info is a string, use it as a filesystem path to find
