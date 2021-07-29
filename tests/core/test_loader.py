@@ -20,19 +20,19 @@ def test_load_test():
                 infos.SignalInfo(
                     name='temp1',
                     flags=['input'],
-                    min=0, max=100,
+                    range=infos.RangeInfo(min=0, max=100),
                     description='bla bla bla'
                 ),
                 infos.SignalInfo(
                     name='temp2',
                     flags=['input'],
-                    min=0, max=100,
+                    range=infos.RangeInfo(min=0, max=100),
                     description='bla bla bla'
                 ),
                 infos.SignalInfo(
                     name='sum',
                     flags=['output'],
-                    min=0, max=200,
+                    range=infos.RangeInfo(min=0, max=200),
                     description='lalala'
                 ),
             ]

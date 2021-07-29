@@ -26,7 +26,9 @@ def set_signal(test_object: simulink.TestObject,
     signal = test_object.get_signal(command_info.target, command_info.data['signal'])
 
     physical_value = command_info.data['value']
-    value = utils.transform(signal.min, signal.max,
+    print(signal.range.min)
+    print(signal.range.max)
+    value = utils.transform(signal.range.min, signal.range.max,
                             port.min, port.max,
                             physical_value)
 
@@ -42,11 +44,11 @@ def set_signal_ramp(test_object: simulink.TestObject,
         command_info.target, command_info.data['signal']))
     signal = test_object.get_signal(command_info.target, command_info.data['signal'])
 
-    slope = utils.linear_transform(signal.min, signal.max,
+    slope = utils.linear_transform(signal.range.min, signal.range.max,
                                    port.min, port.max,
                                    command_info.data['slope'])
     time = time + command_info.data['time']
-    initial_output = utils.transform(signal.min, signal.max,
+    initial_output = utils.transform(signal.range.min, signal.range.max,
                                      port.min, port.max,
                                      command_info.data['initial_output'])
 
@@ -66,10 +68,10 @@ def set_signal_sine(test_object: simulink.TestObject,
         command_info.target, command_info.data['signal']))
     signal = test_object.get_signal(command_info.target, command_info.data['signal'])
 
-    amplitude = utils.linear_transform(signal.min, signal.max,
+    amplitude = utils.linear_transform(signal.range.min, signal.range.max,
                                        port.min, port.max,
                                        command_info.data['amplitude'])
-    bias = utils.transform(signal.min, signal.max,
+    bias = utils.transform(signal.range.min, signal.range.max,
                            port.min, port.max,
                            command_info.data.get('bias', _default_bias))
     frequency = command_info.data['frequency'] * 2 * math.pi

@@ -10,13 +10,17 @@ targets:
         flags:
           - input
           - analog
-        range: -100..100
+        range: 
+          min: -100
+          max: 100
       - name: result
         # unit: bool
         flags:
           - output
           - digital
-        range: 0..1
+        range: 
+          min: 0
+          max: 1
         description: 'Return 1 if the temperature limit exceeds 80 degrees; 0 otherwise'
 
 logging:

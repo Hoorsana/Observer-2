@@ -4,7 +4,7 @@
 
 import pytest
 
-import pylab.commandline
+import pylab._commandline
 from pylab.core import errors
 from pylab.core import workflow
 
@@ -22,7 +22,7 @@ def test_success(monkeypatch, mocker, script_runner):
         'asserts': asserts,
         'dump': dump,
     }
-    monkeypatch.setattr(pylab.commandline, 'parse', mocker.Mock(return_value=args))
+    monkeypatch.setattr(pylab._commandline, '_parse', mocker.Mock(return_value=args))
     monkeypatch.setattr(workflow, 'run_from_files', mocker.Mock())
     ret = script_runner.run('pylab-cli', test, details, f'-a {asserts}', f'-d {dump}')
     assert ret.success
@@ -47,7 +47,7 @@ def test_failure(exception, return_code, monkeypatch, mocker, script_runner):
         'asserts': asserts,
         'dump': dump,
     }
-    monkeypatch.setattr(pylab.commandline, 'parse', mocker.Mock(return_value=args))
+    monkeypatch.setattr(pylab._commandline, '_parse', mocker.Mock(return_value=args))
     monkeypatch.setattr(workflow, 'run_from_files', mocker.Mock(side_effect=exception()))
     ret = script_runner.run('pylab-cli', test, details, f'-a {asserts}', f'-d {dump}')
     assert not ret.success

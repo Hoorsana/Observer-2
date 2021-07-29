@@ -9,19 +9,25 @@ targets:
         # unit: F
         flags:
           - input
-        range: 0..100
+        range:
+          min: 0
+          max: 100
         description: 'bla bla bla'
       - name: temp2
         # unit: F
         flags:
           - input
-        range: 0..100
+        range:
+          min: 0
+          max: 100
         description: 'bla bla bla'
       - name: sum
         # unit: F
         flags:
           - output
-        range: 0..200
+        range:
+          min: 0
+          max: 200
         description: 'lalala'
 
 logging:

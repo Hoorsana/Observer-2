@@ -137,20 +137,17 @@ def adder():
                     infos.SignalInfo(
                         name='val1',
                         flags=['input', 'analog'],
-                        min=0,
-                        max=100
+                        range=infos.RangeInfo(min=0, max=100)
                     ),
                     infos.SignalInfo(
                         name='val2',
                         flags=['input', 'analog'],
-                        min=0,
-                        max=100
+                        range=infos.RangeInfo(min=0, max=100)
                     ),
                     infos.SignalInfo(
                         name='sum',
                         flags=['output', 'analog'],
-                        min=0,
-                        max=200
+                        range=infos.RangeInfo(min=0, max=200)
                     ),
                 ],
             )
@@ -336,12 +333,12 @@ def limit():
                     infos.SignalInfo(
                         name='temperature',
                         flags=['input', 'analog'],
-                        min=-100, max=100
+                        range=infos.RangeInfo(min=-100, max=100)
                     ),
                     infos.SignalInfo(
                         name='result',
                         flags=['output', 'digital'],
-                        min=0, max=1,
+                        range=infos.RangeInfo(min=0, max=100),
                         description=('Return 1 if the temperature limit'
                                      ' exceeds 80 degrees; 0 otherwise')
 

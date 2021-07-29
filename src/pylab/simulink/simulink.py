@@ -625,7 +625,7 @@ class TestObject(testobject.TestObjectBase):
         port = device.interface.get_port(info.signal)
 
         def transform(value): return utils.transform(port.min, port.max,
-                                                     signal.min, signal.max,
+                                                     signal.range.min, signal.range.max,
                                                      value)
         return _LoggingRequest(info, transform)
 

@@ -60,20 +60,17 @@ def adder():
                     infos.SignalInfo(
                         name='val1',
                         flags=['input', 'analog'],
-                        min=0,
-                        max=100
+                        range=infos.RangeInfo(min=0, max=100)
                     ),
                     infos.SignalInfo(
                         name='val2',
                         flags=['input', 'analog'],
-                        min=0,
-                        max=100
+                        range=infos.RangeInfo(min=0, max=100)
                     ),
                     infos.SignalInfo(
                         name='sum',
                         flags=['output', 'analog'],
-                        min=0,
-                        max=200
+                        range=infos.RangeInfo(min=0, max=200)
                     ),
                 ],
             )

@@ -10,19 +10,25 @@ targets:
         flags:
           - input
           - analog
-        range: 0..100
+        range:
+          min: 0
+          max: 100
       - name: val2
         # unit: W
         flags:
           - input
           - analog
-        range: 0..100
+        range:
+          min: 0
+          max: 100
       - name: sum
         # unit: W
         flags:
           - output
           - analog
-        range: 0..200
+        range:
+          min: 0
+          max: 200
         description: 'sum of power1 and power2'
 
 logging:

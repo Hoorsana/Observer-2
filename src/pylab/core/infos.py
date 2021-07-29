@@ -35,6 +35,14 @@ class CommandTooLateError(InfoError):
     duration."""
 
 
+class InvalidIdError(InfoError):
+    """Raised if an id/name is not valid."""
+
+
+class ConflictingDataError(InfoError):
+    """Raised if specified data is ambiguous."""
+
+
 @dataclasses.dataclass(frozen=True)
 class TestInfo:
     """Master info for a test, start-to-finish.
@@ -103,7 +111,7 @@ class CommandInfo(pydantic.BaseModel):
     data: Dict[str, Any] = {}
     description: Optional[str] = ''
 
-    @pydantic.validator('time')
+    @pydantic.validator('time', allow_reuse=True)
     @classmethod
     def time_must_be_positive(cls, v: float) -> float:
         if v < 0:
@@ -127,25 +135,25 @@ class PhaseInfo(pydantic.BaseModel):
     commands: List[CommandInfo]
     description: Optional[str] = ''
 
-    @pydantic.validator('duration')
+    @pydantic.validator('duration', allow_reuse=True)
     @classmethod
-    def duration_must_be_positive(cls, v: float) -> float:
+    def _duration_must_be_positive(cls, v: float) -> float:
         if v < 0:
             raise NegativeTimeError(
                 f'Invalid PhaseInfo: duration {v} is negative. The specification states: "`duration` **must** be a non-negative float"'
             )
         return v
 
-    @pydantic.validator('commands')
+    @pydantic.validator('commands', each_item=True, allow_reuse=True)
     @classmethod
-    def command_time_must_not_exceed_duration(cls,
-                                              v: list[CommandInfo],
-                                              values
-                                              ) -> list[CommandInfo]:
+    def _command_time_must_not_exceed_duration(cls,
+                                               v: CommandInfo,
+                                               values
+                                               ) -> CommandInfo:
         duration = values['duration']
-        for elem in [elem for elem in v if duration < elem.time]:
+        if v.time > duration:
             raise CommandTooLateError(
-                f'Invalid PhaseInfo: CommandInfo execution time {elem.time} exceeds PhaseInfo duration {duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
+                f'Invalid PhaseInfo: CommandInfo execution time {v.time} exceeds PhaseInfo duration {duration}. The specification states: "For each `item in commands`, the following **must** hold: `duration > item.time`"')
         return v
 
 
@@ -190,7 +198,22 @@ class LoggingInfo:
         return f'{self.target}.{self.signal}'
 
 
-@dataclasses.dataclass(frozen=True)
+@pydantic.dataclasses.dataclass(frozen=True)
+class RangeInfo:
+    min: float
+    max: float
+
+    @pydantic.validator('max')
+    @classmethod
+    def _max_must_be_larger_than_min(cls, v, values):
+        min_ = values['min']
+        if min_ > v:
+            raise InfoError(
+                f'Invalid SignalInfo: min {min_} exceeds max {v}. The specification states: "`min <= max` **must** hold"')
+        return v
+
+
+@pydantic.dataclasses.dataclass(frozen=True)
 class SignalInfo:
     """Info data for a _physical_ signal.
 
@@ -214,43 +237,19 @@ class SignalInfo:
     ``ValueError``.
     """
     name: str
-    min: float = None
-    max: float = None
+    range: RangeInfo = None
     # unit: Optional[Any] = ''  # FIXME Currently not implemented
-    flags: list[str] = dataclasses.field(default_factory=list)
+    flags: List[str] = dataclasses.field(default_factory=list)
     description: Optional[str] = ''
-    range: InitVar[str] = None
 
-    def __post_init__(self, range: str):
-        """Args:
-            range:
-                A string of the form ``'{lo}..{hi}'``, where ``lo`` and
-                ``hi`` are floats with ``lo < hi``
-
-        Raises:
-            ValueError: If ``range`` is not correctly formatted
-        """
-        if not utils.is_valid_id(self.name):
-            raise InfoError(
-                f'Invalid SignalInfo: name "{self.name}" is not valid. The specification states: "`name` **must** be a valid name"')
-        if range is not None:
-            if self.min is not None:
-                raise InfoError('Failed to initialize SignalInfo: range and min specified')
-            if self.max is not None:
-                raise InfoError('Failed to initialize SignalInfo: range and max specified')
-            self._set_range(range)
-        if self.min is None:
-            raise InfoError('Failed to initialize SignalInfo: missing range/min not specified')
-        if self.max is None:
-            raise InfoError('Failed to initialize SignalInfo: missing range/max not specified')
-        if self.min > self.max:
-            raise InfoError(
-                f'Invalid SignalInfo: min {self.min} exceeds max {self.max}. The specification states: "`min <= max` **must** hold"')
-
-    def _set_range(self, range):
-        min_, max_ = utils.load_range(range)
-        object.__setattr__(self, 'min', min_)
-        object.__setattr__(self, 'max', max_)
+    @pydantic.validator('name', allow_reuse=True)
+    @classmethod
+    def _id_must_be_valid(cls, v: str) -> str:
+        if not utils.is_valid_id(v):
+            raise InvalidIdError(
+                f'Invalid SignalInfo: name "{v}" is not valid. The specification states: "`name` **must** be a valid name"'
+            )
+        return v
 
 
 @dataclasses.dataclass(frozen=True)

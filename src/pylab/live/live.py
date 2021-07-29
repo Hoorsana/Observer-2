@@ -281,7 +281,7 @@ class CmdSetSignal(AbstractCommand):
         device, port = next(test_object.trace_back(self._target, self._signal))
         signal = test_object.get_signal(self._target, self._signal)
         value = coreutility.transform(
-            signal.min, signal.max, port.min, port.max, self._value)
+            signal.range.min, signal.range.max, port.min, port.max, self._value)
         return device.execute('set_signal', port.channel, value)
 
 
@@ -696,7 +696,7 @@ class _LoggingRequest(AbstractFuture):
         self._device = device
         self._port = port
         self._transform = lambda value: coreutility.transform(
-            port.min, port.max, signal.min, signal.max, value)
+            port.min, port.max, signal.range.min, signal.range.max, value)
         self._future: AbstractFuture = None
 
     def begin(self) -> AbstractFuture:

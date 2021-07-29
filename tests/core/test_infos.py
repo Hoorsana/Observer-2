@@ -33,7 +33,7 @@ class TestTestInfo:
                     signals=[
                         infos.SignalInfo(
                             name='baz',
-                            min=0, max=1
+                            range=infos.RangeInfo(min=0, max=1)
                         )
                     ]
                 ),
@@ -54,7 +54,7 @@ class TestTestInfo:
                     signals=[
                         infos.SignalInfo(
                             name='baz',
-                            min=0, max=1
+                            range=infos.RangeInfo(min=0, max=1)
                         )
                     ]
                 ),
@@ -75,7 +75,7 @@ class TestTestInfo:
                     signals=[
                         infos.SignalInfo(
                             name='baz',
-                            min=0, max=1
+                            range=infos.RangeInfo(min=0, max=1)
                         )
                     ]
                 ),
@@ -102,7 +102,7 @@ class TestTestInfo:
                     signals=[
                         infos.SignalInfo(
                             name='baz',
-                            min=0, max=1
+                            range=infos.RangeInfo(min=0, max=1)
                         )
                     ]
                 ),
@@ -215,60 +215,24 @@ class TestSignalInfo:
 
     @pytest.mark.parametrize('kwargs, expected', [
         pytest.param(
-            {'name': 'foo', 'min': 1.2, 'max': 3.4},
-            infos.SignalInfo(name='foo', min=1.2, max=3.4),
+            {'name': 'foo', 'range': {'min': 1.2, 'max': 3.4}},
+            infos.SignalInfo(name='foo', range=infos.RangeInfo(min=1.2, max=3.4)),
             id='Using min/max'
         ),
-        pytest.param(
-            {'name': 'bar', 'range': '1.2..3.4'},
-            infos.SignalInfo(name='bar', min=1.2, max=3.4),
-            id='Using range'
-        )
     ])
     def test__init__success(self, kwargs, expected):
         info = infos.SignalInfo(**kwargs)
         assert info == expected
 
-    @pytest.mark.parametrize('kwargs', [
+    @pytest.mark.parametrize('kwargs, error', [
         pytest.param(
-            {'name': 'foo.bar', 'min': 1.0, 'max': 2.0},
+            {'name': 'foo.bar', 'range': {'min': 1.0, 'max': 2.0}},
+            infos.InvalidIdError,
             id='Invalid id'
         ),
-        pytest.param(
-            {'name': 'foo', 'min': 1.2, 'range': '1.2..3.4'},
-            id='range and in specified'
-        ),
-        pytest.param(
-            {'name': 'bar', 'max': 234, 'range': '1.2.0..3.4'},
-            id='range and max specified'
-        ),
-        pytest.param(
-            {'name': 'bar', 'min': 1.2, 'max': 234, 'range': '1.2.0..3.4'},
-            id='range and min/max specified'
-        ),
-        pytest.param(
-            {'name': 'foo', 'min': 1.2},
-            id='No max specified'
-        ),
-        pytest.param(
-            {'name': 'foo', 'max': 3.4},
-            id='No min specified'
-        ),
-        pytest.param(
-            {'name': 'foo', 'min': 1.2},
-            id='No min specified'
-        ),
-        pytest.param(
-            {'name': 'foo', 'min': 3.4, 'max': 1.2},
-            id='min > max'
-        ),
-        pytest.param(
-            {'name': 'bar'},
-            id='No range specified'
-        ),
     ])
-    def test__init__failure(self, kwargs):
-        with pytest.raises(infos.InfoError):
+    def test__init__failure(self, kwargs, error):
+        with pytest.raises(error):
             infos.SignalInfo(**kwargs)
 
 
@@ -282,8 +246,8 @@ class TestTargetInfo:
         pytest.param(
             'foo',
             [
-                infos.SignalInfo(name='bar', min=0, max=1),
-                infos.SignalInfo(name='bar', min=1, max=2),
+                infos.SignalInfo(name='bar', range=infos.RangeInfo(min=0, max=1)),
+                infos.SignalInfo(name='bar', range=infos.RangeInfo(min=1, max=2)),
             ],
             id='Duplicate signal id'
         )
@@ -296,8 +260,8 @@ class TestTargetInfo:
         data = {
             'name': 'foo',
             'signals': [
-                {'name': 'bar', 'min': 1.2, 'max': 3.4},
-                {'name': 'baz', 'min': 0, 'max': 1.2},
+                {'name': 'bar', 'range': {'min': 1.2, 'max': 3.4}},
+                {'name': 'baz', 'range': {'min': 0, 'max': 1.2}},
             ],
             'description': 'foobar'
         }
@@ -305,8 +269,8 @@ class TestTargetInfo:
         expected = infos.TargetInfo(
             name='foo',
             signals=[
-                infos.SignalInfo(name='bar', min=1.2, max=3.4),
-                infos.SignalInfo(name='baz', min=0, max=1.2),
+                infos.SignalInfo(name='bar', range=infos.RangeInfo(min=1.2, max=3.4)),
+                infos.SignalInfo(name='baz', range=infos.RangeInfo(min=0, max=1.2)),
             ],
             description='foobar'
         )
