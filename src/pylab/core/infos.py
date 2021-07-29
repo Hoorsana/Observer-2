@@ -317,7 +317,7 @@ class TargetInfo:
         return TargetInfo(name, signals, description)
 
 
-@dataclasses.dataclass(frozen=True)
+@pydantic.dataclasses.dataclass(frozen=True)
 class AssertionInfo:
     """Class for representing assertions made about test data.
 
@@ -330,5 +330,5 @@ class AssertionInfo:
             specified by the ``type`` field
     """
     type: str
-    data: dict[str, Any]
-    args: dict[str, str]
+    data: Dict[str, Any]
+    args: Dict[str, str]
