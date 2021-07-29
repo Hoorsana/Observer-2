@@ -307,7 +307,7 @@ class TestInfo:
 
     @pydantic.validator('logging', each_item=True)
     @classmethod
-    def _request_signal_must_exist(cls, v, values):
+    def _request_target_must_exist(cls, v, values):
         seen = set()
         targets = values['targets']
         try:
@@ -316,17 +316,31 @@ class TestInfo:
         except StopIteration:
             raise NoSuchTarget(
                 f'Invalid TestInfo: Found no target for logging request "{v.target}". The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: `item.target == target.name`"')
+        return v
+
+    @pydantic.validator('logging', each_item=True)
+    @classmethod
+    def _request_signal_must_exist(cls, v, values):
+        targets = values['targets']
+        target = next(elem for elem in targets if v.target == elem.name)
         try:
             signal = next(
                 elem for elem in target.signals if v.signal == elem.name)
         except StopIteration:
             raise NoSuchSignal(
                 f'Invalid TestInfo: Signal "{v.signal}" for logging request "{v.name}" not found. The pylab specification states: "For each `item` in `logging` the following **must** hold: There exists _exactly one_ `target` in `targets` with the following properties: There exists `signal` in `target.signals` so that `item.signal == signal.name`"')
-        data = (v.target, v.signal)
-        if data in seen:
-            raise DuplicateIdError(
-                f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{v.target}", signal "{v.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
-        seen.add(data)
+        return v
+
+    @pydantic.validator('logging')
+    @classmethod
+    def _requests_must_be_unique(cls, v):
+        seen = set()
+        for request in v:
+            data = (request.target, request.signal)
+            if data in seen:
+                raise DuplicateIdError(
+                    f'Invalid TestInfo: Found two logging requests with the same target and signal: Target "{request.target}", signal "{request.signal}". The specification states: "There **must** not exist two members `request1` and `request2` in `logging` with equal `target` and `signal` fields"')
+            seen.add(data)
         return v
 
     @pydantic.validator('phases', each_item=True)
