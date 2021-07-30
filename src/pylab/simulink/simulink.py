@@ -71,6 +71,7 @@ import tempfile
 import matlab
 import yaml
 
+from pylab._private import utils as privateutils
 from pylab.shared import testobject
 from pylab.shared import infos as sharedinfos
 from pylab.shared import loader
@@ -265,7 +266,7 @@ def load_details(path: str) -> Details:
     Returns:
         A ``Details`` object which contains the loaded information
     """
-    data = loader.yaml_safe_load_from_file(path)
+    data = privateutils.yaml_safe_load_from_file(path)
     return _load_details(path, data)
 
 
@@ -730,7 +731,7 @@ def _load_details(path: str, data: dict) -> Details:
         inf = elem['interface']
         if isinstance(inf, str):
             interface_path = loader.find_relative_path(path, inf)
-            elem['interface'] = loader.yaml_safe_load_from_file(interface_path)
+            elem['interface'] = privateutils.yaml_safe_load_from_file(interface_path)
     return Details.from_dict(data)
 
 

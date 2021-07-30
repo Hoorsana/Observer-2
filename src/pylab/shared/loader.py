@@ -8,7 +8,6 @@ import posixpath
 import yaml
 
 from pylab.shared import infos
-from pylab._private import utils
 
 
 def find_relative_path(root: str, path: PathLike) -> str:
@@ -42,9 +41,3 @@ def find_relative_path(root: str, path: PathLike) -> str:
 
     # If no candidates check out, throw an error.
     raise ValueError(f'File {path} not found')
-
-
-def yaml_safe_load_from_file(path: PathLike) -> dict:
-    with open(path, 'r') as f:
-        content = f.read()
-    return yaml.safe_load(content)

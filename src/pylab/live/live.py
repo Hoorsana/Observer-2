@@ -55,6 +55,7 @@ import time
 from typing import ContextManager, List, Union
 import yaml
 
+from pylab._private import utils
 from pylab.core import errors
 from pylab.core import infos
 from pylab.shared import infos as sharedinfos
@@ -198,7 +199,7 @@ def load_details(path: PathLike) -> Details:
     Returns:
         A ``Details`` object which contains the loaded information
     """
-    data = loader.yaml_safe_load_from_file(path)
+    data = utils.yaml_safe_load_from_file(path)
     return _load_details(path, data)
 
 
@@ -936,7 +937,7 @@ def _load_details(path: str, data: dict) -> Details:
         inf = elem['interface']
         if isinstance(inf, str):
             interface_path = loader.find_relative_path(path, inf)
-            elem['interface'] = loader.yaml_safe_load_from_file(interface_path)
+            elem['interface'] = utils.yaml_safe_load_from_file(interface_path)
     return Details.from_dict(data)
 
 # }}} details
