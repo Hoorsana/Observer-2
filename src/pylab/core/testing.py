@@ -31,8 +31,9 @@ class Result:
     Default value are chosen so that ``Result()`` indicates
     success.
     """
+
     success: bool = True
-    what: str = ''
+    what: str = ""
 
     def __str__(self):
         return self.what
@@ -98,7 +99,7 @@ def load_info(info: infos.AssertionInfo) -> list[Dispatcher]:
         AttributeError: If module doesn't have the specified attribute
     """
     # FIXME code-duplication: simulink.simulink.Device.from_details
-    if '.' in info.type:
+    if "." in info.type:
         type_ = utils.module_getattr(info.type)
     else:  # No absolute path specified, use local block module!
         type_ = globals()[info.type]
@@ -109,8 +110,9 @@ class BaseAssertion(AbstractAssertion):
     """Convenience ABC which handles access to the results."""
 
     @classmethod
-    def create_with_dispatcher(cls, data: dict[str, Any],
-                               args: dict[str, str]) -> Dispatcher:
+    def create_with_dispatcher(
+        cls, data: dict[str, Any], args: dict[str, str]
+    ) -> Dispatcher:
         a = cls(**data)
         return Dispatcher(a, args)
 
@@ -134,12 +136,12 @@ class Dispatcher(BaseAssertion):
 
     def __init__(self, assertion: AbstractAssertion, args: dict[str, str]) -> None:
         """Args:
-            assertion: The wrapped assertion
-            args:
-                ``dict`` that maps parameter names of
-                ``assertion.assert_`` and ``assertion.apply`` to the
-                fully qualified name of the signals to which the
-                assertion is to be applied
+        assertion: The wrapped assertion
+        args:
+            ``dict`` that maps parameter names of
+            ``assertion.assert_`` and ``assertion.apply`` to the
+            fully qualified name of the signals to which the
+            assertion is to be applied
         """
         self._assertion = assertion
         self._args = args
@@ -161,17 +163,16 @@ class Equal(BaseAssertion):
 
     def __init__(self, expected: Any) -> None:
         """Args:
-            expected: The expected value
+        expected: The expected value
         """
         self._expected = expected
 
     def apply(self, actual: Any) -> Result:
         """Args:
-            actual: The actual result
+        actual: The actual result
         """
         return Result(
-            self._expected == result,
-            f'{actual} not equal to expected {expected}'
+            self._expected == result, f"{actual} not equal to expected {expected}"
         )
 
 
@@ -192,12 +193,13 @@ class TimeseriesAlmostEqual(BaseAssertion):
     series.
     """
 
-    def __init__(self, expected: timeseries.TimeSeries,
-                 rtol: float = 1e-05, atol: float = 1e-05) -> None:
+    def __init__(
+        self, expected: timeseries.TimeSeries, rtol: float = 1e-05, atol: float = 1e-05
+    ) -> None:
         """Args:
-            expected: The expected time series
-            rtol: The relative tolerance
-            atol: The absolute tolerance
+        expected: The expected time series
+        rtol: The relative tolerance
+        atol: The absolute tolerance
         """
         self._expected = expected
         self._expected = expected
@@ -212,7 +214,8 @@ class TimeseriesAlmostEqual(BaseAssertion):
                 lower=self._expected.lower,
                 upper=self._expected.upper,
                 rtol=self._rtol,
-                atol=self._atol)
+                atol=self._atol,
+            )
         except AssertionError as e:
             return Result.from_error(e)
         return Result()
@@ -225,14 +228,20 @@ class TimeseriesIntegralAlmostEqual(BaseAssertion):
     \\int_l^u actual dt < t_{rel} \\cdot expected + t_{abs}
     """
 
-    def __init__(self, expected: float, rtol: float = 1e-05, atol: float = 1e-05,
-                 lower: Optional[float] = None, upper: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        expected: float,
+        rtol: float = 1e-05,
+        atol: float = 1e-05,
+        lower: Optional[float] = None,
+        upper: Optional[float] = None,
+    ) -> None:
         """Args:
-            expected: The expected value
-            rtol: The relative tolerance
-            atol: The absolute Tolerance
-            lower: The lower bound of the domain of integration
-            upper: The upper bound of the domain of integration
+        expected: The expected value
+        rtol: The relative tolerance
+        atol: The absolute Tolerance
+        lower: The lower bound of the domain of integration
+        upper: The upper bound of the domain of integration
         """
         self._expected = expected
         self._atol = atol
@@ -244,7 +253,10 @@ class TimeseriesIntegralAlmostEqual(BaseAssertion):
         try:
             numpy.testing.assert_allclose(
                 timeseries.l2norm(actual, self._lower, self._upper),
-                self._expected, rtol=self._rtol, atol=self._atol)
+                self._expected,
+                rtol=self._rtol,
+                atol=self._atol,
+            )
         except AssertionError as e:
             return Result.from_error(e)
         return Result()
@@ -257,13 +269,14 @@ class CloseAtTime(BaseAssertion):
     |expected(t_0) - actual(t_0)| < t_{rel} \\cdot expected(t_0) + t_{abs}
     """
 
-    def __init__(self, expected: ArrayLike, time: float,
-                 rtol: float = 1e-05, atol: float = 1e-05) -> None:
+    def __init__(
+        self, expected: ArrayLike, time: float, rtol: float = 1e-05, atol: float = 1e-05
+    ) -> None:
         """Args:
-            expected: The expected value
-            time: The time of comparison
-            rtol: The relative tolerance
-            atol: The absolute tolerance
+        expected: The expected value
+        time: The time of comparison
+        rtol: The relative tolerance
+        atol: The absolute tolerance
         """
         self._expected = expected
         self._time = time
@@ -274,18 +287,22 @@ class CloseAtTime(BaseAssertion):
         value = result(self._time)
         try:
             numpy.testing.assert_allclose(
-                value, self._expected, rtol=self._rtol, atol=self._atol)
+                value, self._expected, rtol=self._rtol, atol=self._atol
+            )
         except AssertionError as e:
             return Result.from_error(e)
         return Result()
 
 
 class EqualAtLeastOnce(BaseAssertion):
-    """Assert that a timeseries assumes a certain value at least once.
-    """
+    """Assert that a timeseries assumes a certain value at least once."""
 
-    def __init__(self, expected: ArrayLike,
-                 lower: Optional[flowerat] = None, upper: Optional[flowerat] = None) -> None:
+    def __init__(
+        self,
+        expected: ArrayLike,
+        lower: Optional[flowerat] = None,
+        upper: Optional[flowerat] = None,
+    ) -> None:
         self._expected = expected
         self._lower = lower
         self._upper = upper
@@ -299,9 +316,10 @@ class EqualAtLeastOnce(BaseAssertion):
             upper = self.upper
         else:
             upper = ts.upper
-        hits = [t for t in ts.time if lower <=
-                t and t <= upper and ts(t) == self._expected]
+        hits = [
+            t for t in ts.time if lower <= t and t <= upper and ts(t) == self._expected
+        ]
         return Result(
             bool(hits),
-            f'TimeSeries not at least once equal to {self._expected} on [{self._lower}, {self._upper}]'
+            f"TimeSeries not at least once equal to {self._expected} on [{self._lower}, {self._upper}]",
         )

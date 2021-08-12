@@ -153,18 +153,18 @@ def init(info: infos.TestInfo, details: live.Details) -> None:
 
 
 def _parse_args(details: live.Details) -> dict:
-    ext_saleae = details.extension.get('saleae')
+    ext_saleae = details.extension.get("saleae")
     if ext_saleae is None:
         return {}
-    args = ext_saleae.get('init', {})
+    args = ext_saleae.get("init", {})
     # Replace performance string with enum supplied by `saleae` module
-    performance = args.get('performance')
+    performance = args.get("performance")
     if performance is not None:
-        args['performance'] = getattr(saleae.PerformanceOption, performance)
+        args["performance"] = getattr(saleae.PerformanceOption, performance)
     # Replace trigger string with enum supplied by `saleae` module
-    args['triggers'] = {
+    args["triggers"] = {
         channel: getattr(saleae.Trigger, trigger)
-        for channel, trigger in args.get('triggers', {}).items()
+        for channel, trigger in args.get("triggers", {}).items()
     }
     return args
 
@@ -186,13 +186,14 @@ def _capture_duration(duration: float) -> float:
     return GRACE + _grace + 2 * duration
 
 
-def _initialize_saleae(duration: float,
-                       host: str = 'localhost',
-                       port: int = 10429,
-                       performance: saleae.PerformanceOption = saleae.PerformanceOption.Full,
-                       grace: float = 5.0,
-                       triggers: Optional[dict[int, saleae.Trigger]] = None
-                       ) -> None:
+def _initialize_saleae(
+    duration: float,
+    host: str = "localhost",
+    port: int = 10429,
+    performance: saleae.PerformanceOption = saleae.PerformanceOption.Full,
+    grace: float = 5.0,
+    triggers: Optional[dict[int, saleae.Trigger]] = None,
+) -> None:
     """Lazily create global Logic API object.
 
     Args:
@@ -211,7 +212,9 @@ def _initialize_saleae(duration: float,
     _logic.set_performance(performance)
     _grace = grace
     _logic.set_capture_seconds(_capture_duration(duration))
-    _triggers = triggers  # For later use! We cannot set triggers without an active device!
+    _triggers = (
+        triggers  # For later use! We cannot set triggers without an active device!
+    )
 
 
 def from_config(path: str) -> Device:
@@ -221,12 +224,14 @@ def from_config(path: str) -> Device:
 # TODO How to guarantee that there is only one device?
 class Device:
     """Handle object for pylab usage."""
+
     device_exists = False
 
     def __init__(self, details: saleae.ConnectedDevice) -> None:
         if Device.device_exists:
             raise RuntimeError(
-                'Attempting to created multiple saleae.logic.Device objects')
+                "Attempting to created multiple saleae.logic.Device objects"
+            )
         Device.device_exists = True
         self._details = details
         self._manager = _LoggingManager()
@@ -235,25 +240,27 @@ class Device:
     def open(self) -> live.AbstractFuture:
         """No-op ``open`` method to satisfy live.AbstractDevice
         interface requirements."""
-        return live.NoOpFuture(report.LogEntry('open logic'))
+        return live.NoOpFuture(report.LogEntry("open logic"))
 
     def close(self) -> live.AbstractFuture:
         """No-op ``close`` method to satisfy live.AbstractDevice
         interface requirements."""
-        return live.NoOpFuture(report.LogEntry('close logic'))
+        return live.NoOpFuture(report.LogEntry("close logic"))
 
     def setup(self) -> live.AbstractFuture:
         """No-op ``setup`` method to satisfy live.AbstractDevice
         interface requirements."""
-        return live.NoOpFuture(report.LogEntry('close logic'))
+        return live.NoOpFuture(report.LogEntry("close logic"))
 
     @classmethod
-    def from_id(cls,
-                id: int,
-                digital: Optional[list[int]] = None,
-                analog: Optional[list[int]] = None,
-                sample_rate_digital: int = 50_000,
-                sample_rate_analog: int = 100) -> Device:
+    def from_id(
+        cls,
+        id: int,
+        digital: Optional[list[int]] = None,
+        analog: Optional[list[int]] = None,
+        sample_rate_digital: int = 50_000,
+        sample_rate_analog: int = 100,
+    ) -> Device:
         """Create a Logic device from id.
 
         Args:
@@ -275,31 +282,37 @@ class Device:
         """
         try:
             index, device = next(
-                (index, elem) for index, elem
-                in enumerate(_logic.get_connected_devices(), start=1)
+                (index, elem)
+                for index, elem in enumerate(_logic.get_connected_devices(), start=1)
                 if elem.id == id
             )
         except StopIteration:
             raise ValueError(
-                f'Failed to find Saleae device with id {id} ({type(id)}). Available devices are:\n'
-                + '\n'.join('\t' + str(elem.id) + f' ({type(elem.id)})' + ': ' + str(elem)
-                            for elem in _logic.get_connected_devices())
+                f"Failed to find Saleae device with id {id} ({type(id)}). Available devices are:\n"
+                + "\n".join(
+                    "\t" + str(elem.id) + f" ({type(elem.id)})" + ": " + str(elem)
+                    for elem in _logic.get_connected_devices()
+                )
             )
         _logic.select_active_device(index)
 
         # Logic and default values based on ``saleae.demo()``.
-        if device.type not in {'LOGIC_4_DEVICE', 'LOGIC_DEVICE'}:
+        if device.type not in {"LOGIC_4_DEVICE", "LOGIC_DEVICE"}:
             if digital is None:
                 digital = [0, 1, 2, 3, 4]
             if analog is None:
                 analog = [0, 1]
             _logic.set_active_channels(digital, analog)
-        rate = _logic.set_sample_rate_by_minimum(sample_rate_digital, sample_rate_analog)
+        rate = _logic.set_sample_rate_by_minimum(
+            sample_rate_digital, sample_rate_analog
+        )
         assert rate[0] >= sample_rate_digital
         assert rate[1] >= sample_rate_analog
         if _triggers:
-            triggers = [_triggers.get(channel, saleae.Trigger.NoTrigger)
-                        for channel in _triggers]
+            triggers = [
+                _triggers.get(channel, saleae.Trigger.NoTrigger)
+                for channel in _triggers
+            ]
             _logic.set_triggers_for_all_channels(triggers)
         return cls(device)
 
@@ -309,9 +322,9 @@ class Device:
 
     # TODO This would be easier to do if all logging requests could be
     # issued at the same time.
-    def log_signal(self,
-                   channel: tuple[int, str],
-                   period: float) -> tuple[live.AbstractFuture, live.AbstractFuture]:
+    def log_signal(
+        self, channel: tuple[int, str], period: float
+    ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
         """Submit a logging request.
 
         Args:
@@ -325,16 +338,15 @@ class Device:
             _logic.capture_start()
             self._capture_in_progress = True
         future = self._manager.push(channel, period)
-        return DelayFuture('log_signal', _grace), future
+        return DelayFuture("log_signal", _grace), future
 
     def end_log_signal(self, channel: tuple[int, str]) -> live.AbstractFuture:
         del channel
         self._manager.end()
-        return live.NoOpFuture(log=report.LogEntry('saleae: end_log_signal'))
+        return live.NoOpFuture(log=report.LogEntry("saleae: end_log_signal"))
 
 
 class _LoggingManager:
-
     def __init__(self) -> None:
         self._requests: list[_LoggingRequest] = []
         self._ended = False
@@ -364,6 +376,7 @@ class _LoggingManager:
                 # connected. We should check for that error.
                 ts = timeseries.TimeSeries(*result[elem.channel])
                 elem.future.set_result(ts)
+
         thread = threading.Thread(target=worker)
         thread.start()
         self._ended = True
@@ -376,8 +389,8 @@ class _LoggingManager:
         # themselves suggest this approach:
         # https://support.saleae.com/faq/technical-faq/extract-data-using-socket-api
         with tempfile.TemporaryDirectory() as tmpdir:
-            path = os.path.join(tmpdir, 'data.csv')
-            _logic.export_data2(path, delimiter='comma')
+            path = os.path.join(tmpdir, "data.csv")
+            _logic.export_data2(path, delimiter="comma")
             data = [(*elem.channel, elem.period / 1000) for elem in self._requests]
             return _parser.from_file(path, data)
 
@@ -389,11 +402,10 @@ class _LoggingRequest:
     future: live.AbstractFuture = dataclasses.field(init=False)
 
     def __post_init__(self):
-        self.future = Future(f'Saleae Logic {self.channel}@{self.period}')
+        self.future = Future(f"Saleae Logic {self.channel}@{self.period}")
 
 
 class BaseFuture:
-
     def __init__(self, what: str) -> None:
         self._what = what
         self._log = report.LogEntry(report.INFO, what)
@@ -415,8 +427,8 @@ class DelayFuture(BaseFuture):
 
     def __init__(self, what: str, delay: float):
         """Args:
-            what: The future's description
-            delay: The duration of the delay in seconds
+        what: The future's description
+        delay: The duration of the delay in seconds
         """
         super().__init__(what)
         self._start = time.time()

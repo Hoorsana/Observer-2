@@ -18,19 +18,25 @@ devices:
     ports:
     - signal: val1
       channel: A0
-      range: 0..100
+      range:
+        min: 0
+        max: 100
       flags:
       - input
       - analog
     - signal: val2
       channel: A1
-      range: 0..100
+      range:
+        min: 0
+        max: 100
       flags:
       - input
       - analog
     - signal:  sum
       channel: DAC0
-      range: 0..200
+      range:
+        min: 0
+        max: 200
       flags:
       - output
       - analog
@@ -52,19 +58,25 @@ devices:
     ports:
     - signal: out1
       channel: DAC0
-      range: 0..100
+      range:
+        min: 0
+        max: 100
       flags:
       - input
       - analog
     - signal: out2
       channel: DAC1
-      range: 0..100
+      range:
+        min: 0
+        max: 100
       flags:
       - input
       - analog
     - signal: sum
       channel: A0
-      range: 0..200
+      range:
+        min: 0
+        max: 200
       flags:
       - input
       - analog

@@ -47,7 +47,7 @@ class Database:
         self._db = cantools.database.load_file(path, encoding=encoding)
 
     def decode(self, msg: can.Message) -> dict:
-        """Decode a message to dictionary. 
+        """Decode a message to dictionary.
 
         Args:
             msg: The message to decode
@@ -127,9 +127,11 @@ class BusConfig:
             RuntimeError:
                 If no configuration for this systems' OS is available
         """
-        args = next((v for k, v in self._kwargs.items() if sys.platform.startswith(k)), None)
+        args = next(
+            (v for k, v in self._kwargs.items() if sys.platform.startswith(k)), None
+        )
         if args is None:
-            raise RuntimeError(f'No bus configuration provided for OS {sys.platform}')
+            raise RuntimeError(f"No bus configuration provided for OS {sys.platform}")
         return args
 
 
@@ -149,14 +151,17 @@ class CanDevice:
 
     def __init__(self, buses: list[CanBus]) -> None:
         """Args:
-            buses: Maps signal names to their CAN bus
+        buses: Maps signal names to their CAN bus
         """
         self._buses = buses
         # We have one thread pool executor for each bus (the mapping
         # from bus to executor is determined by the order of the lists).
         # Thread-safety is guaranteed by using only one worker per bus,
         # provided that _all_ calls to the bus are submitted to the TPE.
-        self._executors = [ThreadPoolExecutor(max_workers=1, thread_name_prefix=elem.name + '-thread') for elem in self._buses]
+        self._executors = [
+            ThreadPoolExecutor(max_workers=1, thread_name_prefix=elem.name + "-thread")
+            for elem in self._buses
+        ]
         self._logging_requests: dict[str, live.AbstractFuture] = {}
 
     def __del__(self):
@@ -172,7 +177,7 @@ class CanDevice:
     def close(self) -> live.AbstractFuture:
         futures = []
         for bus, executor in zip(self._buses, self._executors):
-            futures.append(executor.submit(lambda: bus.kill(), 'something'))
+            futures.append(executor.submit(lambda: bus.kill(), "something"))
         # TODO We need to shutdown the executor! This is currently done in ``__del__``, but should maybe be placed in this function?
         return FutureCollection(futures)
 
@@ -180,13 +185,18 @@ class CanDevice:
         return live.NoOpFuture(report.LogEntry(report.INFO))
 
     def send_message(self, signal: str, name: str, data: dict) -> live.AbstractFuture:
-        bus, executor = next((bus, executor) for bus, executor in zip(self._buses, self._executors) if bus.name == signal)
-        return executor.submit(lambda: bus.send_message(name, data), f'send_message({name}, {data})')
+        bus, executor = next(
+            (bus, executor)
+            for bus, executor in zip(self._buses, self._executors)
+            if bus.name == signal
+        )
+        return executor.submit(
+            lambda: bus.send_message(name, data), f"send_message({name}, {data})"
+        )
 
-    def log_signal(self,
-                   bus: str,
-                   _: Any
-                  ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
+    def log_signal(
+        self, bus: str, _: Any
+    ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
         """Log a CAN signal.
 
         Args:
@@ -196,7 +206,7 @@ class CanDevice:
         Returns:
             A noop future and a future which will contain the results.
         """
-        future = Future(f'Logging request for {bus}')
+        future = Future(f"Logging request for {bus}")
         self._logging_requests[bus] = future
         return live.NoOpFuture(report.LogEntry(report.INFO)), future
 
@@ -208,9 +218,16 @@ class CanDevice:
 
 
 class ThreadPoolExecutor:
-
-    def __init__(self, max_workers: Optional[int] = None, thread_name_prefix: str = '', initializer: Optional[Callable] = None, initargs: tuple = ()):
-        self._tpe = concurrent.futures.ThreadPoolExecutor(max_workers, thread_name_prefix, initializer, initargs)
+    def __init__(
+        self,
+        max_workers: Optional[int] = None,
+        thread_name_prefix: str = "",
+        initializer: Optional[Callable] = None,
+        initargs: tuple = (),
+    ):
+        self._tpe = concurrent.futures.ThreadPoolExecutor(
+            max_workers, thread_name_prefix, initializer, initargs
+        )
 
     def submit(self, fn: Callable, what: str, *args, **kwargs) -> None:
         future = self._tpe.submit(fn, *args, **kwargs)
@@ -221,7 +238,6 @@ class ThreadPoolExecutor:
 
 
 class FutureWrap:
-
     def __init__(self, future: concurrent.futures.Future, what: str) -> None:
         self._future = future
         self._what = what
@@ -244,9 +260,9 @@ class FutureWrap:
             self._log = report.LogEntry(self._what, report.INFO)
         except Exception as e:
             self._log = report.LogEntry(
-                self._what + '; failed with the following error: ' + str(self._error),
+                self._what + "; failed with the following error: " + str(self._error),
                 report.PANIC,
-                data=e
+                data=e,
             )
         self._done_event.set()
 
@@ -315,11 +331,13 @@ class Future:
 class CanBus:
     """Class for representing a CAN bus."""
 
-    def __init__(self,
-                 name: str,
-                 db: Database,
-                 bus: can.interface.BusABC,
-                 listener: Optional[AbstractListener] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        db: Database,
+        bus: can.interface.BusABC,
+        listener: Optional[AbstractListener] = None,
+    ) -> None:
         self._name = name
         self._db = db
         self._bus = bus
@@ -357,11 +375,10 @@ class CanBus:
             self._bus.send(frame)
         except (CanError, can.CanError) as e:
             return live.NoOpFuture(report.LogEntry(severity=report.PANIC, what=str(e)))
-        return live.NoOpFuture(report.LogEntry(severity=report.PANIC, what='...'))
+        return live.NoOpFuture(report.LogEntry(severity=report.PANIC, what="..."))
 
 
 class AbstractListener:
-
     @abc.abstractmethod
     def kill(self) -> None:
         """Stop listening."""
@@ -369,7 +386,6 @@ class AbstractListener:
 
 
 class _Listener:
-
     def __init__(self, db: Database, bus: can.interface.BusABC) -> None:
         self._db = db
         self._queue = []
@@ -398,15 +414,21 @@ class _Listener:
 
 
 class CmdCanMessage(live.AbstractCommand):
-
-    def __init__(self, time: float, target: str,
-                 signal: str, name: str, data: dict, description: str = '') -> None:
+    def __init__(
+        self,
+        time: float,
+        target: str,
+        signal: str,
+        name: str,
+        data: dict,
+        description: str = "",
+    ) -> None:
         """Args:
-            time: The time of execution
-            target: The receiving device
-            name: The message name
-            data: The message data
-            description: A description of the command
+        time: The time of execution
+        target: The receiving device
+        name: The message name
+        data: The message data
+        description: A description of the command
         """
         super().__init__(time, description)
         self._target = target
@@ -416,7 +438,7 @@ class CmdCanMessage(live.AbstractCommand):
 
     def execute(self, test_object: _TestObject) -> live.AbstractFuture:
         device, port = test_object.trace_back(self._target, self._signal)
-        return device.execute('send_message', port.channel, self._name, self._data)
+        return device.execute("send_message", port.channel, self._name, self._data)
 
 
 # FIXME code duplication: live.plugin.controllino
@@ -436,13 +458,13 @@ class FutureCollection(live.AbstractFuture):
 
     @property
     def what(self) -> str:
-        return '\n'.join(each.what for each in self._futures)
+        return "\n".join(each.what for each in self._futures)
 
     @property
     def log(self) -> report.LogEntry:
         futures = [elem for elem in self._futures if elem.done]
         severity = max(elem.log.severity for elem in futures)
-        return report.LogEntry('\n'.join(each.log.what for each in futures), severity)
+        return report.LogEntry("\n".join(each.log.what for each in futures), severity)
 
     @property
     def done(self) -> bool:

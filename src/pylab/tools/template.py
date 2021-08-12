@@ -17,18 +17,18 @@ def fill(data: dict[str, str], fsrc: str, fdst: Optional[str] = None) -> None:
     """
     if fdst is None:
         fdst = fsrc
-    with open(fsrc, 'r') as f:
+    with open(fsrc, "r") as f:
         content = f.read()
     for k, v in data.items():
         content = content.replace(k, v)
-    with open(fdst, 'w') as f:
+    with open(fdst, "w") as f:
         f.write(content)
 
 
-def fill_with_environment_variables(fsrc: str,
-                                    fdst: Optional[str] = None,
-                                    delim: str = '@') -> None:
-    """Replace marked expression in file with 
+def fill_with_environment_variables(
+    fsrc: str, fdst: Optional[str] = None, delim: str = "@"
+) -> None:
+    """Replace marked expression in file with
 
     Args:
         fsrc: Path to the template (input) file
@@ -39,5 +39,5 @@ def fill_with_environment_variables(fsrc: str,
     of the expression, i.e. ``'@EXPR@'`` will be replaced by the
     value of the environment variable ``EXPR``.
     """
-    data = {f'@{k}@': v for k, v in os.environ.items()}
+    data = {f"@{k}@": v for k, v in os.environ.items()}
     fill(data, fsrc, fdst)

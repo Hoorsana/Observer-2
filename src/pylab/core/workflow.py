@@ -21,7 +21,6 @@ from pylab.core import utils
 
 
 class AbstractLoader(abc.ABC):
-
     def load_test(self, path: PathLike) -> infos.TestInfo:
         pass
 
@@ -29,12 +28,14 @@ class AbstractLoader(abc.ABC):
         pass
 
 
-def run_from_files(driver: Union[str, api.AbstractDriver],
-                   test: PathLike,
-                   details: PathLike,
-                   asserts: Optional[PathLike] = None,
-                   loader: AbstractLoader = loader,
-                   dump: Optional[PathLike] = None) -> report.Report:
+def run_from_files(
+    driver: Union[str, api.AbstractDriver],
+    test: PathLike,
+    details: PathLike,
+    asserts: Optional[PathLike] = None,
+    loader: AbstractLoader = loader,
+    dump: Optional[PathLike] = None,
+) -> report.Report:
     """Load, create and execute test, and assert results.
 
     Use this method to load a test from file, create and execute it, and
@@ -67,11 +68,13 @@ def run_from_files(driver: Union[str, api.AbstractDriver],
     return run(driver, info, details, asserts, dump)
 
 
-def run(driver: api.AbstractDriver,
-        info: infos.TestInfo,
-        details: Any,
-        asserts: Optional[list[testing.AbstractVerification]] = None,
-        dump: Optional[PathLike] = None) -> report.Report:
+def run(
+    driver: api.AbstractDriver,
+    info: infos.TestInfo,
+    details: Any,
+    asserts: Optional[list[testing.AbstractVerification]] = None,
+    dump: Optional[PathLike] = None,
+) -> report.Report:
     """Create and execute test, and assert results.
 
     Use this method to create a test, execute the test and check the
@@ -102,14 +105,15 @@ def run(driver: api.AbstractDriver,
     if dump is not None:
         report.dump(dump)
     if report.failed:
-        raise RuntimeError('Test execution failed. Logbook:\n\n' + report.what)
+        raise RuntimeError("Test execution failed. Logbook:\n\n" + report.what)
 
     check_report(report, asserts)
     return report
 
 
-def check_report(report: report.Report,
-                 asserts: list[testing.AbstractVerification]) -> None:
+def check_report(
+    report: report.Report, asserts: list[testing.AbstractVerification]
+) -> None:
     """Assert results.
 
     Raises:
@@ -120,7 +124,10 @@ def check_report(report: report.Report,
     if not failed:
         return
 
-    msg = '\n\n'.join(each.what for each in failed)
+    msg = "\n\n".join(each.what for each in failed)
     raise AssertionError(
-        'Test failed due to the following assertions:\n\n' + msg
-        + '\n\nLogbook:\n\n' + report.what)
+        "Test failed due to the following assertions:\n\n"
+        + msg
+        + "\n\nLogbook:\n\n"
+        + report.what
+    )

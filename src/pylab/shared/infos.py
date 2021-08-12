@@ -33,11 +33,12 @@ class ConnectionInfo:
         receiver_port: The ID of the receiving port
         description: For documentation purposes
     """
+
     sender: str
     sender_port: Any
     receiver: str
     receiver_port: Any
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
 
 @pydantic.dataclasses.dataclass(frozen=True)
@@ -54,11 +55,12 @@ class PortInfo:
     improve performance or raise errors which may otherwise not have
     been spotted.
     """
+
     signal: str
     channel: str
     flags: List[str] = pydantic.Field(default_factory=list)
     range: infos.RangeInfo = None
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
 
 @pydantic.dataclasses.dataclass(frozen=True)
@@ -69,8 +71,9 @@ class ElectricalInterface:
         ports: The electrical ports of the device
         description: For documentation purposes
     """
+
     ports: List[PortInfo] = dataclasses.field(default_factory=list)
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
     def get_port(self, signal: str) -> PortInfo:
         """Return the electrical port associated with the physical

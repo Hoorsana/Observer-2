@@ -82,29 +82,29 @@ from pylab.core import utils
 from pylab.core import infos
 from pylab.core import report
 
-PREFIX = 'PYLAB'
-PREFIX_LOWER = 'pylab'
-DELIM_LEFT = '%{'
-DELIM_RIGHT = '%}'
-SYSTEM = PREFIX + '_SYSTEM'
-SIMOUT = PREFIX + '_SIMOUT'
-OUTPUT = PREFIX + '_OUTPUT'
-LOGBOOK = PREFIX + '_LOGBOOK'
-WHAT = PREFIX + '_WHAT'
-ERROR = PREFIX + '_ERROR'
-OPERATING_POINT = PREFIX + '_OPERATING_POINT'
-FILENAME = PREFIX + '_SCRIPT.m'
-EXTRACT = PREFIX_LOWER + '_extract'
-DOT = PREFIX + 'DOT'
-RESOURCES = 'pylab.simulink._resources'
-TOOLBOX = [f'{EXTRACT}.m']
-BINARIES = ['pylab_mini_generator.slx']
-INDEX0 = PREFIX + '_INDEX0'
+PREFIX = "PYLAB"
+PREFIX_LOWER = "pylab"
+DELIM_LEFT = "%{"
+DELIM_RIGHT = "%}"
+SYSTEM = PREFIX + "_SYSTEM"
+SIMOUT = PREFIX + "_SIMOUT"
+OUTPUT = PREFIX + "_OUTPUT"
+LOGBOOK = PREFIX + "_LOGBOOK"
+WHAT = PREFIX + "_WHAT"
+ERROR = PREFIX + "_ERROR"
+OPERATING_POINT = PREFIX + "_OPERATING_POINT"
+FILENAME = PREFIX + "_SCRIPT.m"
+EXTRACT = PREFIX_LOWER + "_extract"
+DOT = PREFIX + "DOT"
+RESOURCES = "pylab.simulink._resources"
+TOOLBOX = [f"{EXTRACT}.m"]
+BINARIES = ["pylab_mini_generator.slx"]
+INDEX0 = PREFIX + "_INDEX0"
 
-MARKER = '-->'  # Marks lines in script that cause MATLAB errors
+MARKER = "-->"  # Marks lines in script that cause MATLAB errors
 
-BLOCKS = 'pylab.simulink.blocks'
-COMMANDS = 'pylab.simulink.commands'
+BLOCKS = "pylab.simulink.blocks"
+COMMANDS = "pylab.simulink.commands"
 GRAIN = 0.1
 
 _stdout = io.StringIO()
@@ -142,13 +142,15 @@ def create(info: infos.TestInfo, details: Details) -> Test:
     offset = 0.0
     commands: list[Command] = []
     for phase in info.phases:
-        commands += [test_object.create_command(each, offset)
-                     for each in phase.commands]
+        commands += [
+            test_object.create_command(each, offset) for each in phase.commands
+        ]
         offset += phase.duration
     total_duration = offset
     commands.sort(key=lambda cmd: cmd.time)
     commands = collections.OrderedDict(
-        sorted(utils.split_by_attribute(commands, 'time').items()))
+        sorted(utils.split_by_attribute(commands, "time").items())
+    )
 
     last = 0.0
     for time, sublist in commands.items():
@@ -165,7 +167,7 @@ def create(info: infos.TestInfo, details: Details) -> Test:
 
     code += _catch_block()
 
-    test = Test('\n'.join(code), pull)
+    test = Test("\n".join(code), pull)
     return test
 
 
@@ -174,9 +176,7 @@ class Test:
     file.
     """
 
-    def __init__(self,
-                 code: str,
-                 logging_requests: list[_LoggingRequest]) -> None:
+    def __init__(self, code: str, logging_requests: list[_LoggingRequest]) -> None:
         """Initialize ``Test`` object.
 
         Args:
@@ -198,16 +198,16 @@ class Test:
         with tempfile.TemporaryDirectory() as tmpdir:
             for each in TOOLBOX:
                 raw = importlib.resources.read_text(RESOURCES, each)
-                with open(os.path.join(tmpdir, each), 'w') as f:
+                with open(os.path.join(tmpdir, each), "w") as f:
                     f.write(raw)
 
             for each in BINARIES:
                 raw = importlib.resources.read_binary(RESOURCES, each)
-                with open(os.path.join(tmpdir, each), 'wb') as f:
+                with open(os.path.join(tmpdir, each), "wb") as f:
                     f.write(raw)
 
             path = os.path.join(tmpdir, FILENAME)
-            with open(path, 'w') as f:
+            with open(path, "w") as f:
                 f.write(self._code)
 
             _engine.engine().run(path, nargout=0, stdout=_stdout, stderr=_stderr)
@@ -219,14 +219,13 @@ class Test:
             results = {}  # FIXME Try to pull as much information as possible.
             code = self._code
             for log in logbook:
-                stack = log.data.get('stack')
+                stack = log.data.get("stack")
                 if stack is not None:
-                    line = int(stack[0]['line'])
+                    line = int(stack[0]["line"])
                     code = _mark_line(code, line)
-            data = {'script': code, 'requests': self._logging_requests}
+            data = {"script": code, "requests": self._logging_requests}
         else:
-            results = {each.path(): each.result()
-                       for each in self._logging_requests}
+            results = {each.path(): each.result() for each in self._logging_requests}
             data = {}
 
         return report.Report(logbook, results, data)
@@ -239,9 +238,10 @@ class Details:
 
     @classmethod
     def from_dict(cls, data: dict) -> Details:
-        details = [DeviceDetails.from_dict(each) for each in data['devices']]
-        connections = [sharedinfos.ConnectionInfo(*each)
-                       for each in data['connections']]
+        details = [DeviceDetails.from_dict(each) for each in data["devices"]]
+        connections = [
+            sharedinfos.ConnectionInfo(*each) for each in data["connections"]
+        ]
         return cls(details, connections)
 
 
@@ -271,22 +271,23 @@ def load_details(path: str) -> Details:
 
 
 class DeviceDetails(sharedinfos.DeviceInfo):
-
-    def __init__(self,
-                 name: str,
-                 type: str,
-                 interface: sharedinfos.ElectricalInterface,
-                 data: dict) -> None:
+    def __init__(
+        self,
+        name: str,
+        type: str,
+        interface: sharedinfos.ElectricalInterface,
+        data: dict,
+    ) -> None:
         super().__init__(name, interface)
         self.type = type
         self.data = data
 
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:
-        name = data['name']
-        type = data['type']
-        interface = sharedinfos.ElectricalInterface(**data['interface'])
-        args = data.get('data', {})  # FIXME This is awkward
+        name = data["name"]
+        type = data["type"]
+        interface = sharedinfos.ElectricalInterface(**data["interface"])
+        args = data.get("data", {})  # FIXME This is awkward
         return cls(name, type, interface, args)
 
 
@@ -303,9 +304,9 @@ class _LoggingRequest:
     from electrical to physical values of the logged signal.
     """
 
-    def __init__(self,
-                 info: infos.LoggingInfo,
-                 transform: Callable[[ArrayLike], ArrayLike]) -> None:
+    def __init__(
+        self, info: infos.LoggingInfo, transform: Callable[[ArrayLike], ArrayLike]
+    ) -> None:
         """Initialize logging request from info and electric to physical
         transform.
 
@@ -318,7 +319,7 @@ class _LoggingRequest:
 
     def path(self):
         """Return namespace qualified name of the logged signal."""
-        return f'{self._info.target}.{self._info.signal}'
+        return f"{self._info.target}.{self._info.signal}"
 
     def result(self) -> timeseries.TimeSeries:
         """Pull logged result from MATLAB workspace.
@@ -331,8 +332,7 @@ class _LoggingRequest:
                 If the logged data cannot be found in the MATLAB
                 workspace.
         """
-        ts = _engine.timeseries_to_python(
-            _engine.workspace()[self._mangled_name()])
+        ts = _engine.timeseries_to_python(_engine.workspace()[self._mangled_name()])
         ts.kind = self._info.kind
         ts.transform(self._transform)
         return ts
@@ -341,7 +341,7 @@ class _LoggingRequest:
         """Return the variable name of logged data in MATLAB
         workspace.
         """
-        return f'{OUTPUT}_{_unpack_log_entry(self._info)}'
+        return f"{OUTPUT}_{_unpack_log_entry(self._info)}"
 
 
 def _pull_logbook() -> list[report.LogEntry]:
@@ -361,7 +361,9 @@ def _pull_logbook() -> list[report.LogEntry]:
     logbook = [report.LogEntry(**json.loads(each)) for each in logbook]
     # Replace string with ``report._Severity`` object.
     for elem in logbook:
-        elem.severity = utils.getattr_from_module('pylab.core.report.' + elem.severity.upper())
+        elem.severity = utils.getattr_from_module(
+            "pylab.core.report." + elem.severity.upper()
+        )
     return logbook
 
 
@@ -369,7 +371,7 @@ def _unpack_log_entry(info: infos.LoggingInfo) -> str:
     """Return the mangled version of the namespace qualified name of the
     signal in ``info`` for use in MATLAB .M files.
     """
-    return f'{info.target}{DOT}{info.signal}'
+    return f"{info.target}{DOT}{info.signal}"
 
 
 def _pack_log_entry(var: str) -> str:
@@ -380,8 +382,8 @@ def _pack_log_entry(var: str) -> str:
             A mangled signal name of the form
             ``OUTPUT_{target}DOT{signal}``.
     """
-    var = var[len(f'{OUTPUT}_'):]
-    var = var.replace(DOT, '.')
+    var = var[len(f"{OUTPUT}_") :]
+    var = var.replace(DOT, ".")
     return var
 
 
@@ -394,11 +396,11 @@ def _pack_log_entry(var: str) -> str:
 def _head() -> list[str]:
     """Return the standard .M file header."""
     result = []
-    result.append(f'{LOGBOOK} = []')
-    result.append(f'{OUTPUT} = []')
+    result.append(f"{LOGBOOK} = []")
+    result.append(f"{OUTPUT} = []")
     result.append(f'{WHAT} = ""')
 
-    result.append(f'try')  # noqa: F541
+    result.append(f"try")  # noqa: F541
 
     result.append(f'{WHAT} = "Initializing root system"')
     result.append(f"new_system('{SYSTEM}')")
@@ -406,9 +408,12 @@ def _head() -> list[str]:
     result.append(f"          'SaveFinalState', 'on', ...")  # noqa: F541
     result.append(f"          'FinalStateName', '{OPERATING_POINT}', ...")
     result.append(f"          'SaveOperatingPoint', 'on')")  # noqa: F541
-    result.append(f'{LOGBOOK} = [{LOGBOOK}; ...')
-    result.append('  "{""what"": \"\"\" + ' + WHAT +
-                  ' + \"\"\", ""severity"": ""info"", ""data"": {}}"]')
+    result.append(f"{LOGBOOK} = [{LOGBOOK}; ...")
+    result.append(
+        '  "{""what"": """ + '
+        + WHAT
+        + ' + """, ""severity"": ""info"", ""data"": {}}"]'
+    )
 
     return result
 
@@ -416,37 +421,42 @@ def _head() -> list[str]:
 def _catch_block() -> list[str]:
     """Return the standard .M file catch block."""
     result = []
-    result.append(f'catch {ERROR}')
+    result.append(f"catch {ERROR}")
     result.append('data = "{"')
 
     result.append(f"identifier = strrep({ERROR}.identifier, '\"', '''')")
-    result.append(f'data = data + """identifier"": """ + identifier + """, "')  # noqa: F541
+    result.append(
+        f'data = data + """identifier"": """ + identifier + """, "'
+    )  # noqa: F541
 
     result.append(f"message = strrep({ERROR}.message, '\"', '''')")
     result.append(f'data = data + """message"": """ + message + """, "')  # noqa: F541
 
     result.append(f'data = data + """stack"": ["')  # noqa: F541
-    result.append(f'for {INDEX0} = 1:length({ERROR}.stack)')
-    result.append(f'  item = {ERROR}.stack({INDEX0})')
+    result.append(f"for {INDEX0} = 1:length({ERROR}.stack)")
+    result.append(f"  item = {ERROR}.stack({INDEX0})")
     result.append('  data = data + "{"')
     result.append(f'  data = data + """file"": """ + item.file + """, "')  # noqa: F541
     result.append(f'  data = data + """name"": """ + item.name + """, "')  # noqa: F541
     result.append(f'  data = data + """line"": """ + item.line + """"')  # noqa: F541
     result.append('  data = data + "}"')  # noqa: F541
 
-    result.append(f'  if {INDEX0} ~= length({ERROR}.stack)')
+    result.append(f"  if {INDEX0} ~= length({ERROR}.stack)")
     result.append(f'    data = data + ", "')  # noqa: F541
-    result.append(f'  end')  # noqa: F541
-    result.append(f'end')  # noqa: F541
+    result.append(f"  end")  # noqa: F541
+    result.append(f"end")  # noqa: F541
     result.append(f'data = data + "]"')  # noqa: F541
 
     result.append('data = data + "}"')  # noqa: F541
 
-    result.append(f'{LOGBOOK} = [{LOGBOOK}; ...')
-    result.append('  "{""what"": """ + ' + WHAT +
-                  ' + """, ""severity"": ""panic"", ""data"": " + data + "}"]')
+    result.append(f"{LOGBOOK} = [{LOGBOOK}; ...")
+    result.append(
+        '  "{""what"": """ + '
+        + WHAT
+        + ' + """, ""severity"": ""panic"", ""data"": " + data + "}"]'
+    )
 
-    result.append(f'end')  # noqa: F541
+    result.append(f"end")  # noqa: F541
 
     return result
 
@@ -483,35 +493,35 @@ class Command:
     snippets.
     """
 
-    def __init__(self, time: float, code: str, what: str = '') -> None:
+    def __init__(self, time: float, code: str, what: str = "") -> None:
         """Initialize ``Command`` with MATLAB code snippet.
 
 
 
-def _find_nth(text: str, pattern: str, n: int) -> int:
-    index = -1
-    for _ in range(n):
-        offset = index + 1
-        index = text[offset:].find(pattern) + offset
-    return index
+        def _find_nth(text: str, pattern: str, n: int) -> int:
+            index = -1
+            for _ in range(n):
+                offset = index + 1
+                index = text[offset:].find(pattern) + offset
+            return index
 
 
-def _mark_line(text: str, line: int) -> str:
-    if line == 0:
-        return MARKER + text
-    index = _find_nth(text, '\n', line-1)
-    return text[:index+1] + MARKER + text[index+1:]
-        Args:
-            time: Time at which the command should be executed
-            code: MATLAB code snippet
-            what: Log message
+        def _mark_line(text: str, line: int) -> str:
+            if line == 0:
+                return MARKER + text
+            index = _find_nth(text, '\n', line-1)
+            return text[:index+1] + MARKER + text[index+1:]
+                Args:
+                    time: Time at which the command should be executed
+                    code: MATLAB code snippet
+                    what: Log message
         """
         self._time = time
         self._code = code
         self._what = what
 
     def __repr__(self) -> str:
-        return f'Command(time={self._time}, code={self._code}, what={self._what})'
+        return f"Command(time={self._time}, code={self._code}, what={self._what})"
 
     @property
     def time(self) -> float:
@@ -523,9 +533,12 @@ def _mark_line(text: str, line: int) -> str:
         result = []
         result.append(f'{WHAT} = "{self._what}"')
         result += self._code
-        result.append(f'{LOGBOOK} = [{LOGBOOK}; ...')
-        result.append('  "{""what"": \"\"\" + ' + WHAT +
-                      ' + \"\"\", ""severity"": ""info"", ""data"": {}}"]')
+        result.append(f"{LOGBOOK} = [{LOGBOOK}; ...")
+        result.append(
+            '  "{""what"": """ + '
+            + WHAT
+            + ' + """, ""severity"": ""info"", ""data"": {}}"]'
+        )
         return result
 
 
@@ -570,16 +583,17 @@ class AbstractBlock(abc.ABC):
 @dataclass(frozen=True)
 class Device:
     """Wrapper that wraps a Simulink block and electrical interface."""
+
     name: str
     block: AbstractBlock
     interface: pylab.shared.infos.ElectricalInterface
 
     @classmethod
     def from_details(cls, details: DeviceDetails) -> Device:
-        if '.' in details.type:
+        if "." in details.type:
             type_ = utils.module_getattr(details.type)
         else:  # No absolute path specified, use local block module!
-            type_ = utils.module_getattr(BLOCKS + '.' + details.type)
+            type_ = utils.module_getattr(BLOCKS + "." + details.type)
         block = type_(details.name, **details.data)
         return Device(details.name, block, details.interface)
 
@@ -592,8 +606,7 @@ class TestObject(testobject.TestObjectBase):
 
     def __init__(self, details: Details, targets: list[infos.TargetInfo]) -> None:
         super().__init__(
-            [Device.from_details(each) for each in details.devices],
-            details.connections
+            [Device.from_details(each) for each in details.devices], details.connections
         )
         self._targets = targets
 
@@ -621,13 +634,18 @@ class TestObject(testobject.TestObjectBase):
         original ``info``.
         """
         signal = self.get_signal(info.target, info.signal)
-        device = next(each for each in self._devices
-                      if each.name == info.target)
+        device = next(each for each in self._devices if each.name == info.target)
         port = device.interface.get_port(info.signal)
 
-        def transform(value): return utils.transform(port.range.min, port.range.max,
-                                                     signal.range.min, signal.range.max,
-                                                     value)
+        def transform(value):
+            return utils.transform(
+                port.range.min,
+                port.range.max,
+                signal.range.min,
+                signal.range.max,
+                value,
+            )
+
         return _LoggingRequest(info, transform)
 
     def start_logging(self, info: infos.LoggingInfo) -> Command:
@@ -638,15 +656,17 @@ class TestObject(testobject.TestObjectBase):
         gen = self.trace_forward(info.target, info.signal)
         device, port = None, None
         while device is None:
-            device, port = next((device, port) for device, port in gen if hasattr(device.block, 'log_signal'))
+            device, port = next(
+                (device, port)
+                for device, port in gen
+                if hasattr(device.block, "log_signal")
+            )
         var = _unpack_log_entry(info)
         code = device.block.log_signal(var, port.channel, info.period)
         what = str(info)
         return Command(None, code, what)
 
-    def create_command(self,
-                       command_info: infos.CommandInfo,
-                       offset: float) -> Command:
+    def create_command(self, command_info: infos.CommandInfo, offset: float) -> Command:
         """Create pylab command from command info.
 
         Note that the execution time is shifted from local (phase) time
@@ -654,10 +674,10 @@ class TestObject(testobject.TestObjectBase):
         """
         time = command_info.time + offset
 
-        if '.' in command_info.command:
+        if "." in command_info.command:
             factory = utils.module_getattr(command_info.command)
         else:
-            factory = utils.module_getattr(COMMANDS + '.' + command_info.command)
+            factory = utils.module_getattr(COMMANDS + "." + command_info.command)
         code, what = factory(self, command_info, time)
 
         return Command(time, code, what)
@@ -716,22 +736,22 @@ def _mark_line(text: str, line: int) -> str:
     """Mark line `line` in `text` with a marker."""
     if line == 0:
         return MARKER + text
-    index = _find_nth(text, '\n', line-1)
-    return text[:index+1] + MARKER + text[index+1:]
+    index = _find_nth(text, "\n", line - 1)
+    return text[: index + 1] + MARKER + text[index + 1 :]
 
 
 def _load_details(path: str, data: dict) -> Details:
-    device_data = data.get('devices', {})
+    device_data = data.get("devices", {})
     # If this is not available, we're not throwing an error just yet
 
     # If an interface info is a string, use it as a filesystem path to
     # find the file which holds the actual interface info data. If
     # ``data`` is a relative path, view it as relative to ``path``.
     for elem in device_data:
-        inf = elem['interface']
+        inf = elem["interface"]
         if isinstance(inf, str):
             interface_path = loader.find_relative_path(path, inf)
-            elem['interface'] = privateutils.yaml_safe_load_from_file(interface_path)
+            elem["interface"] = privateutils.yaml_safe_load_from_file(interface_path)
     return Details.from_dict(data)
 
 

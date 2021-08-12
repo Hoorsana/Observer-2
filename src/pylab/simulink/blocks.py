@@ -28,8 +28,8 @@ def _random_id() -> str:
     parameter names.
     """
     id_ = str(uuid.uuid4())
-    id_ = id_.replace('-', '_')
-    id_ = 'pylab_' + id_
+    id_ = id_.replace("-", "_")
+    id_ = "pylab_" + id_
     return id_
 
 
@@ -52,11 +52,13 @@ class AbstractBlock(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def set_signal_ramp(self,
-                        channel: str,
-                        slope: ArrayLike,
-                        start_time: ArrayLike,
-                        initial_output: ArrayLike) -> list[str]:
+    def set_signal_ramp(
+        self,
+        channel: str,
+        slope: ArrayLike,
+        start_time: ArrayLike,
+        initial_output: ArrayLike,
+    ) -> list[str]:
         """Return code snippet for setting the output of ``channel`` to
         a ramp.
 
@@ -72,12 +74,14 @@ class AbstractBlock(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def set_signal_sine(self,
-                        channel: str,
-                        amplitude: ArrayLike,
-                        frequency: ArrayLike,
-                        phase: Optional[ArrayLike] = 0.0,
-                        bias: Optional[ArrayLike] = 0.0) -> list[str]:
+    def set_signal_sine(
+        self,
+        channel: str,
+        amplitude: ArrayLike,
+        frequency: ArrayLike,
+        phase: Optional[ArrayLike] = 0.0,
+        bias: Optional[ArrayLike] = 0.0,
+    ) -> list[str]:
         """Return the code snippet for setting the output of ``channel``
         to a sine wave.
 
@@ -94,10 +98,9 @@ class AbstractBlock(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def log_signal(self,
-                   var: str,
-                   channel: str,
-                   period: Optional[float] = None) -> list[str]:
+    def log_signal(
+        self, var: str, channel: str, period: Optional[float] = None
+    ) -> list[str]:
         """Return the code snippet for logging ``channel``.
 
         Args:
@@ -133,7 +136,7 @@ class Block(simulink.AbstractBlock):
 
     @property
     def absolute_path(self):
-        return simulink.SYSTEM + '/' + self._name
+        return simulink.SYSTEM + "/" + self._name
 
     def setup(self) -> list[str]:
         return [f"add_block('{self._type}', '{self.absolute_path}')"]
@@ -165,10 +168,9 @@ class Model(Block):
       for details.
     """
 
-    def __init__(self,
-                 name: str,
-                 filename: str,
-                 params: Optional[dict[str, str]] = None):
+    def __init__(
+        self, name: str, filename: str, params: Optional[dict[str, str]] = None
+    ):
         """Initialize the referenced model.
 
         Args:
@@ -179,7 +181,7 @@ class Model(Block):
         All instance parameters of the referenced model _must_ occur in
         `params`. Failing to specify a parameter is undefined behavior.
         """
-        super().__init__(name, 'simulink/Ports & Subsystems/Model')
+        super().__init__(name, "simulink/Ports & Subsystems/Model")
         self._filename = filename
         if params is None:
             self._params = {}
@@ -189,7 +191,8 @@ class Model(Block):
     def setup(self) -> list[str]:
         result = super().setup()
         result.append(
-            f"set_param('{self.absolute_path}', 'ModelFile', '{self._filename}')")
+            f"set_param('{self.absolute_path}', 'ModelFile', '{self._filename}')"
+        )
 
         # NOTE We need to set all params at the same time; otherwise,
         # the `inst_spec_params` struct contains invalid values.
@@ -205,21 +208,29 @@ class Model(Block):
     def _update_params(self) -> list[str]:
         # Return code snippet for updating Simulink instance parameters
         # according to ``self._params``.
-        inst_spec_params = 'PYLAB_INST_SPEC_PARAMS'
-        keys = 'PYLAB_KEYS'
-        values = 'PYLAB_VALUES'
-        map_ = 'PYLAB_MAP'
+        inst_spec_params = "PYLAB_INST_SPEC_PARAMS"
+        keys = "PYLAB_KEYS"
+        values = "PYLAB_VALUES"
+        map_ = "PYLAB_MAP"
 
         result = []
-        result.append(f"{inst_spec_params} = get_param('{self.absolute_path}', 'InstanceParameters')")  # noqa: E501
+        result.append(
+            f"{inst_spec_params} = get_param('{self.absolute_path}', 'InstanceParameters')"
+        )  # noqa: E501
         # We're using json.dumps to get double quotes!
         result.append(f"{keys} = {json.dumps(list(self._params.keys()))}")
-        result.append(f"{values} = {json.dumps([str(each) for each in self._params.values()])}")  # noqa: E501
+        result.append(
+            f"{values} = {json.dumps([str(each) for each in self._params.values()])}"
+        )  # noqa: E501
         result.append(f"{map_} = containers.Map({keys}, {values})")
         result.append(f"for i = 1:length({inst_spec_params})")
-        result.append(f"  {inst_spec_params}(i).Value = {map_}({inst_spec_params}(i).Name)")  # noqa: E501
+        result.append(
+            f"  {inst_spec_params}(i).Value = {map_}({inst_spec_params}(i).Name)"
+        )  # noqa: E501
         result.append(f"end")  # noqa: F541
-        result.append(f"set_param('{self.absolute_path}', 'InstanceParameters', {inst_spec_params})")  # noqa: E501
+        result.append(
+            f"set_param('{self.absolute_path}', 'InstanceParameters', {inst_spec_params})"
+        )  # noqa: E501
 
         return result
 
@@ -228,58 +239,69 @@ class MiniGenerator(Model):
     """Lightweight signal generator class with one output."""
 
     def __init__(self, name: str):
-        super().__init__(name, 'pylab_mini_generator.slx',
-                         {'constant_value': 0.0, 'amplitude': 1.0, 'bias': 0.0,
-                          'frequency': 1.0, 'phase': 0.0, 'slope': 1.0,
-                          'start_time': 0.0, 'initial_output': 0.0, 'step_time': 0.0,
-                          'initial_value': 0.0, 'final_value': 1.0, 'selection': 3})
+        super().__init__(
+            name,
+            "pylab_mini_generator.slx",
+            {
+                "constant_value": 0.0,
+                "amplitude": 1.0,
+                "bias": 0.0,
+                "frequency": 1.0,
+                "phase": 0.0,
+                "slope": 1.0,
+                "start_time": 0.0,
+                "initial_output": 0.0,
+                "step_time": 0.0,
+                "initial_value": 0.0,
+                "final_value": 1.0,
+                "selection": 3,
+            },
+        )
 
     def set_signal(self, channel: Union[str, int], value: ArrayLike) -> list[str]:
-        assert channel in {1, '1'}
+        assert channel in {1, "1"}
         result = []
-        result += self.set_param('selection', 3)
-        result += self.set_param('constant_value', value)
+        result += self.set_param("selection", 3)
+        result += self.set_param("constant_value", value)
         return result
 
-    def set_signal_ramp(self,
-                        channel: str,
-                        slope: float,
-                        start_time: float,
-                        initial_output: float) -> list[str]:
-        assert channel in {1, '1'}
+    def set_signal_ramp(
+        self, channel: str, slope: float, start_time: float, initial_output: float
+    ) -> list[str]:
+        assert channel in {1, "1"}
         result = []
-        result += self.set_param('selection', 1)
-        result += self.set_param('slope', slope)
-        result += self.set_param('start_time', start_time)
-        result += self.set_param('initial_output', initial_output)
+        result += self.set_param("selection", 1)
+        result += self.set_param("slope", slope)
+        result += self.set_param("start_time", start_time)
+        result += self.set_param("initial_output", initial_output)
         return result
 
-    def set_signal_sine(self,
-                        channel: str,
-                        amplitude: float,
-                        frequency: float,
-                        phase: Optional[float] = 0.0,
-                        bias: Optional[float] = 0.0) -> list[str]:
-        assert channel in {1, '1'}
+    def set_signal_sine(
+        self,
+        channel: str,
+        amplitude: float,
+        frequency: float,
+        phase: Optional[float] = 0.0,
+        bias: Optional[float] = 0.0,
+    ) -> list[str]:
+        assert channel in {1, "1"}
         result = []
-        result += self.set_param('selection', 0)
-        result += self.set_param('amplitude', amplitude)
-        result += self.set_param('bias', bias)
-        result += self.set_param('frequency', frequency)
-        result += self.set_param('phase', phase)
+        result += self.set_param("selection", 0)
+        result += self.set_param("amplitude", amplitude)
+        result += self.set_param("bias", bias)
+        result += self.set_param("frequency", frequency)
+        result += self.set_param("phase", phase)
         return result
 
-    def set_signal_step(self,
-                        channel: str,
-                        step_time: float,
-                        initial_value: float,
-                        final_value: float) -> list[str]:
-        assert channel in {1, '1'}
+    def set_signal_step(
+        self, channel: str, step_time: float, initial_value: float, final_value: float
+    ) -> list[str]:
+        assert channel in {1, "1"}
         result = []
-        result += self.set_param('selection', 2)
-        result += self.set_param('step_time', step_time)
-        result += self.set_param('initial_value', initial_value)
-        result += self.set_param('final_value', final_value)
+        result += self.set_param("selection", 2)
+        result += self.set_param("step_time", step_time)
+        result += self.set_param("initial_value", initial_value)
+        result += self.set_param("final_value", final_value)
         return result
 
 
@@ -287,7 +309,7 @@ class MiniLogger(Block):
     """Lightweight logger block with one input."""
 
     def __init__(self, name):
-        super().__init__(name, 'simulink/Sinks/To Workspace')
+        super().__init__(name, "simulink/Sinks/To Workspace")
 
     def setup(self):
         result = super().setup()
@@ -299,41 +321,40 @@ class MiniLogger(Block):
         # not connected to another device. Thus, two or more unconnected
         # ``MiniLogger`` blocks will have the same ``VariableName``,
         # resulting in a MATLAB/Simulink error.
-        result.append(f"set_param('{self.absolute_path}', 'VariableName', '{_random_id()}')")
+        result.append(
+            f"set_param('{self.absolute_path}', 'VariableName', '{_random_id()}')"
+        )
         return result
 
-    def log_signal(self,
-                   var: str,
-                   channel: str,
-                   period: Optional[float] = None) -> list[str]:
-        assert channel in {1, '1'}
+    def log_signal(
+        self, var: str, channel: str, period: Optional[float] = None
+    ) -> list[str]:
+        assert channel in {1, "1"}
         result = []
         if period is not None:
             result.append(
-                f"set_param('{self.absolute_path}', 'SampleTime', '[{period} 0.0]')")
-        result.append(
-            f"set_param('{self.absolute_path}', 'VariableName', '{var}')")
+                f"set_param('{self.absolute_path}', 'SampleTime', '[{period} 0.0]')"
+            )
+        result.append(f"set_param('{self.absolute_path}', 'VariableName', '{var}')")
         return result
 
 
 class Subsystem(Block):
-
-    def __init__(self,
-                 name: str,
-                 blocks: dict[str, str],
-                 lines: list[tuple[str, str]]) -> None:
+    def __init__(
+        self, name: str, blocks: dict[str, str], lines: list[tuple[str, str]]
+    ) -> None:
         """Args:
-            name: The block name
-            blocks:
-                The subsystem's blocks, specified in the following
-                format: ``{name: type, ...}``
-            lines:
-                The subsystems's lines (connections), specified in the
-                following format:
-                ``[('src_name/src_port', 'dst_name/dst_port')]``
+        name: The block name
+        blocks:
+            The subsystem's blocks, specified in the following
+            format: ``{name: type, ...}``
+        lines:
+            The subsystems's lines (connections), specified in the
+            following format:
+            ``[('src_name/src_port', 'dst_name/dst_port')]``
 
         """
-        super().__init__(name, 'simulink/Ports & Subsystems/Subsystem')
+        super().__init__(name, "simulink/Ports & Subsystems/Subsystem")
         self._blocks = blocks
         self._lines = lines
 
@@ -355,9 +376,12 @@ class PassthruLogger(Subsystem):
     def __init__(self, name):
         super().__init__(
             name,
-            {'in': 'simulink/Sources/In1', 'out': 'simulink/Sinks/Out1',
-             'to_workspace': 'simulink/Sinks/To Workspace'},
-            [('in/1', 'out/1'), ('in/1', 'to_workspace/1')]
+            {
+                "in": "simulink/Sources/In1",
+                "out": "simulink/Sinks/Out1",
+                "to_workspace": "simulink/Sinks/To Workspace",
+            },
+            [("in/1", "out/1"), ("in/1", "to_workspace/1")],
         )
 
     def setup(self) -> list[str]:
@@ -365,14 +389,16 @@ class PassthruLogger(Subsystem):
         # Use ``_random_id`` to avoid collisions between two or more
         # blocks that use the To Workspace block. See
         # ``MiniLogger.setup`` for details.
-        path = self.absolute_path + '/to_workspace'
+        path = self.absolute_path + "/to_workspace"
         result.append(f"set_param('{path}', 'VariableName', '{_random_id()}')")
         return result
 
-    def log_signal(self, var: str, channel: str, period: Optional[float] = None) -> list[str]:
-        assert channel in {1, '1'}
+    def log_signal(
+        self, var: str, channel: str, period: Optional[float] = None
+    ) -> list[str]:
+        assert channel in {1, "1"}
         result = []
-        path = self.absolute_path + '/to_workspace'
+        path = self.absolute_path + "/to_workspace"
         result.append(f"set_param('{path}', 'VariableName', '{var}')")
         if period is not None:
             result.append(f"set_param('{path}', 'SampleTime', '[{period} 0.0]')")

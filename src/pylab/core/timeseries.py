@@ -26,10 +26,9 @@ from pylab.tools import yamltools
 class TimeSeries:
     """Utility class that maps time to values using interpolation."""
 
-    def __init__(self,
-                 time: Sequence[float],
-                 values: Sequence[ArrayLike],
-                 kind: str = 'previous') -> None:
+    def __init__(
+        self, time: Sequence[float], values: Sequence[ArrayLike], kind: str = "previous"
+    ) -> None:
         """Init time series from time and value sequences.
 
         Args:
@@ -42,9 +41,9 @@ class TimeSeries:
         """
         if len(time) != len(values):
             raise ValueError(
-                'failed to init TimeSeries: len(time) != len(values). '
-                'The pylab API states: time and values must always have'
-                ' the same length.'  # TODO Add reference to spec
+                "failed to init TimeSeries: len(time) != len(values). "
+                "The pylab API states: time and values must always have"
+                " the same length."  # TODO Add reference to spec
             )
         self._time = np.array(time)
         self._values = np.array(values)
@@ -102,9 +101,8 @@ class TimeSeries:
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, TimeSeries):
             return False
-        return (
-            np.array_equal(self._time, other._time)
-            and np.array_equal(self._values, other._values)
+        return np.array_equal(self._time, other._time) and np.array_equal(
+            self._values, other._values
         )
 
     def __sub__(self, other: TimeSeries) -> TimeSeries:
@@ -157,9 +155,14 @@ class TimeSeries:
 
     def _interpolate(self) -> None:
         self._f = scipy.interpolate.interp1d(
-            self._time, self._values, axis=0, copy=True,
-            bounds_error=False, fill_value='extrapolate',
-            kind=self._kind)
+            self._time,
+            self._values,
+            axis=0,
+            copy=True,
+            bounds_error=False,
+            fill_value="extrapolate",
+            kind=self._kind,
+        )
 
 
 def pretty_print(ts: timeseries.TimeSeries, file=sys.stdout) -> str:
@@ -172,8 +175,9 @@ def pretty_print(ts: timeseries.TimeSeries, file=sys.stdout) -> str:
     Requires tabulate>=0.8.9.
     """
     from tabulate import tabulate
+
     data = zip(ts.time, ts.values)
-    print(tabulate(data, headers=['Time', 'Values']), file=file)
+    print(tabulate(data, headers=["Time", "Values"]), file=file)
 
 
 def _subdivision(ts: TimeSeries, time: list[float]) -> TimeSeries:
@@ -199,9 +203,9 @@ def zeros(time: list[float], shape: tuple[int, ...]) -> TimeSeries:
     return TimeSeries(time, [np.zeros(shape), np.zeros(shape)])
 
 
-def l2norm(ts: TimeSeries,
-           lower: Optional[float] = None,
-           upper: Optional[float] = None) -> ArrayLike:
+def l2norm(
+    ts: TimeSeries, lower: Optional[float] = None, upper: Optional[float] = None
+) -> ArrayLike:
     """Return the L^2 norm of ``ts``.
 
     If ``lower`` or ``upper`` are specified, the time series is
@@ -217,10 +221,12 @@ def l2norm(ts: TimeSeries,
     return np.linalg.norm(vec)
 
 
-def l2distance(lhs: TimeSeries,
-               rhs: TimeSeries,
-               lower: Optional[float] = None,
-               upper: Optional[float] = None) -> ArrayLike:
+def l2distance(
+    lhs: TimeSeries,
+    rhs: TimeSeries,
+    lower: Optional[float] = None,
+    upper: Optional[float] = None,
+) -> ArrayLike:
     """Return the :math:`L^2` distance between two timeseries.
 
     If ``lower`` or ``upper`` are specified, the time series is
@@ -233,17 +239,20 @@ def l2distance(lhs: TimeSeries,
 
     def diff(t: float) -> ArrayLike:
         return np.absolute(rhs(t) - lhs(t))
+
     result = scipy.integrate.quad_vec(diff, lower, upper)
     vec = result[0]
     return np.linalg.norm(vec)
 
 
-def assert_almost_everywhere_close(actual: TimeSeries,
-                                   expected: TimeSeries,
-                                   lower: float = None,
-                                   upper: float = None,
-                                   rtol: float = 1e-07,
-                                   atol: float = 1e-07) -> None:
+def assert_almost_everywhere_close(
+    actual: TimeSeries,
+    expected: TimeSeries,
+    lower: float = None,
+    upper: float = None,
+    rtol: float = 1e-07,
+    atol: float = 1e-07,
+) -> None:
     """Raise an ``AssertionError`` if two time series are not equal up
     to tolerance in :math:`L^2` space.
 
@@ -254,7 +263,7 @@ def assert_almost_everywhere_close(actual: TimeSeries,
     time series:
 
     .. math::
-        \\int_{\\textrm{lower}}^{\\textrm{upper}} |f - g| \\, dt 
+        \\int_{\\textrm{lower}}^{\\textrm{upper}} |f - g| \\, dt
         <
         \\textrm{rtol} \\cdot \\int_{\\textrm{lower}}^{\\text{upper}} |f| \\, dt + \\textrm{atol}
 
@@ -273,9 +282,10 @@ def assert_almost_everywhere_close(actual: TimeSeries,
     # deviation.
 
     raise AssertionError(
-        f'Time series not almost everywhere close '
-        f'(rtol={rtol}, atol={atol}):\n'
-        f'\n'
-        f'actual   = {actual}\n\n'
-        f'expected = {expected}\n\n'
-        f'dist     = {dist}')
+        f"Time series not almost everywhere close "
+        f"(rtol={rtol}, atol={atol}):\n"
+        f"\n"
+        f"actual   = {actual}\n\n"
+        f"expected = {expected}\n\n"
+        f"dist     = {dist}"
+    )

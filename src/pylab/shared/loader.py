@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
-# 
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ def find_relative_path(root: str, path: PathLike) -> str:
     if posixpath.isabs(path):
         if posixpath.exists(path):
             return path
-        raise ValueError(f'File {path} not found')
+        raise ValueError(f"File {path} not found")
 
     paths = [posixpath.join(posixpath.dirname(root), path)]  # Candidates for path.
     for each in paths:
@@ -40,4 +40,4 @@ def find_relative_path(root: str, path: PathLike) -> str:
             return each
 
     # If no candidates check out, throw an error.
-    raise ValueError(f'File {path} not found')
+    raise ValueError(f"File {path} not found")

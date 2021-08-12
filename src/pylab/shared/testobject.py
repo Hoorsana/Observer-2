@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
-# 
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -8,7 +8,6 @@ import abc
 
 
 class Port(abc.ABC):
-
     @property
     @abc.abstractmethod
     def signal(self) -> str:
@@ -21,7 +20,6 @@ class Port(abc.ABC):
 
 
 class Device(abc.ABC):
-
     @property
     @abc.abstractmethod
     def name(self) -> str:
@@ -39,7 +37,6 @@ class Device(abc.ABC):
 
 
 class Connection(abc.ABC):
-
     @property
     @abc.abstractmethod
     def sender(self) -> str:
@@ -68,8 +65,8 @@ class TestObjectBase:
 
     def __init__(self, devices: list[Device], connections: list[Connections]) -> None:
         """Args:
-            devices: The devices in the test setup
-            connections: The devices between the connections
+        devices: The devices in the test setup
+        connections: The devices between the connections
         """
         self._devices = devices
         self._connections = connections

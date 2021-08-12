@@ -163,19 +163,19 @@ def details():
                         sharedinfos.PortInfo(
                             'val1',
                             'A0',
-                            min=0, max=100,
+                            range=infos.RangeInfo(min=0, max=100),
                             flags=['input', 'analog']
                         ),
                         sharedinfos.PortInfo(
                             'val2',
                             'A1',
-                            min=0, max=100,
+                            range=infos.RangeInfo(min=0, max=100),
                             flags=['input', 'analog']
                         ),
                         sharedinfos.PortInfo(
                             'sum',
                             'DAC0',
-                            min=0, max=200,
+                            range=infos.RangeInfo(min=0, max=200),
                             flags=['output', 'analog']
                         ),
                     ]
@@ -201,19 +201,19 @@ def details():
                         sharedinfos.PortInfo(
                             'out1',
                             'DAC0',
-                            min=0, max=100,
+                            range=infos.RangeInfo(min=0, max=100),
                             flags=['output', 'analog'],
                         ),
                         sharedinfos.PortInfo(
                             'out2',
                             'DAC1',
-                            min=0, max=100,
+                            range=infos.RangeInfo(min=0, max=100),
                             flags=['output', 'analog'],
                         ),
                         sharedinfos.PortInfo(
                             'sum',
                             'A0',
-                            min=0, max=200,
+                            range=infos.RangeInfo(min=0, max=200),
                             flags=['input', 'analog']
                         ),
                     ]

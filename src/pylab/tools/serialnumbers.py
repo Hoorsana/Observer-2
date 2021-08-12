@@ -5,9 +5,9 @@
 import serial.tools.list_ports
 
 
-def create_serial_device_from_serial_number(serial_number: str,
-                                            **kwargs
-                                           ) -> serial.Serial:
+def create_serial_device_from_serial_number(
+    serial_number: str, **kwargs
+) -> serial.Serial:
     port = get_address_from_serial_number(serial_number)
     ser = serial.Serial(port=port, **kwargs)
     return ser

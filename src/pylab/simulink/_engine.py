@@ -39,6 +39,7 @@ class MonkeypatchPythonVersion:
     monkeypatching sys.version_info if the current python version is not
     supported by MATLAB.
     """
+
     PYTHON_VERSION_FOR_MATLAB_ENGINE = (3, 7)
 
     def __enter__(self):
@@ -52,11 +53,11 @@ class MonkeypatchPythonVersion:
 
 def import_matlab_engine():
     try:
-        return importlib.import_module('matlab.engine')
+        return importlib.import_module("matlab.engine")
     except OSError as e:
         try:
             with MonkeypatchPythonVersion():
-                return importlib.import_module('matlab.engine')
+                return importlib.import_module("matlab.engine")
         except OSError:
             raise EnvironmentError from e
 
@@ -94,20 +95,21 @@ def get_field(handle: float, field: str) -> Any:
     """Return the value of the field ``field`` of the MATLAB object
     ``handle``.
     """
-    return engine().subsref(handle, {'type': '.', 'subs': field})
+    return engine().subsref(handle, {"type": ".", "subs": field})
 
 
 def timeseries_to_python(ts: matlab.object) -> timeseries.TimeSeries:
     """Convert MATLAB timeseries object ``ts`` to a pylab TimeSeries
     object.
     """
-    time = get_field(ts, 'time')  # [[0.0], [1.0], ...]
-    data = get_field(ts, 'data')
+    time = get_field(ts, "time")  # [[0.0], [1.0], ...]
+    data = get_field(ts, "data")
     return _timeseries_to_python(time, data)
 
 
-def _timeseries_to_python(time: Sequence[Sequence[float]],
-                          data: Sequence[ArrayLike]) -> timeseries.TimeSeries:
+def _timeseries_to_python(
+    time: Sequence[Sequence[float]], data: Sequence[ArrayLike]
+) -> timeseries.TimeSeries:
     """Convert ``time``, ``data`` sequences to a pylab TimeSeries object.
 
     ``time`` and ``data`` are expected to be in the shape in which they
@@ -142,7 +144,7 @@ def _timeseries_to_python(time: Sequence[Sequence[float]],
             reordered.append(elem)
         return timeseries.TimeSeries(time, reordered)
 
-    raise ValueError('failed to discover data type of MATLAB object')
+    raise ValueError("failed to discover data type of MATLAB object")
 
 
 def _check_methods(cls, *args):
@@ -170,8 +172,15 @@ class _Sequence(abc.ABC):
     def __subclasshook__(cls, subclass):
         if cls is _Sequence:
             return _check_methods(
-                subclass, '__getitem__', '__len__', '__contains__',
-                '__iter__', '__reversed__', 'index', 'count')
+                subclass,
+                "__getitem__",
+                "__len__",
+                "__contains__",
+                "__iter__",
+                "__reversed__",
+                "index",
+                "count",
+            )
         return NotImplemented
 
 

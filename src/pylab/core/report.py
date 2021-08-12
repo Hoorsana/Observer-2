@@ -13,7 +13,6 @@ from typing import Any, Optional
 
 @functools.total_ordering
 class _Severity:
-
     def __init__(self, text: str, value: int) -> None:
         self._text = text
         self._value = value
@@ -27,10 +26,10 @@ class _Severity:
         return self._value < other._value
 
 
-INFO = _Severity('INFO', 0)
-WARNING = _Severity('WARNING', 1)
-FAILED = _Severity('FAILED', 2)
-PANIC = _Severity('PANIC', 3)
+INFO = _Severity("INFO", 0)
+WARNING = _Severity("WARNING", 1)
+FAILED = _Severity("FAILED", 2)
+PANIC = _Severity("PANIC", 3)
 
 
 # FIXME Do error reporting using a global logger object. That makes it
@@ -46,7 +45,7 @@ class LogEntry:
     data: Optional[dict[str, Any]] = dataclasses.field(default_factory=dict)
 
     def __str__(self):
-        return f'{self.severity}: {self.what}; {self.data}'
+        return f"{self.severity}: {self.what}; {self.data}"
 
     @property
     def failed(self):
@@ -54,7 +53,7 @@ class LogEntry:
 
     @property
     def msg(self):  # TODO Rename?
-        return f'{self.severity}: {self.what}; {self.data}'
+        return f"{self.severity}: {self.what}; {self.data}"
 
     def expect(self, severity: _Severity = INFO) -> None:
         """Raise an assertion error if the severity is not as expected.
@@ -63,7 +62,9 @@ class LogEntry:
             severity: The expected severity
         """
         if self.severity != severity:
-            raise AssertionError(f'Log has severity "{self.severity}", expected severity "{severity}". Logbook: {self.what}')
+            raise AssertionError(
+                f'Log has severity "{self.severity}", expected severity "{severity}". Logbook: {self.what}'
+            )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -74,6 +75,7 @@ class Report:
         failed: True if the execution of the test failed
         what: A complete log of the test
     """
+
     logbook: list[LogEntry]  # Contains everything that happened during the test.
     results: dict[str, Any] = dataclasses.field(default_factory=dict)
     data: Optional[dict[str, Any]] = dataclasses.field(default_factory=dict)
@@ -85,9 +87,11 @@ class Report:
 
     @property
     def what(self) -> str:
-        result = '\n'.join(each.msg for each in self.logbook)
+        result = "\n".join(each.msg for each in self.logbook)
         if self.data:
-            result += '\n\nDATA:\n\n' + '\t\n'.join(f'{k}: {str(v)}' for k, v in self.data.items())
+            result += "\n\nDATA:\n\n" + "\t\n".join(
+                f"{k}: {str(v)}" for k, v in self.data.items()
+            )
         return result
 
     def dump(self, PathLike: str) -> None:
@@ -100,7 +104,7 @@ class Report:
             OSError: If writing to ``path`` fails
         """
         data = self.serialize()
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             f.write(data)
 
     def dump_log(self, PathLike: str) -> None:
@@ -112,7 +116,7 @@ class Report:
         Raises:
             OSError: If writing to ``path`` fails
         """
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(self.what)
 
     def serialize(self) -> bytes:
@@ -120,5 +124,5 @@ class Report:
 
 
 def load(path: PathLike) -> Report:
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         return pickle.load(f)

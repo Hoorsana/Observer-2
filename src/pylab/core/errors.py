@@ -11,4 +11,5 @@ class PylabError(Exception):
 
 class LogicError(PylabError):
     """Raised if driver logic is violated."""
+
     pass

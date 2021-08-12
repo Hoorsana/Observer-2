@@ -77,14 +77,15 @@ class CommandInfo:
         data: Arguments passed to the initializer of the command
         description: For documentation purposes
     """
+
     time: float
     command: str
     target: str  # Name of the targeted physical device.
     # Data that may depend on the type of command, like signal, value, etc.
     data: Dict[str, Any] = pydantic.Field(default_factory=dict)
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
-    @pydantic.validator('time', allow_reuse=True)
+    @pydantic.validator("time", allow_reuse=True)
     @classmethod
     def time_must_be_positive(cls, v: float) -> float:
         if v < 0:
@@ -106,31 +107,31 @@ class PhaseInfo:
 
     Note that ``commands`` need not be ordered by time of execution.
     """
+
     duration: float
     commands: List[CommandInfo] = pydantic.Field(default_factory=list)
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
-    @pydantic.validator('duration', allow_reuse=True)
+    @pydantic.validator("duration", allow_reuse=True)
     @classmethod
     def _duration_must_be_positive(cls, v: float) -> float:
         if v < 0:
             raise NegativeTimeError(
-                f'Invalid PhaseInfo: duration {v} is negative. The specification states: '
-                '"`duration` **must** be a ' 'non-negative float"'
+                f"Invalid PhaseInfo: duration {v} is negative. The specification states: "
+                '"`duration` **must** be a '
+                'non-negative float"'
             )
         return v
 
-    @pydantic.validator('commands', each_item=True, allow_reuse=True)
+    @pydantic.validator("commands", each_item=True, allow_reuse=True)
     @classmethod
     def _command_time_must_not_exceed_duration(
-        cls,
-        v: CommandInfo,
-        values
+        cls, v: CommandInfo, values
     ) -> CommandInfo:
-        duration = values['duration']
+        duration = values["duration"]
         if v.time > duration:
             raise CommandTooLateError(
-                f'Invalid PhaseInfo: CommandInfo execution time {v.time} exceeds PhaseInfo '
+                f"Invalid PhaseInfo: CommandInfo execution time {v.time} exceeds PhaseInfo "
                 f'duration {duration}. The specification states: "For each `item in commands`, '
                 'the following **must** hold: `duration > item.time`"'
             )
@@ -155,41 +156,52 @@ class LoggingInfo:
     ``quadratic``, ``cubic``, ``previous``, ``next`` and will have the
     same meaning.
     """
+
     target: str
     signal: str
     period: Optional[float] = None
-    kind: str = 'previous'
-    description: Optional[str] = ''
+    kind: str = "previous"
+    description: Optional[str] = ""
 
-    @pydantic.validator('period')
+    @pydantic.validator("period")
     @classmethod
     def _period_must_be_positive_or_none(cls, v):
         if v is None:
             return None
         if v <= 0.0:
             raise NonPositivePeriodError(
-                f'Invalid LoggingInfo: period is {v}. The '
+                f"Invalid LoggingInfo: period is {v}. The "
                 'specification states: "`period` **must** be `None` or '
-                ' a positive `float`"')
+                ' a positive `float`"'
+            )
         return v
 
-    @pydantic.validator('kind')
+    @pydantic.validator("kind")
     @classmethod
     def _kind_must_be_valid(cls, v):
-        if v not in {'linear', 'nearest', 'nearest-up',
-                             'zero', 'slinear', 'quadratic', 'cubic', 'previous', 'next'}:
+        if v not in {
+            "linear",
+            "nearest",
+            "nearest-up",
+            "zero",
+            "slinear",
+            "quadratic",
+            "cubic",
+            "previous",
+            "next",
+        }:
             raise InvalidKindError(
                 f'Invalid LoggingInfo: kind "{v}" is not valid. The specification states: "`kind` '
-                '**must** be any value allowed by the documentation '
-                '(https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) '
-                'of `scipy.interpolate.interp1d` from scipy 1.6.0: `\'linear\'`, `\'nearest\'`, '
-                '`\'nearest-up\'`, `\'zero\'`, `\'slinear\'`, `\'quadratic\'`, `\'cubic\'`, '
-                '`\'previous\'`"'
+                "**must** be any value allowed by the documentation "
+                "(https://docs.scipy.org/doc/scipy-1.6.0/reference/generated/scipy.interpolate.interp1d.html#scipy.interpolate.interp1d) "
+                "of `scipy.interpolate.interp1d` from scipy 1.6.0: `'linear'`, `'nearest'`, "
+                "`'nearest-up'`, `'zero'`, `'slinear'`, `'quadratic'`, `'cubic'`, "
+                "`'previous'`\""
             )
         return v
 
     def full_name(self) -> str:
-        return f'{self.target}.{self.signal}'
+        return f"{self.target}.{self.signal}"
 
 
 @pydantic.dataclasses.dataclass(frozen=True)
@@ -197,14 +209,15 @@ class RangeInfo:
     min: float
     max: float
 
-    @pydantic.validator('max')
+    @pydantic.validator("max")
     @classmethod
     def _max_must_be_larger_than_min(cls, v, values):
-        min_ = values['min']
+        min_ = values["min"]
         if min_ > v:
             raise InfoError(
-                f'Invalid SignalInfo: min {min_} exceeds max {v}. The specification states: '
-                '"`min <= max` **must** hold"')
+                f"Invalid SignalInfo: min {min_} exceeds max {v}. The specification states: "
+                '"`min <= max` **must** hold"'
+            )
         return v
 
 
@@ -229,13 +242,14 @@ class SignalInfo:
     ``min`` and ``max``. Otherwise, ``__init__`` will raise a
     ``ValueError``.
     """
+
     name: str
     range: RangeInfo = None
     # unit: Optional[Any] = ''  # FIXME Currently not implemented
     flags: List[str] = pydantic.Field(default_factory=list)
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
-    @pydantic.validator('name', allow_reuse=True)
+    @pydantic.validator("name", allow_reuse=True)
     @classmethod
     def _id_must_be_valid(cls, v: str) -> str:
         if not utils.is_valid_id(v):
@@ -254,11 +268,12 @@ class TargetInfo:
         name: id of the target
         signals: The signals that the target exposes
     """
+
     name: str
     signals: List[SignalInfo]
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
-    @pydantic.validator('name', allow_reuse=True)
+    @pydantic.validator("name", allow_reuse=True)
     @classmethod
     def _id_must_be_valid(cls, v: str) -> str:
         if not utils.is_valid_id(v):
@@ -268,7 +283,7 @@ class TargetInfo:
             )
         return v
 
-    @pydantic.validator('signals')
+    @pydantic.validator("signals")
     @classmethod
     def _signal_ids_must_be_unique(cls, v):
         seen = set()
@@ -277,7 +292,8 @@ class TargetInfo:
                 raise DuplicateIdError(
                     f'Invalid TargetInfo: Found two signals with the same name "{elem.name}". The '
                     'specification states: "No two elements of `signals` **must** have the same '
-                    'name"')
+                    'name"'
+                )
             seen.add(elem.name)
         return v
 
@@ -285,14 +301,16 @@ class TargetInfo:
     def from_dict(cls, data: dict) -> TargetInfo:
         try:
             utils.assert_keys(
-                data, {'name'}, {'signals', 'description'},
-                'Error when loading TargetInfo: '
+                data,
+                {"name"},
+                {"signals", "description"},
+                "Error when loading TargetInfo: ",
             )
         except AssertionError as e:
             raise InfoError from e
-        name = data['name']
-        signals = [SignalInfo(**each) for each in data.get('signals', [])]
-        description = data.get('description', '')
+        name = data["name"]
+        signals = [SignalInfo(**each) for each in data.get("signals", [])]
+        description = data.get("description", "")
         return TargetInfo(name, signals, description)
 
 
@@ -306,12 +324,13 @@ class TestInfo:
         phases: Infos on the phases of the test
         description: A detailed description of the test
     """
+
     targets: List[TargetInfo]
     logging: List[LoggingInfo]
     phases: List[PhaseInfo]
-    description: Optional[str] = ''
+    description: Optional[str] = ""
 
-    @pydantic.validator('targets')
+    @pydantic.validator("targets")
     @classmethod
     def _target_ids_must_be_unique(cls, v):
         seen = set()
@@ -320,46 +339,45 @@ class TestInfo:
                 raise DuplicateIdError(
                     f'Invalid TestInfo: Found two targets with the same name: "{elem.name}". The '
                     'pylab specification states: "All members of `targets` **must** have a unique '
-                    'name"')
+                    'name"'
+                )
             seen.add(elem.name)
         return v
 
-    @pydantic.validator('logging', each_item=True)
+    @pydantic.validator("logging", each_item=True)
     @classmethod
     def _request_target_must_exist(cls, v, values):
         seen = set()
-        targets = values['targets']
+        targets = values["targets"]
         try:
-            target = next(
-                elem for elem in targets if v.target == elem.name)
+            target = next(elem for elem in targets if v.target == elem.name)
         except StopIteration:
             raise NoSuchTarget(
                 f'Invalid TestInfo: Found no target for logging request "{v.target}". The pylab '
                 'specification states: "For each `item` in `logging` the following **must** hold: '
-                'There exists _exactly one_ `target` in `targets` with the following properties: '
+                "There exists _exactly one_ `target` in `targets` with the following properties: "
                 '`item.target == target.name`"'
             )
         return v
 
-    @pydantic.validator('logging', each_item=True)
+    @pydantic.validator("logging", each_item=True)
     @classmethod
     def _request_signal_must_exist(cls, v, values):
-        targets = values['targets']
+        targets = values["targets"]
         target = next(elem for elem in targets if v.target == elem.name)
         try:
-            signal = next(
-                elem for elem in target.signals if v.signal == elem.name)
+            signal = next(elem for elem in target.signals if v.signal == elem.name)
         except StopIteration:
             raise NoSuchSignal(
                 f'Invalid TestInfo: Signal "{v.signal}" for logging request "{v.name}" not found. '
                 'The pylab specification states: "For each `item` in `logging` the following '
-                '**must** hold: There exists _exactly one_ `target` in `targets` with the '
-                'following properties: There exists `signal` in `target.signals` so that '
+                "**must** hold: There exists _exactly one_ `target` in `targets` with the "
+                "following properties: There exists `signal` in `target.signals` so that "
                 '`item.signal == signal.name`"'
             )
         return v
 
-    @pydantic.validator('logging')
+    @pydantic.validator("logging")
     @classmethod
     def _requests_must_be_unique(cls, v):
         seen = set()
@@ -367,7 +385,7 @@ class TestInfo:
             data = (request.target, request.signal)
             if data in seen:
                 raise DuplicateIdError(
-                    f'Invalid TestInfo: Found two logging requests with the same target and signal: '
+                    f"Invalid TestInfo: Found two logging requests with the same target and signal: "
                     f'Target "{request.target}", signal "{request.signal}". The specification '
                     'states: "There **must** not exist two members `request1` and `request2` in '
                     '`logging` with equal `target` and `signal` fields"'
@@ -375,10 +393,10 @@ class TestInfo:
             seen.add(data)
         return v
 
-    @pydantic.validator('phases', each_item=True)
+    @pydantic.validator("phases", each_item=True)
     @classmethod
     def _command_target_must_exist(cls, v, values):
-        targets = values['targets']
+        targets = values["targets"]
         for command in v.commands:
             try:
                 next(elem for elem in targets if command.target == elem.name)
@@ -386,7 +404,7 @@ class TestInfo:
                 raise NoSuchTarget(
                     f'Invalid TestInfo: Target "{command.target}" not found. The specification '
                     'states: "For each `phase` in `phases` and each `command` in `phase.commands` '
-                    'there **must** exist _exactly one_ `target` in `targets` with '
+                    "there **must** exist _exactly one_ `target` in `targets` with "
                     '`command.target == target.name`."'
                 )
         return v
@@ -404,6 +422,7 @@ class AssertionInfo:
             Keyworded arguments for calling ``__init__`` of the class
             specified by the ``type`` field
     """
+
     type: str
     data: Dict[str, Any]
     args: Dict[str, str]

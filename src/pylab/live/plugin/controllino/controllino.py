@@ -29,9 +29,9 @@ GRAIN = 0.001
 class PylabControllino:
     """Plugin device for Controllino serial driver."""
 
-    def __init__(self,
-                 ser: serial.Serial,
-                 pin_modes: Optional[dict[str, str]] = None) -> None:
+    def __init__(
+        self, ser: serial.Serial, pin_modes: Optional[dict[str, str]] = None
+    ) -> None:
         """Initialize from socket.
 
         Args:
@@ -45,17 +45,15 @@ class PylabControllino:
             self._pin_modes = pin_modes
 
     @classmethod
-    def from_serial_address(cls,
-                            address: str,
-                            pin_modes: Optional[dict[str, str]] = None,
-                            **kwargs) -> controllino_serial.PylabControllino:
+    def from_serial_address(
+        cls, address: str, pin_modes: Optional[dict[str, str]] = None, **kwargs
+    ) -> controllino_serial.PylabControllino:
         return cls(serial.Serial(address, **kwargs), pin_modes)
 
     @classmethod
-    def from_serial_number(cls,
-                           serial_number: str,
-                           pin_modes: Optional[dict[str, str]] = None,
-                           **kwargs) -> controllino_serial.PylabControllino:
+    def from_serial_number(
+        cls, serial_number: str, pin_modes: Optional[dict[str, str]] = None, **kwargs
+    ) -> controllino_serial.PylabControllino:
         """Create from device serial number.
 
         Args:
@@ -68,11 +66,13 @@ class PylabControllino:
         """
         return cls(
             utility.create_serial_device_from_serial_number(serial_number, **kwargs),
-            pin_modes
+            pin_modes,
         )
 
     @classmethod
-    def from_os_environ(cls, var: str, min_modes: Optional[dict[str, str]] = None, **kwargs) -> controllino_serial.PylabControllino:
+    def from_os_environ(
+        cls, var: str, min_modes: Optional[dict[str, str]] = None, **kwargs
+    ) -> controllino_serial.PylabControllino:
         """Create from environment variable which stores the serial
         number of the device.
 
@@ -89,7 +89,8 @@ class PylabControllino:
 
     # FIXME This method should that ``pin: PortInfo`` as arg.
     def log_signal(
-        self, pin: str, period: float) -> tuple[live.AbstractFuture, live.AbstractFuture]:
+        self, pin: str, period: float
+    ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
         """Submit a logging request.
 
         Args:
@@ -104,14 +105,10 @@ class PylabControllino:
         period = int(1000 * period)  # Convert from sec to ms
         accepted, future = self._controllino.log_signal(pin, period)
         accepted_wrapper = Future(
-            self._controllino,
-            accepted,
-            f'CmdLogSignal({pin}, {period}) - accepted'
+            self._controllino, accepted, f"CmdLogSignal({pin}, {period}) - accepted"
         )
         future_wrapper = Future(
-            self._controllino,
-            future,
-            f'CmdLogSignal({pin}, {period}) - results'
+            self._controllino, future, f"CmdLogSignal({pin}, {period}) - results"
         )
         return accepted_wrapper, future_wrapper
 
@@ -129,7 +126,7 @@ class PylabControllino:
         return Future(
             self._controllino,
             self._controllino.end_log_signal(pin),
-            f'CmdEndLogSignal({pin})'
+            f"CmdEndLogSignal({pin})",
         )
 
     # FIXME This method should that ``pin: PortInfo`` as arg.
@@ -147,7 +144,7 @@ class PylabControllino:
         return Future(
             self._controllino,
             self._controllino.set_signal(pin, value),
-            f'CmdSetSignal({pin}, {value})'
+            f"CmdSetSignal({pin}, {value})",
         )
 
     def open(self) -> live.AbstractFuture:
@@ -157,11 +154,7 @@ class PylabControllino:
             A future which is done when the request is accepted or
             rejected
         """
-        return Future(
-            self._controllino,
-            self._controllino.open(),
-            'CmdReady()'
-        )
+        return Future(self._controllino, self._controllino.open(), "CmdReady()")
 
     def close(self) -> live.AbstractFuture:
         """Kill the device (not a grace-full close).
@@ -186,14 +179,16 @@ class PylabControllino:
 class Future(live.AbstractFuture):
     """Wrapper for ``controllino_serial.Future``."""
 
-    def __init__(self,
-                 api: controllino_serial.Controllino,
-                 future: controllino_serial.Future,
-                 what: str) -> None:
+    def __init__(
+        self,
+        api: controllino_serial.Controllino,
+        future: controllino_serial.Future,
+        what: str,
+    ) -> None:
         """Args:
-            api: A reference to the issuieing ``Controllino`` object
-            future: The wrapped future
-            what: A description of the future for a log entry
+        api: A reference to the issuieing ``Controllino`` object
+        future: The wrapped future
+        what: A description of the future for a log entry
         """
         self._api = api
         self._future = future
@@ -222,8 +217,8 @@ class Future(live.AbstractFuture):
             self._future.result()
         except controllino_serial.ControllinoError as e:
             return report.LogEntry(
-                self._what + ' failed with the following exception:\n\n' + str(e),
-                report.PANIC
+                self._what + " failed with the following exception:\n\n" + str(e),
+                report.PANIC,
             )
         return report.LogEntry(self._what, report.INFO)
 
@@ -253,7 +248,7 @@ class FutureCollection(live.AbstractFuture):
 
     @property
     def what(self) -> str:
-        return '\n'.join(each.what for each in self._futures)
+        return "\n".join(each.what for each in self._futures)
 
     @property
     def log(self) -> report.LogEntry:
@@ -262,7 +257,7 @@ class FutureCollection(live.AbstractFuture):
             severity = max(elem.severity for elem in futures)
         else:
             severity = report.INFO
-        return report.LogEntry('\n'.join(each.log for each in futures), severity)
+        return report.LogEntry("\n".join(each.log for each in futures), severity)
 
     @property
     def done(self) -> bool:

@@ -92,10 +92,10 @@ def create(info: infos.TestInfo, details: Details) -> Test:
     post_inits = {}
     for each in details.devices:
         module = importlib.import_module(each.module)
-        init = getattr(module, 'init', None)
+        init = getattr(module, "init", None)
         if init is not None:
             inits[each.module] = init
-        post_init = getattr(module, 'post_init', None)
+        post_init = getattr(module, "post_init", None)
         if post_init is not None:
             post_inits[each.module] = post_init
 
@@ -117,11 +117,13 @@ def create(info: infos.TestInfo, details: Details) -> Test:
 class Test:
     """Implementation of :meth:`core.api.Test <pylab.core.api.Test>`."""
 
-    def __init__(self,
-                 test_object: _TestObject,
-                 commands: list[AbstractCommand],
-                 logging_infos: list[infos.LoggingInfo],
-                 duration: float) -> None:
+    def __init__(
+        self,
+        test_object: _TestObject,
+        commands: list[AbstractCommand],
+        logging_infos: list[infos.LoggingInfo],
+        duration: float,
+    ) -> None:
         """Args:
             test_object: The underlying test object
             commands: The commands to execute during the test
@@ -156,10 +158,13 @@ class Test:
                 current_time = time.time() - start_time
                 if current_time > self._duration:
                     break
-                commands = [each for each in self._commands if current_time >= each.time]
+                commands = [
+                    each for each in self._commands if current_time >= each.time
+                ]
                 # Remove commands.
                 self._commands = [
-                    each for each in self._commands if each not in commands]
+                    each for each in self._commands if each not in commands
+                ]
                 for cmd in commands:
                     future = cmd.execute(self._test_object)
                     self._controller.put(future, current_time, timeout=DEFAULT_TIMEOUT)
@@ -212,10 +217,11 @@ class Details:
 
     @classmethod
     def from_dict(cls, data: dict) -> Details:
-        details = [DeviceDetails.from_dict(each) for each in data['devices']]
-        connections = [sharedinfos.ConnectionInfo(*each)
-                       for each in data['connections']]
-        extension = data.get('extension', {})
+        details = [DeviceDetails.from_dict(each) for each in data["devices"]]
+        connections = [
+            sharedinfos.ConnectionInfo(*each) for each in data["connections"]
+        ]
+        extension = data.get("extension", {})
         return cls(details, connections, extension)
 
 
@@ -232,12 +238,12 @@ class DeviceDetails:
     @classmethod
     def from_dict(cls, data: dict) -> DeviceDetails:
         print(data)
-        name = data['name']
-        type = data['type']
-        module = data['module']
-        interface = sharedinfos.ElectricalInterface.from_dict(data['interface'])
-        args = data.get('data', {})  # FIXME This is awkward...!
-        extension = data.get('extension', {})
+        name = data["name"]
+        type = data["type"]
+        module = data["module"]
+        interface = sharedinfos.ElectricalInterface(**data["interface"])
+        args = data.get("data", {})  # FIXME This is awkward...!
+        extension = data.get("extension", {})
         return cls(name, type, module, interface, args, extension)
 
 
@@ -251,7 +257,7 @@ class DeviceDetails:
 class AbstractCommand(abc.ABC):
     """ABC for just-in-time commands."""
 
-    def __init__(self, time: float, description: str = ''):
+    def __init__(self, time: float, description: str = ""):
         self._time = time
         self._description = description
 
@@ -270,9 +276,14 @@ class AbstractCommand(abc.ABC):
 
 
 class CmdSetSignal(AbstractCommand):
-
-    def __init__(self, time: float, target: str, signal: str,
-                 value: ArrayLike, description: str = '') -> None:
+    def __init__(
+        self,
+        time: float,
+        target: str,
+        signal: str,
+        value: ArrayLike,
+        description: str = "",
+    ) -> None:
         super().__init__(time, description)
         self._target = target
         self._signal = signal
@@ -282,8 +293,9 @@ class CmdSetSignal(AbstractCommand):
         device, port = next(test_object.trace_back(self._target, self._signal))
         signal = test_object.get_signal(self._target, self._signal)
         value = coreutility.transform(
-            signal.range.min, signal.range.max, port.min, port.max, self._value)
-        return device.execute('set_signal', port.channel, value)
+            signal.range.min, signal.range.max, port.range.min, port.range.max, self._value
+        )
+        return device.execute("set_signal", port.channel, value)
 
 
 def _create_command(info: infos.CommandInfo, offset: float) -> AbstractCommand:
@@ -300,14 +312,13 @@ def _create_command(info: infos.CommandInfo, offset: float) -> AbstractCommand:
         offset:
             The starting point of the phase that the command belongs to
     """
-    if '.' in info.command:
+    if "." in info.command:
         type_ = coreutility.module_getattr(info.command)
     else:
         type_ = globals()[info.command]
-    return type_(offset + info.time,
-                 info.target,
-                 **info.data,
-                 description=info.description)
+    return type_(
+        offset + info.time, info.target, **info.data, description=info.description
+    )
 
 
 # }}} command
@@ -497,7 +508,9 @@ class _Device:
         """
         func = getattr(self._implementation, cmd, None)
         if func is None:
-            raise errors.LogicError(f'Failed to execute command {cmd} on device {self._name}')  # TODO
+            raise errors.LogicError(
+                f"Failed to execute command {cmd} on device {self._name}"
+            )  # TODO
         result = func(*args, **kwargs)
         return result
 
@@ -519,17 +532,14 @@ class UsbSerialDevice(AbstractDevice):
         return cls(liveutility.create_serial_device_from_serial_number(serial_number))
 
     def open(self):
-        return NoOpFuture(
-            report.LogEntry('open', severity='info'))
+        return NoOpFuture(report.LogEntry("open", severity="info"))
 
     def close(self):
         self._serial.close()
-        return NoOpFuture(
-            report.LogEntry('close', severity='info'))
+        return NoOpFuture(report.LogEntry("close", severity="info"))
 
     def setup(self):
-        return NoOpFuture(
-            report.LogEntry('setup', severity='info'))
+        return NoOpFuture(report.LogEntry("setup", severity="info"))
 
 
 class _DeviceContextManager:
@@ -541,8 +551,8 @@ class _DeviceContextManager:
 
     def __init__(self, test_object: _TestObject, logbook: list[LogEntry]) -> None:
         """Args:
-            test_object: The underlying test object
-            logbook: A logbook that the manager's activity is written to
+        test_object: The underlying test object
+        logbook: A logbook that the manager's activity is written to
         """
         self._test_object = test_object
         self._logbook = logbook
@@ -569,12 +579,9 @@ class _DeviceContextManager:
 class _TestObject(testobject.TestObjectBase):
     """Utility class for managing the test setup."""
 
-    def __init__(self,
-                 details: Details,
-                 targets: list[infos.TargetInfo]) -> None:
+    def __init__(self, details: Details, targets: list[infos.TargetInfo]) -> None:
         super().__init__(
-            [_Device(each) for each in details.devices],
-            details.connections
+            [_Device(each) for each in details.devices], details.connections
         )
         self._targets = targets
 
@@ -614,11 +621,9 @@ class _TestObject(testobject.TestObjectBase):
         signal = self.get_signal(info.target, info.signal)
         return _LoggingRequest(info, device, signal, port)
 
-    def _execute_for_all_and_wait(self,
-                                  attr: str,
-                                  *args,
-                                  timeout: Optional[float] = None,
-                                  **kwargs) -> list[report.LogEntry]:
+    def _execute_for_all_and_wait(
+        self, attr: str, *args, timeout: Optional[float] = None, **kwargs
+    ) -> list[report.LogEntry]:
         """Execute a call on all devices and wait until done.
 
         Args:
@@ -636,7 +641,7 @@ class _TestObject(testobject.TestObjectBase):
         Args:
             timeout: Timeout for wait in seconds
         """
-        return self._execute_for_all_and_wait('open', timeout=timeout)
+        return self._execute_for_all_and_wait("open", timeout=timeout)
 
     def close(self, timeout: Optional[float] = None) -> list[report.LogEntry]:
         """Close all devices in the testbed and wait until done.
@@ -644,7 +649,7 @@ class _TestObject(testobject.TestObjectBase):
         Args:
             timeout: Timeout for wait in seconds
         """
-        return self._execute_for_all_and_wait('close', timeout=timeout)
+        return self._execute_for_all_and_wait("close", timeout=timeout)
 
     def setup(self, timeout: Optional[float] = None) -> list[report.LogEntry]:
         """Setup all devices in the testbed and wait until done.
@@ -652,11 +657,11 @@ class _TestObject(testobject.TestObjectBase):
         Args:
             timeout: Timeout for wait in seconds
         """
-        return self._execute_for_all_and_wait('setup', timeout=timeout)
+        return self._execute_for_all_and_wait("setup", timeout=timeout)
 
-    def _create_solid_connection(self,
-                                 info: pylab.shared.infos.ConnectionInfo
-                                 ) -> sharedinfos.ConnectionInfo:
+    def _create_solid_connection(
+        self, info: pylab.shared.infos.ConnectionInfo
+    ) -> sharedinfos.ConnectionInfo:
         """Create a solid connection from ``info``.
 
         Raises:
@@ -664,11 +669,9 @@ class _TestObject(testobject.TestObjectBase):
                 If ``info.sender`` and ``info.receiver`` are
                 not found in the list of devices
         """
-        sender = next(each for each in self._devices
-                      if each.name == info.sender)
+        sender = next(each for each in self._devices if each.name == info.sender)
         sender_port = sender.interface.get_port(info.sender_port)
-        receiver = next(each for each in self._devices
-                        if each.name == info.receiver)
+        receiver = next(each for each in self._devices if each.name == info.receiver)
         receiver_port = receiver.interface.get_port(info.receiver_port)
         return sharedinfos.ConnectionInfo(sender, sender_port, receiver, receiver_port)
 
@@ -680,12 +683,14 @@ class _LoggingRequest(AbstractFuture):
     from electrical to physical values of the logged signal.
     """
 
-    def __init__(self,
-                 info: infos.LoggingInfo,
-                 device: _Device,
-                 signal: infos.SignalInfo,
-                 port: sharedinfos.PortInfo) -> None:
-                 # transform: Callable[[ArrayLike], ArrayLike]) -> None:
+    def __init__(
+        self,
+        info: infos.LoggingInfo,
+        device: _Device,
+        signal: infos.SignalInfo,
+        port: sharedinfos.PortInfo,
+    ) -> None:
+        # transform: Callable[[ArrayLike], ArrayLike]) -> None:
         """Initialize logging request from info and electric to physical
         transform.
 
@@ -697,7 +702,8 @@ class _LoggingRequest(AbstractFuture):
         self._device = device
         self._port = port
         self._transform = lambda value: coreutility.transform(
-            port.min, port.max, signal.range.min, signal.range.max, value)
+            port.range.min, port.range.max, signal.range.min, signal.range.max, value
+        )
         self._future: AbstractFuture = None
 
     def begin(self) -> AbstractFuture:
@@ -707,7 +713,8 @@ class _LoggingRequest(AbstractFuture):
             A future which is done if the logging request is accepted
         """
         future, self._future = self._device.execute(
-            'log_signal', self._port.channel, self._info.period)
+            "log_signal", self._port.channel, self._info.period
+        )
         return future
 
     def end(self) -> AbstractFuture:
@@ -721,7 +728,7 @@ class _LoggingRequest(AbstractFuture):
         closing the request was accepted. It does not mean that the
         logging request is done.
         """
-        return self._device.execute('end_log_signal', self._port.channel)
+        return self._device.execute("end_log_signal", self._port.channel)
 
     @property
     def what(self) -> str:
@@ -801,7 +808,12 @@ class _FutureController:
     def __init__(self):
         self._futures = []
 
-    def put(self, future: AbstractFuture, current_time: float, timeout: Optional[float] = None) -> None:
+    def put(
+        self,
+        future: AbstractFuture,
+        current_time: float,
+        timeout: Optional[float] = None,
+    ) -> None:
         """Pass ownership of future to the controller and imbue it with
         a timeout.
 
@@ -812,7 +824,7 @@ class _FutureController:
         """
         if timeout is not None:
             timeout = time.time() + timeout
-        future.log.data['submit_time'] = current_time
+        future.log.data["submit_time"] = current_time
         self._futures.append(_DeadlineFuture(future, timeout))
 
     def run(self, current_time: float) -> list[report.LogEntry]:
@@ -845,12 +857,13 @@ class _FutureController:
             # exactly what's going on?
         logbook += [elem.log for elem in timed_out]
         for log in logbook:
-            log.data['done_time'] = current_time
+            log.data["done_time"] = current_time
         return logbook
 
 
-def _wait_for_all(futures: list[AbstractFuture],
-                  timeout: Optional[float] = None) -> list[report.LogEntry]:
+def _wait_for_all(
+    futures: list[AbstractFuture], timeout: Optional[float] = None
+) -> list[report.LogEntry]:
     """Wait for specified futures.
 
     Args:
@@ -871,24 +884,25 @@ def _wait_for_all(futures: list[AbstractFuture],
 
 def _timed_out_report(future: AbstractFuture) -> report.LogEntry:
     return report.LogEntry(
-        what='Timed out waiting for the following future: ' + future.what,
-        severity=report.PANIC
+        what="Timed out waiting for the following future: " + future.what,
+        severity=report.PANIC,
     )
 
 
 class _LoggingHandler:
     """Utility class for handeling ``_LoggingRequest`` objects."""
 
-    def __init__(self,
-                 test_object: _TestObject,
-                 infos: list[infos.LoggingInfo]) -> None:
+    def __init__(
+        self, test_object: _TestObject, infos: list[infos.LoggingInfo]
+    ) -> None:
         """Args:
-            test_object: The underlying test object
-            infos: Infos for the handled logging requests
+        test_object: The underlying test object
+        infos: Infos for the handled logging requests
         """
         self._test_object = test_object
-        self._requests: list[_LoggingRequest] = [self._test_object.make_logging_request(each)
-                                                 for each in infos]
+        self._requests: list[_LoggingRequest] = [
+            self._test_object.make_logging_request(each) for each in infos
+        ]
 
     def begin(self, timeout: Optional[float] = None) -> list[report.LogEntry]:
         """Begin submitting the managed logging requests.
@@ -927,17 +941,18 @@ def _panic(logbook: list[report.LogEntry]) -> bool:
 
 
 def _load_details(path: str, data: dict) -> Details:
-    device_data = data.get('devices', {})
+    device_data = data.get("devices", {})
     # If this is not available, we're not throwing an error just yet
 
     # If an interface info is a string, use it as a filesystem path to
     # find the file which holds the actual interface info data. If
     # ``data`` is a relative path, view it as relative to ``path``.
     for elem in device_data:
-        inf = elem['interface']
+        inf = elem["interface"]
         if isinstance(inf, str):
             interface_path = loader.find_relative_path(path, inf)
-            elem['interface'] = utils.yaml_safe_load_from_file(interface_path)
+            elem["interface"] = utils.yaml_safe_load_from_file(interface_path)
     return Details.from_dict(data)
+
 
 # }}} details

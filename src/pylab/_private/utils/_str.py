@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
-# 
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -26,17 +26,20 @@ def load_range(expr: str) -> tuple[float, float]:
     #                                 Or...
     #                                  Optional signl
     #                                             No comma
-    num = '[\\+-]{0,1}[0-9]+[.,][0-9]+|[\\+-]{0,1}[0-9]+'
-    whitespace = '[ ]*'
+    num = "[\\+-]{0,1}[0-9]+[.,][0-9]+|[\\+-]{0,1}[0-9]+"
+    whitespace = "[ ]*"
     # Regex for range expression:
     #                    Leading whitespace
     #                                A number
     #                                                   At least two dots
     #                                                                        A number
     #                                                                               Trailing whitespace
-    matches = re.match(f'{whitespace}({num}){whitespace}\\.{{2,}}{whitespace}({num}){whitespace}$', expr)
+    matches = re.match(
+        f"{whitespace}({num}){whitespace}\\.{{2,}}{whitespace}({num}){whitespace}$",
+        expr,
+    )
     if matches is None or matches.lastindex != 2:
-        raise ValueError(f'Failed to read range expression: {expr}')
+        raise ValueError(f"Failed to read range expression: {expr}")
     min_, max_ = map(float, [matches.group(1), matches.group(2)])
     return min_, max_
 
@@ -47,4 +50,4 @@ def is_valid_id(id: str):
     Args:
         id: The id to check
     """
-    return '.' not in id
+    return "." not in id

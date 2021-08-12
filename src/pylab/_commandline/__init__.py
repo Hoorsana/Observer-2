@@ -21,16 +21,16 @@ from pylab.core import errors
 from pylab.core import workflow
 
 _parser = argparse.ArgumentParser(
-    description='Execute a pylab test',
-    epilog='''
+    description="Execute a pylab test",
+    epilog="""
         ...
-        '''
+        """,
 )
-_parser.add_argument('driver', help='Fully qualified path to driver module')
-_parser.add_argument('test', help='Path to the test file')
-_parser.add_argument('details', help='Path to details file')
-_parser.add_argument('-a', '--asserts', dest='asserts', help='Path the asserts file')
-_parser.add_argument('-d', '--dump', dest='dump', help='Path for dumping results')
+_parser.add_argument("driver", help="Fully qualified path to driver module")
+_parser.add_argument("test", help="Path to the test file")
+_parser.add_argument("details", help="Path to details file")
+_parser.add_argument("-a", "--asserts", dest="asserts", help="Path the asserts file")
+_parser.add_argument("-d", "--dump", dest="dump", help="Path for dumping results")
 
 
 def _parse(args: list[str]) -> argparse.Namespace:
@@ -47,9 +47,9 @@ def main():
         workflow.run_from_files(**args)
     except AssertionError as e:
         e = _format_exception_with_traceback(e)
-        print(f'pylab-cli: test failed with the following AssertionError:\n{e}')
+        print(f"pylab-cli: test failed with the following AssertionError:\n{e}")
         sys.exit(8)
     except errors.PylabError as e:
         e = _format_exception_with_traceback(e)
-        print(f'pylab-cli: error: {e}\n', file=sys.stderr)
+        print(f"pylab-cli: error: {e}\n", file=sys.stderr)
         sys.exit(9)

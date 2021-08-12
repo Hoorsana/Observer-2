@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
-# 
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from pylab.live import live
 
 
 class Server(rogue.Server):
-
     def __init__(self):
         super().__init__(duration=0.001)
         self._lazy_data = None
@@ -46,21 +45,25 @@ def init(info: infos.TestInfo, details: live.Details) -> None:
     # rogue device (connections between rogue and non-rogue devices will
     # be ignored).
     del info
-    devices = [item for item in details.devices if item.module.endswith('rogueplugin')]
+    devices = [item for item in details.devices if item.module.endswith("rogueplugin")]
     for dev in devices:
         # Note that no ``Device`` objects are created here!
         channels = [info.channel for info in dev.interface.ports]
-        ports = {channel: dev.extension.get('defaults', {})[channel] for channel in channels}
-        loop = dev.extension.get('loop')
+        ports = {
+            channel: dev.extension.get("defaults", {})[channel] for channel in channels
+        }
+        loop = dev.extension.get("loop")
         _server.add_client(dev.name, ports, loop)
     connections = [
-        item for item in _init_connections(details)
+        item
+        for item in _init_connections(details)
         if item.sender in [each.name for each in devices]
-           and item.receiver in [each.name for each in devices]
+        and item.receiver in [each.name for each in devices]
     ]
     for con in connections:
-        _server.connect( (con.sender,   con.sender_port),
-                         (con.receiver, con.receiver_port) )
+        _server.connect(
+            (con.sender, con.sender_port), (con.receiver, con.receiver_port)
+        )
 
 
 def _init_connections(details: live.Details) -> list[pylab.shared.infos.ConnectionInfo]:
@@ -77,15 +80,16 @@ def _init_connections(details: live.Details) -> list[pylab.shared.infos.Connecti
         sender_port = sender.interface.get_port(conn.sender_port)
         receiver = next(dev for dev in details.devices if dev.name == conn.receiver)
         receiver_port = receiver.interface.get_port(conn.receiver_port)
-        c = sharedinfos.ConnectionInfo(conn.sender, sender_port.channel, conn.receiver, receiver_port.channel)
+        c = sharedinfos.ConnectionInfo(
+            conn.sender, sender_port.channel, conn.receiver, receiver_port.channel
+        )
         result.append(c)
     return result
 
 
-def post_init(info: infos.TestInfo,
-              details: live.Details,
-              test_object: live._TestObject
-              ) -> None:
+def post_init(
+    info: infos.TestInfo, details: live.Details, test_object: live._TestObject
+) -> None:
     del info, details, test_object
     _server.exec()
 
@@ -102,12 +106,12 @@ class LoggingRequest:
 
 
 class Future:
-
-    def __init__(self,
-                 what: str,
-                 severity: report._Severity = report.INFO,
-                 result: Optional[Any] = None
-                 ) -> None:
+    def __init__(
+        self,
+        what: str,
+        severity: report._Severity = report.INFO,
+        result: Optional[Any] = None,
+    ) -> None:
         self._what = what
         self._log = report.LogEntry(what, severity)
         self._result = result
@@ -137,32 +141,38 @@ class Future:
 
 # TODO Add live.NoOpDevice which implements open, close, etc. with NoOpFutures! (The message can use `__name__` to insert the module name?)
 class Device:
-
     def __init__(self, id: str, ports: list[str]) -> None:
         self._id = id
         self._ports = list(ports)
         self._requests = {}
 
     def open(self) -> live.AbstractFuture:
-        return live.NoOpFuture(report.LogEntry('open rogue device'))
+        return live.NoOpFuture(report.LogEntry("open rogue device"))
 
     def close(self) -> live.AbstractFuture:
-        return live.NoOpFuture(report.LogEntry('close rogue device'))
+        return live.NoOpFuture(report.LogEntry("close rogue device"))
 
     def setup(self) -> live.AbstractFuture:
-        return live.NoOpFuture(report.LogEntry('setup rogue device'))
+        return live.NoOpFuture(report.LogEntry("setup rogue device"))
 
-    def log_signal(self,
-                   port: str,
-                   period: float
-                   ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
-        future = Future('log signal')
+    def log_signal(
+        self, port: str, period: float
+    ) -> tuple[live.AbstractFuture, live.AbstractFuture]:
+        future = Future("log signal")
         try:
             _server.listen(self._id, port)
         except rogue.RogueException as e:
-            return live.NoOpFuture(report.LogEntry(f'rogue: failed to log signal {self._id}.{port} with the following error: {e}', report.FAILED)), future
+            return (
+                live.NoOpFuture(
+                    report.LogEntry(
+                        f"rogue: failed to log signal {self._id}.{port} with the following error: {e}",
+                        report.FAILED,
+                    )
+                ),
+                future,
+            )
         self._requests[port] = LoggingRequest(port, period, future)
-        return live.NoOpFuture(report.LogEntry(f'begin log signal')), future
+        return live.NoOpFuture(report.LogEntry(f"begin log signal")), future
 
     def end_log_signal(self, port: str) -> live.AbstractFuture:
         try:
@@ -171,14 +181,21 @@ class Device:
             # This could be done in parallel, but we want to use rogueplugin
             # for testing purposes, so we try to avoid multiple threads as
             # much as possible.
-            self._requests[port].future.set_result(timeseries.TimeSeries(data.time, data.values))
+            self._requests[port].future.set_result(
+                timeseries.TimeSeries(data.time, data.values)
+            )
         except KeyError as e:
-            return live.NoOpFuture(report.LogEntry(f'rogue: failed to find data for signal {self._id}.{port}: {e}', report.FAILED))
-        return live.NoOpFuture(report.LogEntry('end log signal'))
+            return live.NoOpFuture(
+                report.LogEntry(
+                    f"rogue: failed to find data for signal {self._id}.{port}: {e}",
+                    report.FAILED,
+                )
+            )
+        return live.NoOpFuture(report.LogEntry("end log signal"))
 
     def set_signal(self, port: str, value: ArrayLike) -> live.AbstractFuture:
         try:
             _server.set_value(self._id, port, value)
         except rogue.RogueException as e:
             return live.NoOpFuture(report.LogEntry(str(e), severity=report.FAILED))
-        return live.NoOpFuture(report.LogEntry(f'set {port} to {value}'))
+        return live.NoOpFuture(report.LogEntry(f"set {port} to {value}"))

@@ -9,12 +9,16 @@ from typing import Any, Sequence, TypeVar
 
 from pylab.core.typing import ArrayLike
 
-_T = TypeVar('T')
+_T = TypeVar("T")
 
 
-def transform(src_min: ArrayLike, src_max: ArrayLike,
-              dst_min: ArrayLike, dst_max: ArrayLike,
-              value: ArrayLike) -> ArrayLike:
+def transform(
+    src_min: ArrayLike,
+    src_max: ArrayLike,
+    dst_min: ArrayLike,
+    dst_max: ArrayLike,
+    value: ArrayLike,
+) -> ArrayLike:
     """Apply an affine transformation.
 
     The transformation is the affine transformation which maps the
@@ -45,9 +49,13 @@ def transform(src_min: ArrayLike, src_max: ArrayLike,
     return mult * (value - src_min) + dst_min
 
 
-def linear_transform(src_min: ArrayLike, src_max: ArrayLike,
-                     dst_min: ArrayLike, dst_max: ArrayLike,
-                     value: ArrayLike) -> ArrayLike:
+def linear_transform(
+    src_min: ArrayLike,
+    src_max: ArrayLike,
+    dst_min: ArrayLike,
+    dst_max: ArrayLike,
+    value: ArrayLike,
+) -> ArrayLike:
     """Apply a linear transformation.
 
     The transformation is the linear transformation which maps the
@@ -101,7 +109,7 @@ def module_getattr(attr: str) -> Any:
         >>> ValidationInfo = module_getattr('pylab.core.infos.ValidationInfo')
     """
     # FIXME Raise an error on incorrect ``attr``!
-    [module, last] = attr.rsplit('.', 1)
+    [module, last] = attr.rsplit(".", 1)
     module = importlib.import_module(module)
     return getattr(module, last)
 
@@ -123,11 +131,11 @@ def getattr_from_module(attr: str) -> Any:
     Raises:
         AttributeError: If guessing fails
     """
-    tokens = attr.split('.')
+    tokens = attr.split(".")
     try:
         index = 1
         while True:
-            module = importlib.import_module('.'.join(tokens[:index]))
+            module = importlib.import_module(".".join(tokens[:index]))
             index += 1
     except ModuleNotFoundError as error:
         module_not_found = error
@@ -135,26 +143,26 @@ def getattr_from_module(attr: str) -> Any:
         module_not_found = None
 
     try:
-        return recursive_getattr(module, '.'.join(tokens[index - 1:]))
+        return recursive_getattr(module, ".".join(tokens[index - 1 :]))
     except AttributeError as attribute_error:
         msg = (
-            'Failed to getattr from module:\n\n\t'
+            "Failed to getattr from module:\n\n\t"
             + str(attribute_error)
-            + '\n\nUsed the module: '
-            + '.'.join(tokens[:index - 1])
+            + "\n\nUsed the module: "
+            + ".".join(tokens[: index - 1])
         )
         if module_not_found is not None:
             msg += (
-                '; tried to use '
-                + '.'.join(tokens[:index])
-                + ' but failed with the following error:\n\n\t'
+                "; tried to use "
+                + ".".join(tokens[:index])
+                + " but failed with the following error:\n\n\t"
                 + str(module_not_found)
             )
         raise AttributeError(msg)
 
 
 def recursive_getattr(obj: Any, attr: str) -> Any:
-    for token in attr.split('.'):
+    for token in attr.split("."):
         obj = getattr(obj, token)
     return obj
 
@@ -175,5 +183,4 @@ def split_by_attribute(seq: Sequence[_T], attr: str) -> dict[str, list[_T]]:
         equivalence classes.
     """
     values = {getattr(each, attr) for each in seq}
-    return {val: [each for each in seq if getattr(each, attr) == val]
-            for val in values}
+    return {val: [each for each in seq if getattr(each, attr) == val] for val in values}

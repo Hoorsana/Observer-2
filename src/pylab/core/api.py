@@ -16,9 +16,7 @@ from pylab.core import report
 
 
 class AbstractDriver:
-
     class Test(abc.ABC):
-
         @abc.abstractmethod
         def execute(self) -> report.Report:
             """Execute the test and return a report including logged

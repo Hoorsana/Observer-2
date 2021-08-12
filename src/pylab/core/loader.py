@@ -16,7 +16,7 @@ from pylab.core import testing
 from pylab.core import infos
 from pylab._private import utils
 
-PHASE_DIR = 'PYLAB_PHASE_DIR'
+PHASE_DIR = "PYLAB_PHASE_DIR"
 
 
 # TODO Implement loader using `from_yaml` and `yaml.YAMLObject`?
@@ -33,17 +33,16 @@ def load_test(path: PathLike) -> infos.TestInfo:
     """
     data = utils.yaml_safe_load_from_file(path)
     utils.assert_keys(
-        data, {'targets', 'phases'}, {'logging'},
-        'Error when loading test: '
+        data, {"targets", "phases"}, {"logging"}, "Error when loading test: "
     )
-    targets = [infos.TargetInfo(**each) for each in data['targets']]
-    logging = [infos.LoggingInfo(**each) for each in data.get('logging', [])]
+    targets = [infos.TargetInfo(**each) for each in data["targets"]]
+    logging = [infos.LoggingInfo(**each) for each in data.get("logging", [])]
 
     # If a phase info is a string, use it as a filesystem path to find
     # the file which holds the actual phase info data. If ``data`` is a
     # relative path, view it as relative to ``path``, or relative to the
     # environment variable ``PYLAB_PHASE_DIR``.
-    phase_data = data['phases']
+    phase_data = data["phases"]
     for index, elem in enumerate(phase_data):
         if isinstance(elem, str):
             phase_path = _find_phase_path(path, elem)
@@ -66,7 +65,7 @@ def load_asserts(path: PathLike) -> list[AbstractVerification]:
     Raises:
         ...
     """
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         content = f.read()
     data = yaml.safe_load(content)
     info = [infos.AssertionInfo(**each) for each in data]
@@ -101,7 +100,7 @@ def _find_phase_path(root: PathLike, path: PathLike) -> str:
     if posixpath.isabs(path):
         if posixpath.exists(path):
             return path
-        raise ValueError(f'File {path} not found')
+        raise ValueError(f"File {path} not found")
 
     paths = [posixpath.join(posixpath.dirname(root), path)]  # Candidates for path.
     phase_dir = os.environ.get(PHASE_DIR)
@@ -111,4 +110,4 @@ def _find_phase_path(root: PathLike, path: PathLike) -> str:
         if posixpath.exists(each):
             return each
 
-    raise ValueError(f'File {path} not found')
+    raise ValueError(f"File {path} not found")

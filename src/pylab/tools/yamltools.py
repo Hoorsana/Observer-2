@@ -7,10 +7,12 @@ from typing import Optional
 import yaml
 
 
-def yaml_object(_cls=None,
-                loader=yaml.SafeLoader,
-                tag: Optional[str] = None,
-                replace_from_yaml: bool = True):
+def yaml_object(
+    _cls=None,
+    loader=yaml.SafeLoader,
+    tag: Optional[str] = None,
+    replace_from_yaml: bool = True,
+):
     """Turn class into a YAML object with tags and default loader.
 
     Args:
@@ -44,29 +46,30 @@ def yaml_object(_cls=None,
         a = yaml.safe_load('!A\nvalue: -0.12')
         assert a.value == -0.12
     """
+
     def wrap(cls):
         return _process_class(cls, loader, tag, replace_from_yaml)
+
     if _cls is None:
         return wrap  # Called with parens.
     return wrap(_cls)  # Called without parens.
 
 
-def _process_class(cls,
-                   loader,
-                   tag: Optional[str],
-                   replace_from_yaml: bool = True):
+def _process_class(cls, loader, tag: Optional[str], replace_from_yaml: bool = True):
     if loader is None:
         loader = yaml.SafeLoader
     if tag is None:
-        tag = u'!' + cls.__name__
+        tag = u"!" + cls.__name__
     cls.yaml_loader = loader
     cls.yaml_tag = tag
 
     if replace_from_yaml:
+
         @classmethod
         def from_yaml(cls, loader, node):
             d = loader.construct_mapping(node, deep=True)
             return cls(**d)
+
         cls.from_yaml = from_yaml
 
     # Note that ``result`` must be created _after_ setting
