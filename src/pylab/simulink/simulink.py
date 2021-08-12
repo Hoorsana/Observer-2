@@ -59,7 +59,7 @@ from __future__ import annotations
 
 import abc
 import collections
-from dataclasses import dataclass, field
+import dataclasses
 import importlib.resources
 import io
 import json
@@ -69,7 +69,9 @@ import shutil
 import tempfile
 
 import matlab
+import pydantic
 import yaml
+from typing import Any, Dict, List, Optional
 
 from pylab._private import utils as privateutils
 from pylab.shared import testobject
@@ -231,18 +233,18 @@ class Test:
         return report.Report(logbook, results, data)
 
 
-@dataclass(frozen=True)
-class Details:
-    devices: list[DeviceDetails]
-    connections: list[pylab.shared.infos.ConnectionInfo]
+@pydantic.dataclasses.dataclass(frozen=True)
+class DeviceDetails:
+    name: str
+    interface: sharedinfos.ElectricalInterface
+    type: str
+    data: Optional[Dict[str, Any]] = pydantic.Field(default_factory=dict)  # TODO Rename to args!
 
-    @classmethod
-    def from_dict(cls, data: dict) -> Details:
-        details = [DeviceDetails.from_dict(each) for each in data["devices"]]
-        connections = [
-            sharedinfos.ConnectionInfo(*each) for each in data["connections"]
-        ]
-        return cls(details, connections)
+
+@pydantic.dataclasses.dataclass(frozen=True)
+class Details:
+    devices: List[DeviceDetails]
+    connections: List[sharedinfos.ConnectionInfo]
 
 
 def load_details(path: str) -> Details:
@@ -268,27 +270,6 @@ def load_details(path: str) -> Details:
     """
     data = privateutils.yaml_safe_load_from_file(path)
     return _load_details(path, data)
-
-
-class DeviceDetails(sharedinfos.DeviceInfo):
-    def __init__(
-        self,
-        name: str,
-        type: str,
-        interface: sharedinfos.ElectricalInterface,
-        data: dict,
-    ) -> None:
-        super().__init__(name, interface)
-        self.type = type
-        self.data = data
-
-    @classmethod
-    def from_dict(cls, data: dict) -> DeviceDetails:
-        name = data["name"]
-        type = data["type"]
-        interface = sharedinfos.ElectricalInterface(**data["interface"])
-        args = data.get("data", {})  # FIXME This is awkward
-        return cls(name, type, interface, args)
 
 
 # }}} frontend
@@ -580,7 +561,7 @@ class AbstractBlock(abc.ABC):
 # details {{{
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class Device:
     """Wrapper that wraps a Simulink block and electrical interface."""
 
@@ -746,7 +727,8 @@ def _load_details(path: str, data: dict) -> Details:
         if isinstance(inf, str):
             interface_path = loader.find_relative_path(path, inf)
             elem["interface"] = privateutils.yaml_safe_load_from_file(interface_path)
-    return Details.from_dict(data)
+    print(data)
+    return Details(**data)
 
 
 # }}} details
