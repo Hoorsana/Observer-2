@@ -225,19 +225,19 @@ def adder():
                         sharedinfos.PortInfo(
                             'val1',
                             1,
-                            min=0, max=1,
+                            range=infos.RangeInfo(min=0, max=1),
                             flags=['input', 'analog']
                         ),
                         sharedinfos.PortInfo(
                             'val2',
                             2,
-                            min=0, max=1,
+                            range=infos.RangeInfo(min=0, max=1),
                             flags=['input', 'analog']
                         ),
                         sharedinfos.PortInfo(
                             'sum',
                             1,
-                            min=0, max=2,
+                            range=infos.RangeInfo(min=0, max=2),
                             flags=['output', 'analog']
                         ),
                     ]
@@ -252,7 +252,7 @@ def adder():
                         sharedinfos.PortInfo(
                             'value',
                             1,
-                            min=0, max=1,
+                            range=infos.RangeInfo(min=0, max=1),
                             flags=['output', 'analog']
                         )
                     ]
@@ -267,7 +267,7 @@ def adder():
                         sharedinfos.PortInfo(
                             'value',
                             1,
-                            min=0, max=1,
+                            range=infos.RangeInfo(min=0, max=1),
                             flags=['output', 'analog']
                         )
                     ]
@@ -282,7 +282,7 @@ def adder():
                         sharedinfos.PortInfo(
                             'sum',
                             1,
-                            min=0, max=2,
+                            range=infos.RangeInfo(min=0, max=2),
                             flags=['input', 'analog']
                         )
                     ]
@@ -391,13 +391,13 @@ def limit():
                         sharedinfos.PortInfo(
                             'temperature',
                             1,
-                            min=-100, max=100,
+                            range=infos.RangeInfo(min=-100, max=100),
                             flags=['input', 'analog']
                         ),
                         sharedinfos.PortInfo(
                             'result',
                             1,
-                            min=0, max=1,
+                            range=infos.RangeInfo(min=0, max=1),
                             flags=['output', 'digital']
                         ),
                     ]
@@ -412,7 +412,7 @@ def limit():
                         sharedinfos.PortInfo(
                             'value',
                             1,
-                            min=-100, max=100,
+                            range=infos.RangeInfo(min=-100, max=100),
                             flags=['output', 'analog']
                         )
                     ]
@@ -427,7 +427,7 @@ def limit():
                         sharedinfos.PortInfo(
                             'result',
                             1,
-                            min=0, max=1,
+                            range=infos.RangeInfo(min=0, max=1),
                             flags=['input', 'digital']
                         )
                     ]

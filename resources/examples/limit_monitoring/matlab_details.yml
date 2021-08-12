@@ -9,13 +9,17 @@ devices:
       ports:
         - signal: temperature
           channel: 1
-          range: -100..100
+          range:
+            min: -100
+            max: 100
           flags:
             - input
             - analog
         - signal: result
           channel: 1
-          range: 0..1
+          range:
+            min: 0
+            max: 1
           flags:
             - output
             - digital
@@ -27,7 +31,9 @@ devices:
       ports:
         - signal: value
           channel: 1
-          range: -100..100
+          range:
+            min: -100
+            max: 100
           flags:
             - output
             - analog
@@ -37,7 +43,9 @@ devices:
       ports:
         - signal: result
           channel: 1
-          range: 0..1
+          range:
+            min: 0
+            max: 1
           flags:
             - input
             - digital

@@ -9,19 +9,25 @@ devices:
       ports:
         - signal: val1
           channel: 1
-          range: 0..1
+          range:
+            min: 0
+            max: 1
           flags:
             - input
             - analog
         - signal: val2
           channel: 2
-          range: 0..1
+          range:
+            min: 0
+            max: 1
           flags:
             - input
             - analog
         - signal: sum
           channel: 1
-          range: 0..2
+          range:
+            min: 0
+            max: 2
           flags:
             - output
             - analog
@@ -39,7 +45,9 @@ devices:
       ports:
         - signal: sum
           channel: 1
-          range: 0..2
+          range:
+            min: 0
+            max: 2
           flags:
             - input
             - analog

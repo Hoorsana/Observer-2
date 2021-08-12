@@ -4,7 +4,8 @@
 
 devices:
   - name: vcan0-dev
-    type: pylab.live.plugin.can.candriver.CanDevice
+    type: CanDevice
+    module: pylab.live.plugin.can.candriver
     interface:
       ports:
         - signal: vcan0-signal
@@ -27,7 +28,8 @@ devices:
               channel: vcan0
               bitrate: 125000
   - name: vcan1-dev
-    type: pylab.live.plugin.can.candriver.CanDevice
+    type: CanDevice
+    module: pylab.live.plugin.can.candriver
     interface:
       ports:
         - signal: vcan1-signal
@@ -50,7 +52,8 @@ devices:
               channel: vcan1
               bitrate: 125000
   - name: vcan2-dev
-    type: pylab.live.plugin.can.candriver.CanDevice
+    type: CanDevice
+    module: pylab.live.plugin.can.candriver
     interface:
       ports:
         - signal: vcan2-signal

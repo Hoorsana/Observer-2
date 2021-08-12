@@ -118,6 +118,8 @@ sudo modprobe can-gw
 sudo apt-get install can-utils
 ```
 
+(You may have to load these on every startup!)
+
 Then setup the required vcan devices and network as follows:
 
 ```shell

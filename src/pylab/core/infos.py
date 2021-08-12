@@ -11,12 +11,11 @@ which recursively unpacks a dictionary to create the object.
 
 from __future__ import annotations
 
-import dataclasses
-from dataclasses import InitVar
 import itertools
 import re
-import pydantic
 from typing import Any, List, Optional, Dict
+
+import pydantic
 
 from pylab._private import utils
 from pylab.core import errors
@@ -123,10 +122,11 @@ class PhaseInfo:
 
     @pydantic.validator('commands', each_item=True, allow_reuse=True)
     @classmethod
-    def _command_time_must_not_exceed_duration(cls,
-                                               v: CommandInfo,
-                                               values
-                                               ) -> CommandInfo:
+    def _command_time_must_not_exceed_duration(
+        cls,
+        v: CommandInfo,
+        values
+    ) -> CommandInfo:
         duration = values['duration']
         if v.time > duration:
             raise CommandTooLateError(
@@ -214,8 +214,6 @@ class SignalInfo:
 
     Attributes:
         name: ID of the signal
-        min: Lower bound on the value of the physical signal
-        min: Upper bound on the value of the physical signal
         flags: A list of additional info
         description: For documentation purposes
         range:
@@ -234,7 +232,7 @@ class SignalInfo:
     name: str
     range: RangeInfo = None
     # unit: Optional[Any] = ''  # FIXME Currently not implemented
-    flags: List[str] = dataclasses.field(default_factory=list)
+    flags: List[str] = pydantic.Field(default_factory=list)
     description: Optional[str] = ''
 
     @pydantic.validator('name', allow_reuse=True)

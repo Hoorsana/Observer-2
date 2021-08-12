@@ -5,7 +5,9 @@
 ports:
   - signal: value
     channel: 1
-    range: 0..1
+    range:
+      min: 0
+      max: 1
     flags:
       - output
       - analog

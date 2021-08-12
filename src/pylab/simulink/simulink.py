@@ -285,7 +285,7 @@ class DeviceDetails(sharedinfos.DeviceInfo):
     def from_dict(cls, data: dict) -> DeviceDetails:
         name = data['name']
         type = data['type']
-        interface = sharedinfos.ElectricalInterface.from_dict(data['interface'])
+        interface = sharedinfos.ElectricalInterface(**data['interface'])
         args = data.get('data', {})  # FIXME This is awkward
         return cls(name, type, interface, args)
 
@@ -625,7 +625,7 @@ class TestObject(testobject.TestObjectBase):
                       if each.name == info.target)
         port = device.interface.get_port(info.signal)
 
-        def transform(value): return utils.transform(port.min, port.max,
+        def transform(value): return utils.transform(port.range.min, port.range.max,
                                                      signal.range.min, signal.range.max,
                                                      value)
         return _LoggingRequest(info, transform)
