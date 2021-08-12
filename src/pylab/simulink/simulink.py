@@ -238,7 +238,7 @@ class DeviceDetails:
     name: str
     interface: sharedinfos.ElectricalInterface
     type: str
-    data: Optional[Dict[str, Any]] = pydantic.Field(default_factory=dict)  # TODO Rename to args!
+    data: Optional[Dict] = pydantic.Field(default_factory=dict)  # TODO Rename to args!
 
 
 @pydantic.dataclasses.dataclass(frozen=True)
