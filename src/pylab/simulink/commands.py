@@ -17,7 +17,9 @@ from pylab.core import utils
 
 
 def set_signal(
-    test_object: simulink.TestObject, command_info: infos.CommandInfo, time: float
+    test_object: simulink.TestObject,
+    command_info: infos.CommandInfo,
+    time: float,
 ) -> tuple[str, str]:
     del time
 
@@ -27,15 +29,7 @@ def set_signal(
     signal = test_object.get_signal(command_info.target, command_info.data["signal"])
 
     physical_value = command_info.data["value"]
-    print(signal.range.min)
-    print(signal.range.max)
-    value = utils.transform(
-        signal.range.min,
-        signal.range.max,
-        port.range.min,
-        port.range.max,
-        physical_value,
-    )
+    value = utils.transform(signal.range, port.range, physical_value)
 
     code = device.block.set_signal(port.channel, value)
     what = str(command_info)
@@ -43,28 +37,16 @@ def set_signal(
 
 
 def set_signal_ramp(
-    test_object: simulink.TestObject, command_info: infos.CommandInfo, time: float
+    test_object: simulink.TestObject, command_info: infos.CommandInfo, time: float,
 ) -> tuple[str, str]:
     device, port = next(
         test_object.trace_back(command_info.target, command_info.data["signal"])
     )
     signal = test_object.get_signal(command_info.target, command_info.data["signal"])
 
-    slope = utils.linear_transform(
-        signal.range.min,
-        signal.range.max,
-        port.range.min,
-        port.range.max,
-        command_info.data["slope"],
-    )
+    slope = utils.linear_transform(signal.range, port.range, command_info.data["slope"])
     time = time + command_info.data["time"]
-    initial_output = utils.transform(
-        signal.range.min,
-        signal.range.max,
-        port.range.min,
-        port.range.max,
-        command_info.data["initial_output"],
-    )
+    initial_output = utils.transform(signal.range, port.range, command_info.data["initial_output"])
 
     code = device.block.set_signal_ramp(port.channel, slope, time, initial_output)
     what = str(command_info)
@@ -72,7 +54,7 @@ def set_signal_ramp(
 
 
 def set_signal_sine(
-    test_object: simulink.TestObject, command_info: infos.CommandInfo, time: float
+    test_object: simulink.TestObject, command_info: infos.CommandInfo, time: float,
 ) -> tuple[str, str]:
     _default_bias = 0.0
     _default_phase = 0.0
@@ -82,20 +64,8 @@ def set_signal_sine(
     )
     signal = test_object.get_signal(command_info.target, command_info.data["signal"])
 
-    amplitude = utils.linear_transform(
-        signal.range.min,
-        signal.range.max,
-        port.range.min,
-        port.range.max,
-        command_info.data["amplitude"],
-    )
-    bias = utils.transform(
-        signal.range.min,
-        signal.range.max,
-        port.range.min,
-        port.range.max,
-        command_info.data.get("bias", _default_bias),
-    )
+    amplitude = utils.linear_transform(signal.range, port.range, command_info.data["amplitude"])
+    bias = utils.transform(signal.range, port.range, command_info.data.get("bias", _default_bias))
     frequency = command_info.data["frequency"] * 2 * math.pi
     phase = (
         2 * math.pi * command_info.data.get("phase", _default_phase) - frequency * time

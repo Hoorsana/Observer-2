@@ -13,6 +13,14 @@ _T = TypeVar("T")
 
 
 def transform(
+    src: infos.Range,
+    dst: infos.Range,
+    value: ArrayLike,
+) -> ArrayLike:
+    return transform2(src.min, src.max, dst.min, dst.max, value)
+
+
+def transform2(
     src_min: ArrayLike,
     src_max: ArrayLike,
     dst_min: ArrayLike,
@@ -50,6 +58,14 @@ def transform(
 
 
 def linear_transform(
+    src: infos.RangeInfo,
+    dst: infos.RangeInfo,
+    value: ArrayLike,
+) -> ArrayLike:
+    return linear_transform2(src.min, src.max, dst.min, dst.max, value)
+
+
+def linear_transform2(
     src_min: ArrayLike,
     src_max: ArrayLike,
     dst_min: ArrayLike,
