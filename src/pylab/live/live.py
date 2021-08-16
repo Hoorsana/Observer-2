@@ -820,6 +820,7 @@ class _FutureController:
             current_time: The time of submission
             timeout: The timeout in seconds
         """
+        print(type(future))
         if timeout is not None:
             timeout = time.time() + timeout
         future.log.data["submit_time"] = current_time

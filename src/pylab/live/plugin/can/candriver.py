@@ -242,7 +242,7 @@ class FutureWrap:
         self._future = future
         self._what = what
         self._result = None
-        self._log = None
+        self._log = report.LogEntry(what)
         self._done_event = threading.Event()
 
         self._future.add_done_callback(self._finish)
@@ -257,13 +257,11 @@ class FutureWrap:
         try:
             result = self._future.result()
             self._result = result
-            self._log = report.LogEntry(self._what, report.INFO)
+            self._log.severity = report.INFO
         except Exception as e:
-            self._log = report.LogEntry(
-                self._what + "; failed with the following error: " + str(self._error),
-                report.PANIC,
-                data=e,
-            )
+            self._log.what = self._what + "; failed with the following error: " + str(self._error)
+            self._log.severity = report.PANIC
+            self._log.data['error'] = e
         self._done_event.set()
 
     @property
@@ -437,7 +435,7 @@ class CmdCanMessage(live.AbstractCommand):
         self._data = data
 
     def execute(self, test_object: _TestObject) -> live.AbstractFuture:
-        device, port = test_object.trace_back(self._target, self._signal)
+        device, port = next(test_object.trace_back(self._target, self._signal))
         return device.execute("send_message", port.channel, self._name, self._data)
 
 
