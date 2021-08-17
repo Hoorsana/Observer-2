@@ -58,23 +58,25 @@ def import_matlab_engine():
         except OSError:
             raise EnvironmentError from e
 
-# matlab.engine module
-_matlab_engine = import_matlab_engine()
-
-# Global engine object.
-_engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
-
 
 class _Cached:
 
     def __init__(self, f: Callable[[], _T]):
         self._f = f
-        self._value = None
+        self._value: _T = None
 
     def get(self) -> _T:
         if self._value is None:
             self._value = self._f()
         return self._value
+
+
+# matlab.engine module; not loaded by default so that importing
+# `simulink._engine` doesn't cause an error.
+_matlab_engine = _Cached(import_matlab_engine)
+
+# Global engine object.
+_engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
 
 
 def engine() -> matlab.engine.matlabengine.MatlabEngine:
@@ -88,7 +90,7 @@ def engine() -> matlab.engine.matlabengine.MatlabEngine:
     """
     global _engine
     if _engine is None:
-        _engine = _matlab_engine.start_matlab()
+        _engine = _matlab_engine.get().start_matlab()
     return _engine
 
 
