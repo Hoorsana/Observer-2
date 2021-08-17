@@ -259,9 +259,11 @@ class FutureWrap:
             self._result = result
             self._log.severity = report.INFO
         except Exception as e:
-            self._log.what = self._what + "; failed with the following error: " + str(self._error)
+            self._log.what = (
+                self._what + "; failed with the following error: " + str(self._error)
+            )
             self._log.severity = report.PANIC
-            self._log.data['error'] = e
+            self._log.data["error"] = e
         self._done_event.set()
 
     @property

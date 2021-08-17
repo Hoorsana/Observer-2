@@ -109,9 +109,6 @@ BLOCKS = "pylab.simulink.blocks"
 COMMANDS = "pylab.simulink.commands"
 GRAIN = 0.1
 
-_stdout = io.StringIO()
-_stderr = io.StringIO()
-
 # FIXME Raise correct error when executing commands on devices which
 # don't support them
 
@@ -196,7 +193,7 @@ class Test:
         directory will contain copies of the .M files listed in
         ``TOOLBOX`` and found in ``pylab.simulink._resources``.
         """
-        _engine.reset()  # FIXME Make this a post_test?
+        engine = _engine.Engine()
         with tempfile.TemporaryDirectory() as tmpdir:
             for each in TOOLBOX:
                 raw = importlib.resources.read_text(RESOURCES, each)
@@ -212,9 +209,10 @@ class Test:
             with open(path, "w") as f:
                 f.write(self._code)
 
-            _engine.engine().run(path, nargout=0, stdout=_stdout, stderr=_stderr)
+            engine.run_script_from_file(path)
 
-        logbook = _pull_logbook()
+        logbook = engine.workspace()[LOGBOOK]
+        logbook = _pull_logbook(logbook)
         failed = any(each.failed for each in logbook)
 
         if failed:
@@ -227,7 +225,9 @@ class Test:
                     code = _mark_line(code, line)
             data = {"script": code, "requests": self._logging_requests}
         else:
-            results = {each.path(): each.result() for each in self._logging_requests}
+            results = {
+                each.path(): each.result(engine) for each in self._logging_requests
+            }
             data = {}
 
         return report.Report(logbook, results, data)
@@ -302,7 +302,7 @@ class _LoggingRequest:
         """Return namespace qualified name of the logged signal."""
         return f"{self._info.target}.{self._info.signal}"
 
-    def result(self) -> timeseries.TimeSeries:
+    def result(self, engine: _engine.Engine) -> timeseries.TimeSeries:
         """Pull logged result from MATLAB workspace.
 
         Should only be called from inside ``Test.execute`` after the
@@ -313,7 +313,9 @@ class _LoggingRequest:
                 If the logged data cannot be found in the MATLAB
                 workspace.
         """
-        ts = _engine.timeseries_to_python(_engine.workspace()[self._mangled_name()])
+        # TODO The result should be allowed to be something other than a
+        # timeseries.
+        ts = engine.timeseries_to_python(engine.workspace()[self._mangled_name()])
         ts.kind = self._info.kind
         ts.transform(self._transform)
         return ts
@@ -325,7 +327,7 @@ class _LoggingRequest:
         return f"{OUTPUT}_{_unpack_log_entry(self._info)}"
 
 
-def _pull_logbook() -> list[report.LogEntry]:
+def _pull_logbook(logbook: Union[list[str], str]) -> list[report.LogEntry]:
     """Pull the logbook from the MATLAB namespace.
 
     Should only be called from inside ``Test.execute`` after the test
@@ -336,7 +338,6 @@ def _pull_logbook() -> list[report.LogEntry]:
             If the logged data cannot be found in the MATLAB
             workspace.
     """
-    logbook = _engine.workspace()[LOGBOOK]
     if isinstance(logbook, str):
         logbook = [logbook]
     logbook = [report.LogEntry(**json.loads(each)) for each in logbook]

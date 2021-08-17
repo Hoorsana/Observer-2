@@ -22,6 +22,7 @@ from __future__ import annotations
 import abc
 import importlib
 import itertools
+import io
 import sys
 from typing import Any, Callable, Optional, Sequence
 
@@ -60,7 +61,6 @@ def import_matlab_engine():
 
 
 class _Cached:
-
     def __init__(self, f: Callable[[], _T]):
         self._f = f
         self._value: _T = None
@@ -75,52 +75,40 @@ class _Cached:
 # `simulink._engine` doesn't cause an error.
 _matlab_engine = _Cached(import_matlab_engine)
 
-# Global engine object.
-_engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
 
+class Engine:
+    def __init__(self):
+        self._engine = _matlab_engine.get().start_matlab()
 
-def engine() -> matlab.engine.matlabengine.MatlabEngine:
-    """Lazily create and return the global engine object.
+    def run_script_from_file(
+        self,
+        path: PathLike,
+        stdout: Optional[io.StringIO] = None,
+        stderr: Optional[io.StringIO] = None,
+    ) -> None:
+        if stdout is None:
+            stdout = io.StringIO()
+        if stderr is None:
+            stderr = io.StringIO()
+        self._engine.run(path, nargout=0, stdout=stdout, stderr=stderr)
 
-    This wrapper also prevents that the matlab.engine is engaged upon
-    import. This is inconvenient, for example when creating sphinx docs.
+    def workspace(self) -> matlab.engine.matlabengine.MatlabWorkSpace:
+        """Return the current engine's workspace."""
+        return self._engine.workspace
 
-    Returns:
-        The global MATLAB engine handle
-    """
-    global _engine
-    if _engine is None:
-        _engine = _matlab_engine.get().start_matlab()
-    return _engine
+    def get_field(self, handle: float, field: str) -> Any:
+        """Return the value of the field ``field`` of the MATLAB object
+        ``handle``.
+        """
+        return self._engine.subsref(handle, {"type": ".", "subs": field})
 
-
-def reset() -> None:
-    """Destroy global engine object if it exists."""
-    global _engine
-    if _engine:
-        _engine.quit()
-    _engine = None
-
-
-def workspace() -> matlab.engine.matlabengine.MatlabWorkSpace:
-    """Return the current engine's workspace."""
-    return engine().workspace
-
-
-def get_field(handle: float, field: str) -> Any:
-    """Return the value of the field ``field`` of the MATLAB object
-    ``handle``.
-    """
-    return engine().subsref(handle, {"type": ".", "subs": field})
-
-
-def timeseries_to_python(ts: matlab.object) -> timeseries.TimeSeries:
-    """Convert MATLAB timeseries object ``ts`` to a pylab TimeSeries
-    object.
-    """
-    time = get_field(ts, "time")  # [[0.0], [1.0], ...]
-    data = get_field(ts, "data")
-    return _timeseries_to_python(time, data)
+    def timeseries_to_python(self, ts: matlab.object) -> timeseries.TimeSeries:
+        """Convert MATLAB timeseries object ``ts`` to a pylab TimeSeries
+        object.
+        """
+        time = self.get_field(ts, "time")  # [[0.0], [1.0], ...]
+        data = self.get_field(ts, "data")
+        return _timeseries_to_python(time, data)
 
 
 def _timeseries_to_python(
