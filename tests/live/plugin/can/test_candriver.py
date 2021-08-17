@@ -122,3 +122,14 @@ def test_functional():
     )
     results = report.results['vcan0-dev.vcan0-signal']
     assert results == [{'Temperature': 30, 'Humidity': 50}, {'Temperature': 50, 'Humidity': 30}]
+
+
+def test_pcan():
+    report = workflow.run_from_files(
+        driver=live,
+        test='resources/tests/live/plugin/can/pcan.yml',
+        details='resources/tests/live/plugin/can/pcan_details.yml',
+    )
+    results = reports.results['pcan0-dev.pcan0-signal']
+    print(results)
+    assert False

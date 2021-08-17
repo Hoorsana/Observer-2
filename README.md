@@ -144,6 +144,24 @@ sudo cangw -A -s vcan1 -d vcan2 -e
 
 Run `make can` to test.
 
+~~Furthermore, to run the tests that involve the PCAN-Dongle, you must
+install the driver and API:~~
+
+~~* `sudo modprobe peak_usb`?~~
+~~* http://www.peak-system.com/fileadmin/media/linux/index.htm > **Driver Package for Proprietary Purposes** > Download PCAN Driver Package; then `sudo apt-get install libpopt-dev`; `make clean all`; `sudo make install`~~
+~~* https://www.peak-system.com/PCAN-Basic-Linux.433.0.html; `cd libpcanbasic/pcanbasic`; `make clean`; `make`; `sudo make install`~~
+
+Furthermore, to run the tests that involve the PCAN-Dongle, run:
+
+* sudo modprobe can
+* sudo modprobe can-dev
+* sudo modprobe can-raw
+* sudo modprobe can-bcm
+* sudo ip link set can0 type can bitrate 500000
+* sudo ip link set up can0
+
+(TODO: Add a script that runs there on every test run.) 
+
 
 ## License
 
