@@ -23,18 +23,15 @@ import abc
 import importlib
 import itertools
 import sys
-from typing import Any, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence
 
 import matlab
 
 from pylab.core.typing import ArrayLike
 from pylab.core import timeseries
 
-# Global engine object.
-_engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
 
-
-class MonkeypatchPythonVersion:
+class _MonkeypatchPythonVersion:
     """Context manager to force the engine to use the current version by
     monkeypatching sys.version_info if the current python version is not
     supported by MATLAB.
@@ -44,7 +41,7 @@ class MonkeypatchPythonVersion:
 
     def __enter__(self):
         self._stash = sys.version_info
-        sys.version_info = MonkeypatchPythonVersion.PYTHON_VERSION_FOR_MATLAB_ENGINE
+        sys.version_info = _MonkeypatchPythonVersion.PYTHON_VERSION_FOR_MATLAB_ENGINE
 
     def __exit__(self, type, value, traceback):
         del type, value, traceback
@@ -56,10 +53,28 @@ def import_matlab_engine():
         return importlib.import_module("matlab.engine")
     except OSError as e:
         try:
-            with MonkeypatchPythonVersion():
+            with _MonkeypatchPythonVersion():
                 return importlib.import_module("matlab.engine")
         except OSError:
             raise EnvironmentError from e
+
+# matlab.engine module
+_matlab_engine = import_matlab_engine()
+
+# Global engine object.
+_engine: Optional[matlab.engine.matlabengine.MatlabEngine] = None
+
+
+class _Cached:
+
+    def __init__(self, f: Callable[[], _T]):
+        self._f = f
+        self._value = None
+
+    def get(self) -> _T:
+        if self._value is None:
+            self._value = self._f()
+        return self._value
 
 
 def engine() -> matlab.engine.matlabengine.MatlabEngine:
@@ -72,9 +87,8 @@ def engine() -> matlab.engine.matlabengine.MatlabEngine:
         The global MATLAB engine handle
     """
     global _engine
-    ml_engine = import_matlab_engine()
     if _engine is None:
-        _engine = ml_engine.start_matlab()
+        _engine = _matlab_engine.start_matlab()
     return _engine
 
 
