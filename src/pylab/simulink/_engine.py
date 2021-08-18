@@ -91,6 +91,8 @@ class Engine:
         if stderr is None:
             stderr = io.StringIO()
         self._engine.run(path, nargout=0, stdout=stdout, stderr=stderr)
+        # TODO Returns contents of stderr and use those as additional
+        # error message!
 
     def workspace(self) -> matlab.engine.matlabengine.MatlabWorkSpace:
         """Return the current engine's workspace."""
