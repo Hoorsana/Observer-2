@@ -4,7 +4,6 @@ import scipy.interpolate
 
 
 class LookupTable:
-
     def __init__(self, x: list[float], y: list[float]) -> None:
         self._x = x
         self._y = y
@@ -15,10 +14,16 @@ class LookupTable:
             copy=False,
             bounds_error=False,
             fill_value="extrapolate",
-            kind="linear"
+            kind="linear",
         )
 
-    def eval(self, t: float) -> float:
+    @classmethod
+    def transform_ranges(
+        cls, domain: pylab.core.infos.RangeInfo, codomain: pylab.core.infos.RangeInfo
+    ) -> LookupTable:
+        return LookupTable([domain.min, domain.max], [codomain.min, codomain.max])
+
+    def __call__(self, t: float) -> float:
         return self._f(t)
 
     def inverted(self) -> LookupTable:
