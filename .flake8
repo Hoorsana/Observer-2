@@ -1,6 +1,0 @@
-# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
-# 
-# SPDX-License-Identifier: CC0-1.0
-
-[flake8]
-max-line-length=89
