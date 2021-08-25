@@ -120,15 +120,20 @@ class BusConfig:
         """
         self._kwargs = kwargs
 
-    def get(self) -> dict:
-        """Get the arguments for the current platform.
+    def get(self, platform: Optional[str] = None) -> dict:
+        """Get the arguments for the specified platform.
+
+        Args:
+            platform: A string describing the platform (...)
 
         Raises:
             RuntimeError:
                 If no configuration for this systems' OS is available
         """
+        if platform is None:
+            platform = sys.platform
         args = next(
-            (v for k, v in self._kwargs.items() if sys.platform.startswith(k)), None
+            (v for k, v in self._kwargs.items() if platform.startswith(k)), None
         )
         if args is None:
             raise RuntimeError(f"No bus configuration provided for OS {sys.platform}")

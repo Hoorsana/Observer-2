@@ -140,7 +140,7 @@ sudo cangw -A -s vcan0 -d vcan1 -e
 sudo cangw -A -s vcan1 -d vcan2 -e
 ```
 
-(The middle device `vcan0` will serve as a passthru.)
+(The middle device `vcan1` will serve as a passthru.)
 
 Run `make can` to test.
 
@@ -157,16 +157,20 @@ Furthermore, to run the tests that involve the PCAN-Dongle, run:
 * sudo modprobe can-dev
 * sudo modprobe can-raw
 * sudo modprobe can-bcm
+* sudo modprobe peak_usb
 * sudo ip link set can0 type can bitrate 500000
 * sudo ip link set up can0
 
 (TODO: Add a script that runs there on every test run.)
 
-Test correct setup by running `candump` in one terminal and
+Test correct setup by running `candump can0` in one terminal and
 `cansend can0 000#00.11.22.33.44.55.66.77` in another.
 
 
 ##### Troubleshooting
+
+`netlink error -95 (Operation not supported)` when calling `cangw` -
+Most likely cause is failure to call `sudo modprobe can-gw` 
 
 `Cannot find device "can0"` - PCAN dongle is probably not connected
 

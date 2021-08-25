@@ -140,15 +140,14 @@ example-limit-flash: venv
 # engine if available
 .PHONY: venv
 venv:
+	./freeze
 	pip install virtualenv
 ifeq ($(OS), Windows_NT)
 	if NOT exist $(VENV) virtualenv $(VENV)
 else
 	[ -d $(VENV) ] || virtualenv $(VENV)
 endif
-	$(PIP) install -r requirements2.txt
-	$(PIP) install git+https://${GITHUB_TOKEN}@github.com/maltekliemann/controllino@0.1.1
-	$(PIP) install git+https://${GITHUB_TOKEN}@github.com/maltekliemann/rogue@0.1.7
+	$(PIP) install -r requirements.txt
 ifdef PYLAB_MATLAB_PATH
 	$(call activate) && \
 	cd ${PYLAB_MATLAB_PATH}/extern/engines/python && \

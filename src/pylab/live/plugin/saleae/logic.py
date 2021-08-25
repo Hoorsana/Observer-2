@@ -221,7 +221,7 @@ def from_config(path: str) -> Device:
     pass
 
 
-# TODO How to guarantee that there is only one device?
+# TODO Singleton pattern in python?
 class Device:
     """Handle object for pylab usage."""
 
