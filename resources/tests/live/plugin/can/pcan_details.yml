@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+devices:
+  - name: pcan-dongle
+    type: CanDevice
+    module: pylab.live.plugin.can.candriver
+    interface:
+      ports:
+        - signal: 0
+          channel: 0
+          flags:
+            - bidirectional
+            - can
+    data:
+      buses:
+        - !_CanPassthruBus
+          signal: vcan0
+          db:
+            !Database
+            path: resources/tests/live/plugin/can/test.dbc
+            encoding: utf-8
+          config:
+            !BusConfig
+            linux:
+              bustype: socketcan
+              channel: vcan0
+              bitrate: 125000
+  - name: vcan1-dev
+    type: CanDevice
+    module: pylab.live.plugin.can.candriver
+    interface:
+      ports:
+        - signal: vcan1-signal
+          channel: vcan1
+          flags:
+            - bidirectional
+            - can
+    data:
+      buses:
+        - !CanBus
+          signal: vcan1
+          db:
+            !Database
+            path: resources/tests/live/plugin/can/test.dbc
+            encoding: utf-8
+          config:
+            !BusConfig
+            linux:
+              bustype: socketcan
+              channel: vcan1
+              bitrate: 125000
+  - name: vcan2-dev
+    type: CanDevice
+    module: pylab.live.plugin.can.candriver
+    interface:
+      ports:
+        - signal: vcan2-signal
+          channel: vcan2
+          flags:
+            - bidirectional
+            - can
+    data:
+      buses:
+        - !CanBus
+          signal: vcan2
+          db:
+            !Database
+            path: resources/tests/live/plugin/can/test.dbc
+            encoding: utf-8
+          config:
+            !BusConfig
+            linux:
+              bustype: socketcan
+              channel: vcan2
+              bitrate: 125000
+
+
+connections: []

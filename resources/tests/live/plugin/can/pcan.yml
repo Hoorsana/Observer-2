@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+targets:
+  - name: pcan-dongle
+    signals:
+      - name: 0
+        flags:
+          - bidirectional
+          - can
+
+
+logging:
+  - target: pcan-dongle
+    signal: 0
+
+
+phases:
+  - duration: 1.0
+    commands: []
