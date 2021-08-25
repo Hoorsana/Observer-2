@@ -293,7 +293,7 @@ class CmdSetSignal(AbstractCommand):
     def execute(self, test_object: _TestObject) -> AbstractFuture:
         device, port = next(test_object.trace_back(self._target, self._signal))
         signal = test_object.get_signal(self._target, self._signal)
-        tf = transform.LookupTable.transform_ranges(signal.range, port.range)
+        tf = transform.AffineMap.affine_range_transform(signal.range, port.range)
         value = tf(self._value)
         return device.execute("set_signal", port.channel, value)
 
@@ -701,7 +701,7 @@ class _LoggingRequest(AbstractFuture):
         self._info = info
         self._device = device
         self._port = port
-        self._transform = transform.LookupTable.transform_ranges(port.range, signal.range)
+        self._transform = transform.AffineMap.affine_range_transform(port.range, signal.range)
         self._future: AbstractFuture = None
 
     def begin(self) -> AbstractFuture:

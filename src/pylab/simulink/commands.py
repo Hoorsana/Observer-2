@@ -11,6 +11,7 @@ import math
 from pylab.simulink import simulink
 from pylab.core import infos
 from pylab.core import utils
+from pylab.core import transform
 
 
 # FIXME Add checks if physical/eletric values are out-of-bounds.
@@ -27,7 +28,9 @@ def set_signal(
     signal = test_object.get_signal(command_info.target, command_info.data["signal"])
 
     physical_value = command_info.data["value"]
-    value = utils.transform(signal.range, port.range, physical_value)
+    value = transform.AffineMap.affine_range_transform(signal.range, port.range)(
+        physical_value
+    )
 
     code = device.block.set_signal(port.channel, value)
     what = str(command_info)
@@ -42,11 +45,13 @@ def set_signal_ramp(
     )
     signal = test_object.get_signal(command_info.target, command_info.data["signal"])
 
-    slope = utils.linear_transform(signal.range, port.range, command_info.data["slope"])
-    time = time + command_info.data["time"]
-    initial_output = utils.transform(
-        signal.range, port.range, command_info.data["initial_output"]
+    slope = transform.AffineMap.linear_range_transform(signal.range, port.range)(
+        command_info.data["slope"]
     )
+    time = time + command_info.data["time"]
+    initial_output = transform.AffineMap.affine_range_transform(
+        signal.range, port.range
+    )(command_info.data["initial_output"])
 
     code = device.block.set_signal_ramp(port.channel, slope, time, initial_output)
     what = str(command_info)
@@ -64,11 +69,11 @@ def set_signal_sine(
     )
     signal = test_object.get_signal(command_info.target, command_info.data["signal"])
 
-    amplitude = utils.linear_transform(
-        signal.range, port.range, command_info.data["amplitude"]
+    amplitude = transform.AffineMap.linear_range_transform(signal.range, port.range)(
+        command_info.data["amplitude"]
     )
-    bias = utils.transform(
-        signal.range, port.range, command_info.data.get("bias", _default_bias)
+    bias = transform.AffineMap.affine_range_transform(signal.range, port.range)(
+        command_info.data.get("bias", _default_bias)
     )
     frequency = command_info.data["frequency"] * 2 * math.pi
     phase = (

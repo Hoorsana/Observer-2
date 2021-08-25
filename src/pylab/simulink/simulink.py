@@ -81,6 +81,7 @@ from pylab.core.typing import ArrayLike
 from pylab.simulink import _engine
 from pylab.core import timeseries
 from pylab.core import utils
+from pylab.core import transform
 from pylab.core import infos
 from pylab.core import report
 
@@ -618,11 +619,8 @@ class TestObject(testobject.TestObjectBase):
         signal = self.get_signal(info.target, info.signal)
         device = next(each for each in self._devices if each.name == info.target)
         port = device.interface.get_port(info.signal)
-
-        def transform(value):
-            return utils.transform(port.range, signal.range, value)
-
-        return _LoggingRequest(info, transform)
+        tf = transform.AffineMap.affine_range_transform(port.range, signal.range)
+        return _LoggingRequest(info, tf)
 
     def start_logging(self, info: infos.LoggingInfo) -> Command:
         """Create a ``Command`` objects which initiates logging by
