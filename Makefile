@@ -108,6 +108,10 @@ live-flash: venv
 simulink: venv
 	$(PYTEST) -vv tests/simulink
 
+.PHONY: modbus
+modbus: venv
+	$(PYTEST) -vv tests/live/plugin/modbus
+
 # Legacy target; deprecated
 .PHONY: example
 example: example-adder

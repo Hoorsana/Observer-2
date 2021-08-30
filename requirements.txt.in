@@ -12,7 +12,9 @@ pyserial==3.5b0
 PyYAML==5.3.1
 scipy==1.6.1
 pydantic==1.8.2
+pymodbus==2.5.2
 tabulate==0.8.9
+Twisted==21.7.0
 sphinx_rtd_theme
 git+https://${GITHUB_TOKEN}@github.com/maltekliemann/rogue@0.1.7
 git+https://${GITHUB_TOKEN}@github.com/ppannuto/python-saleae@877178f67618cdb3355054eae3666d99dce36aaa
