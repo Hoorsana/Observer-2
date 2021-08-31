@@ -85,3 +85,4 @@ class TestModbusClient:
             "b": bits,
             "y": pytest.approx(3.4, abs=0.001),
         }
+        # assert False

@@ -12,7 +12,7 @@ import dataclasses
 
 # TODO Use skip_bytes! Does the payload builder also have that function? (Probably not!)
 
-_VALUE_TYPE = "Union[int, float, str, list[bool]]"
+_ValueType = "Union[int, float, str, list[bool]]"
 
 _ENCODE_DISPATCH = {
     "str": "add_string",
@@ -61,7 +61,19 @@ _SIZE_IN_BYTES = {
 }
 
 
+class TypeMismatchError(Exception):
+    pass
+
+
+class InvalidValueError(Exception):
+    pass
+
+
 class MissingSizeError(Exception):
+    pass
+
+
+class FieldNotFoundError(Exception):
     pass
 
 
@@ -69,7 +81,7 @@ def _decode(
     decoder: pymodbus.payload.BinaryPayloadDecoder,
     type: str,
     size: Optional[int] = None,
-) -> _VALUE_TYPE:
+) -> _ValueType:
     """Decode from a payload decoder.
 
     If ``type`` is ``str`` or ``bits``, then ``size`` must specify the
@@ -100,7 +112,7 @@ def _decode(
 
 
 def _encode(
-    builder: pymodbus.payload.BinaryPayloadDecoder, type: str, value: _VALUE_TYPE
+    builder: pymodbus.payload.BinaryPayloadDecoder, type: str, value: _ValueType
 ) -> None:
     """Encode a value into a payload builder.
 
@@ -110,14 +122,6 @@ def _encode(
         value: The value to encode
     """
     getattr(builder, _ENCODE_DISPATCH[type])(value)
-
-
-class TypeMismatchError(Exception):
-    pass
-
-
-class InvalidValueError(Exception):
-    pass
 
 
 _MATCHING_TYPES = {
@@ -156,7 +160,7 @@ class Field:
     def __repr__(self) -> str:
         return f"field(name={self._name}, type={self._type}, size_in_bytes={self._size_in_bytes}, address={self.address})"
 
-    def check_value(self, value: _VALUE_TYPE) -> bool:
+    def check_value(self, value: _ValueType) -> bool:
         """Check if the space allocated for ``self`` can hold ``value``.
 
         This check is only for strings and bit sequences. Strings are
@@ -200,10 +204,6 @@ class Field:
         return self.address + self.size_in_registers
 
 
-class NoSizeError(Exception):
-    pass
-
-
 def _get_size_of_type_in_bytes(type: str) -> int:
     """Return the size of ``type`` (in bytes).
 
@@ -225,7 +225,7 @@ def _get_size_of_type_in_bytes(type: str) -> int:
         UnknownTypeError
     """
     if type not in _SIZE_IN_BYTES:
-        raise NoSizeError(f"No size found for type: {type}")
+        raise MissingSizeError(f"No size found for type: {type}")
     return _SIZE_IN_BYTES[type]
 
 
@@ -233,10 +233,6 @@ def _get_size_of_type_in_bytes(type: str) -> int:
 class Payload:
     address: int
     values: list[bytes]
-
-
-class FieldNotFoundError(Exception):
-    pass
 
 
 class ModbusRegisterMapping:
@@ -254,9 +250,8 @@ class ModbusRegisterMapping:
                 current.address = last.end
             elif current.address < last.end:
                 raise ValueError()  # TODO Conflicting information!
-        print(self._fields)
 
-    def build_payload(self, values: dict[str, _VALUE_TYPE]) -> list[Payload]:
+    def build_payload(self, values: dict[str, _ValueType]) -> list[Payload]:
         """Build data for writing ``values`` to register.
 
         Args:
@@ -299,13 +294,27 @@ class ModbusRegisterMapping:
             raise FieldNotFoundError()  # TODO
         return result
 
-    def decode_registers(self, registers: list[int]) -> dict[str, _VALUE_TYPE]:
+    def decode_registers(
+        self, registers: list[int], fields_to_decode: Optional[Iterable[str]] = None
+    ) -> dict[str, _ValueType]:
+        """Decode registers into Python types.
+
+        Args:
+            registers: The registers to decode
+            fields_to_decode:
+                The names of the fields that occur in ``registers``
+        """
+        if fields_to_decode is None:
+            fields_to_decode = [field.name for field in self._fields]
         decoder = pymodbus.payload.BinaryPayloadDecoder.fromRegisters(
             registers, byteorder=self._byteorder, wordorder=self._wordorder
         )
         result = {}
         for field in self._fields:
-            result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
+            if field.name in fields_to_decode:
+                result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
+            else:
+                decoder.skip_bytes(field.size_in_bytes)
         return result
 
     @property
@@ -328,20 +337,17 @@ class ModbusClient:
         self._client = client
         self._mapping = mapping
 
-    # TODO
-    def read_single_holding_register(self, field: str) -> _VALUE_TYPE:
-        pass
-
-    def read_holding_registers(self) -> dict[str, _VALUE_TYPE]:
-        result = self._client.read_holding_registers(self._mapping.address, self._mapping.size)
+    def read_holding_registers(self, fields: Optional[Iterable[str]] = None) -> dict[str, _ValueType]:
+        result = self._client.read_holding_registers(
+            self._mapping.address, self._mapping.size
+        )
         return self._mapping.decode_registers(result.registers)
 
-    def write_register(self, field: str, value: _VALUE_TYPE) -> None:
+    def write_register(self, field: str, value: _ValueType) -> None:
         self.write_registers({field: value})
 
-    def write_registers(self, values: dict[str, _VALUE_TYPE]) -> None:
+    def write_registers(self, values: dict[str, _ValueType]) -> None:
         payloads = self._mapping.build_payload(values)
-        print(payloads)
         for payload in payloads:
             self._client.write_registers(
                 payload.address, payload.values, skip_encode=True
