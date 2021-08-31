@@ -38,7 +38,9 @@ class TestModbusClient:
             pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
             mapping.ModbusRegisterMapping(
                 [
-                    mapping.Field("x", "i32", address=0),
+                    mapping.Field("s", "str", size_in_bytes=5, address=2),
+                    mapping.Field("x", "i32"),
+                    mapping.Field("b", "bits", size_in_bytes=2),  # , address=82),
                     mapping.Field("y", "f16"),
                 ],
                 byteorder="<",
@@ -47,9 +49,39 @@ class TestModbusClient:
         )
 
     def test_write_register_read_holding_registers(self, server, client):
-        client.write_register("x", 12)
-        client.write_register("y", 3.4)
+        # TODO Current problem is caused by writing only one byte worth
+        # of bits. Thus, "y" is written to the incorrect register. Fix
+        # this by 1) changing the test; 2) raising if incorrect size is
+        # passed!
+        bits = [
+            False,
+            False,
+            True,
+            False,
+            True,
+            True,
+            False,
+            True,
+            False,
+            True,
+            False,
+            False,
+            False,
+            True,
+            True,
+            True,
+        ]
+        client.write_registers(
+            {
+                "x": 12,
+                "s": "hello",
+                "b": bits,
+                "y": 3.4,
+            }
+        )
         assert client.read_holding_registers() == {
             "x": 12,
+            "s": b"hello",
+            "b": bits,
             "y": pytest.approx(3.4, abs=0.001),
         }

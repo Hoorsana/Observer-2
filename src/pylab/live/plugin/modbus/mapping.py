@@ -31,7 +31,6 @@ _ENCODE_DISPATCH = {
 }
 
 _DECODE_DISPATCH = {
-    # TODO String, bytes
     "str": "decode_string",
     "bits": "decode_bits",
     "i8": "decode_8bit_int",
@@ -62,6 +61,10 @@ _SIZE_IN_BYTES = {
 }
 
 
+class MissingSizeError(Exception):
+    pass
+
+
 def _decode(
     decoder: pymodbus.payload.BinaryPayloadDecoder,
     type: str,
@@ -82,10 +85,17 @@ def _decode(
         The decoded element
     """
     d = getattr(decoder, _DECODE_DISPATCH[type])
-    if type in {"str", "bits"}:
+    if type == "str":
         if size is None:
-            raise ValueError()  # TODO
+            raise MissingSizeError()  # TODO
         return d(size)
+    elif type == "bits":
+        if size is None:
+            raise MissingSizeError()  # TODO
+        result = []
+        for _ in range(size):
+            result += d()
+        return result
     return d()
 
 
@@ -100,6 +110,31 @@ def _encode(
         value: The value to encode
     """
     getattr(builder, _ENCODE_DISPATCH[type])(value)
+
+
+class TypeMismatchError(Exception):
+    pass
+
+
+class InvalidValueError(Exception):
+    pass
+
+
+_MATCHING_TYPES = {
+    "str": str,
+    "bits": list,
+    "i8": int,
+    "i16": int,
+    "i32": int,
+    "i64": int,
+    "u8": int,
+    "u16": int,
+    "u32": int,
+    "u64": int,
+    "f16": float,
+    "f32": float,
+    "f64": float,
+}
 
 
 class Field:
@@ -120,6 +155,28 @@ class Field:
 
     def __repr__(self) -> str:
         return f"field(name={self._name}, type={self._type}, size_in_bytes={self._size_in_bytes}, address={self.address})"
+
+    def check_value(self, value: _VALUE_TYPE) -> bool:
+        """Check if the space allocated for ``self`` can hold ``value``.
+
+        This check is only for strings and bit sequences. Strings are
+        expected to be equal or smaller than the allocated space. Bit
+        sequences are expected to be *exactly* as large as the allocated
+        space.
+
+        Integers and floating point numbers are *not* checked for
+        numerical bounds. This is handled later by the payload builder.
+
+        Raises:
+            TypeMismatchError:
+                If ``type(value)`` does not match ``self.type``
+        """
+        if type(value) != _MATCHING_TYPES[self._type]:
+            raise TypeMismatchError()  # TODO
+        if self._type == "str":
+            return len(value) <= self._size_in_bytes
+        if self._type == "bits":
+            return len(value) // 8 == self._size_in_bytes
 
     @property
     def name(self) -> str:
@@ -197,7 +254,7 @@ class ModbusRegisterMapping:
                 current.address = last.end
             elif current.address < last.end:
                 raise ValueError()  # TODO Conflicting information!
-        # print(self._fields)
+        print(self._fields)
 
     def build_payload(self, values: dict[str, _VALUE_TYPE]) -> list[Payload]:
         """Build data for writing ``values`` to register.
@@ -214,7 +271,7 @@ class ModbusRegisterMapping:
         builder = pymodbus.payload.BinaryPayloadBuilder(
             byteorder=self._byteorder, wordorder=self._wordorder
         )
-        chunk = 0  # Begin of current chunk
+        chunk = self._fields[0].address  # Begin of current chunk
 
         def build_chunk():
             payload = builder.build()
@@ -222,15 +279,18 @@ class ModbusRegisterMapping:
                 result.append(Payload(chunk, builder.build()))
                 builder.reset()
 
-        next_address = 0
+        next_address = chunk  # Next address must be correct on first pass!
         for field in self._fields:
             value = values.pop(field.name, None)
-            # print(f"next_address={next_address};field.address={field.address};field.end={field.end};value={value};chunk={chunk}")
             if next_address != field.address or value is None:
                 build_chunk()
                 chunk = field.end
             else:
-                # print(f"_encode(builder, {field.type}, {value})")
+                if field.type in {"str", "bits"} and not field.check_value(value):
+                    raise InvalidValueError()  # TODO
+                # Pad the string if its smaller than the allocated memory.
+                if field.type == "str":
+                    value += (field.size_in_bytes - len(value)) * " "
                 _encode(builder, field.type, value)
             next_address = field.end
         build_chunk()
@@ -245,7 +305,7 @@ class ModbusRegisterMapping:
         )
         result = {}
         for field in self._fields:
-            result[field.name] = _decode(decoder, field.type)
+            result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
         return result
 
     @property
@@ -293,27 +353,3 @@ class ModbusClient:
 
 
 # TODO coils (holding, input), registers (holding, input) -> vier Tabellen?
-
-if __name__ == "__main__":
-    mapping = ModbusRegisterMapping(
-        [
-            Field("x", "i32", address=3),
-            Field("y", "f16"),
-            # Field("a", "f16"),
-            # Field("b", "f16"), # addr=103),
-            # Field("c", "f16"),
-        ],
-        byteorder="<",
-        wordorder=">",
-    )
-    client = ModbusClient(
-        pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020), mapping
-    )
-    client.write_register("y", 1.23)
-    client.write_register("x", 4567)
-    result = client.read_holding_registers()  # {"x": 4567, "y": 1.23}
-    print(result)
-    client.write_register("y", 4.56)
-    result = client.read_holding_registers()  # {"x": 4567, "y": 4.56}
-    print(result)
-    client.client.close()
