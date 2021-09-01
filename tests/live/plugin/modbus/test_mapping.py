@@ -8,10 +8,6 @@ import threading
 from pylab.live.plugin.modbus import mapping
 
 
-def run_server(server):
-    server.serve_forever()
-
-
 @pytest.fixture
 def server():
     context = pymodbus.datastore.ModbusServerContext(
@@ -22,7 +18,7 @@ def server():
         single=False,
     )
     server = pymodbus.server.sync.ModbusTcpServer(context, address=("localhost", 5020))
-    t = threading.Thread(target=run_server, args=(server,))
+    t = threading.Thread(target=lambda s: s.serve_forever(), args=(server,))
     t.start()
     yield
     # FIXME It's not clear which of these is correct...
