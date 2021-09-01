@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import pytest
 
 import pymodbus.client.sync
@@ -79,6 +83,7 @@ class TestModbusClient:
             "b": bits,
             "y": pytest.approx(3.4, abs=0.001),
         }
+
         assert client.read_holding_register("b") == bits
         client.write_register("s", "world")
         assert client.read_holding_register("s") == b"world "
@@ -88,12 +93,6 @@ class TestModbusClient:
                 "s": "hello",
             }
         )
-        assert client.read_holding_registers() == {
-            "x": 34,
-            "s": b"hello ",
-            "b": bits,
-            "y": pytest.approx(3.4, abs=0.001),
-        }
         assert client.read_holding_registers({"x", "s"}) == {
             "x": 34,
             "s": b"hello ",
