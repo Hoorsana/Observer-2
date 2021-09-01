@@ -372,11 +372,13 @@ class ModbusClient:
         d = self._mapping.decode_registers(result.registers, fields_to_decode={field})
         return d[field]
 
-    def read_holding_registers(self) -> dict[str, _ValueType]:
+    def read_holding_registers(
+        self, fields: Optional[Iterable[str]] = None
+    ) -> dict[str, _ValueType]:
         result = self._client.read_holding_registers(
             self._mapping.address, self._mapping.size
         )
-        return self._mapping.decode_registers(result.registers)
+        return self._mapping.decode_registers(result.registers, fields)
 
     def write_register(self, field: str, value: _ValueType) -> None:
         self.write_registers({field: value})
