@@ -4,7 +4,10 @@
 
 from __future__ import annotations
 
+import enum
+
 import pymodbus.client.sync
+import pymodbus.constants
 import pymodbus.payload
 
 import itertools
@@ -61,6 +64,11 @@ _SIZE_IN_BYTES = {
 }
 
 
+class Endian(enum.Enum):
+    little = "<"
+    big = ">"
+
+
 class TypeMismatchError(Exception):
     pass
 
@@ -107,6 +115,7 @@ def _decode(
         result = []
         for _ in range(size):
             result += d()
+            print(result)
         return result
     return d()
 
@@ -177,6 +186,7 @@ class Field:
         """
         if type(value) != _MATCHING_TYPES[self._type]:
             raise TypeMismatchError()  # TODO
+        # TODO Check that type of bit sequence is list[bool].
         if self._type == "str":
             return len(value) <= self._size_in_bytes
         if self._type == "bits":
@@ -236,7 +246,9 @@ class Payload:
 
 
 class ModbusRegisterMapping:
-    def __init__(self, fields, byteorder: str = "<", wordorder: str = ">") -> None:
+    def __init__(
+        self, fields, byteorder: str = Endian.little, wordorder: str = Endian.big
+    ) -> None:
         self._fields = fields
         self._byteorder = byteorder
         self._wordorder = wordorder
@@ -313,14 +325,20 @@ class ModbusRegisterMapping:
         for field in self._fields:
             if field.name in fields_to_decode:
                 result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
-            else:
-                decoder.skip_bytes(field.size_in_bytes)
+            # else:
+            #     decoder.skip_bytes(field.size_in_bytes)
         return result
+
+    def get_field_dimensions(self, field: str) -> tuple[int, int]:
+        f = next((f for f in self._fields if f.name == field), None)
+        if f is None:
+            raise FieldNotFoundError()  # TODO
+        return f.address, f.size_in_registers
 
     @property
     def size(self) -> int:
-        """Return the total size of the layout."""
-        return self._fields[-1].end
+        """Return the total size of the layout in registers."""
+        return self._fields[-1].end - self._fields[0].address
 
     @property
     def address(self) -> int:
@@ -337,10 +355,21 @@ class ModbusClient:
         self._client = client
         self._mapping = mapping
 
-    def read_holding_registers(self, fields: Optional[Iterable[str]] = None) -> dict[str, _ValueType]:
+    def read_holding_register(self, field: str) -> _ValueType:
+        address, size = self._mapping.get_field_dimensions(field)
+        print(address)
+        print(size)
+        result = self._client.read_holding_registers(address, size)
+        print(result.registers)
+        d = self._mapping.decode_registers(result.registers, fields_to_decode={field})
+        print(d)
+        return d[field]
+
+    def read_holding_registers(self) -> dict[str, _ValueType]:
         result = self._client.read_holding_registers(
             self._mapping.address, self._mapping.size
         )
+        print(result.registers)
         return self._mapping.decode_registers(result.registers)
 
     def write_register(self, field: str, value: _ValueType) -> None:
@@ -359,3 +388,4 @@ class ModbusClient:
 
 
 # TODO coils (holding, input), registers (holding, input) -> vier Tabellen?
+# TODO Add ``unit`` parameter plus test for reading from multiple servers
