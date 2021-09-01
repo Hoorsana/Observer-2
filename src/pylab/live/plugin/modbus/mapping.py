@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import enum
+from typing import List, Union
 
 import pymodbus.client.sync
 import pymodbus.constants
@@ -13,9 +14,7 @@ import pymodbus.payload
 import itertools
 import dataclasses
 
-# TODO Use skip_bytes! Does the payload builder also have that function? (Probably not!)
-
-_ValueType = "Union[int, float, str, list[bool]]"
+_ValueType = Union[int, float, str, List[bool]]
 
 _ENCODE_DISPATCH = {
     "str": "add_string",
@@ -64,7 +63,7 @@ _SIZE_IN_BYTES = {
 }
 
 
-class Endian(enum.Enum):
+class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` values!
     little = "<"
     big = ">"
 
@@ -115,7 +114,6 @@ def _decode(
         result = []
         for _ in range(size):
             result += d()
-            print(result)
         return result
     return d()
 
@@ -287,20 +285,26 @@ class ModbusRegisterMapping:
                 builder.reset()
 
         next_address = chunk  # Next address must be correct on first pass!
-        for field in self._fields:
+        for field, next_ in itertools.zip_longest(
+            self._fields, self._fields[1:], fillvalue=None
+        ):
             value = values.pop(field.name, None)
-            if next_address != field.address or value is None:
+            if value is None:
                 build_chunk()
-                chunk = field.end
-            else:
-                if field.type in {"str", "bits"} and not field.check_value(value):
-                    raise InvalidValueError()  # TODO
-                # Pad the string if its smaller than the allocated memory.
-                if field.type == "str":
-                    value += (field.size_in_bytes - len(value)) * " "
-                _encode(builder, field.type, value)
-            next_address = field.end
-        build_chunk()
+                chunk = next_.address
+                continue
+            if field.type in {"str", "bits"} and not field.check_value(value):
+                raise InvalidValueError()  # TODO
+            # Pad the string if its smaller than the allocated memory.
+            if field.type == "str":
+                value += (field.size_in_bytes - len(value)) * " "
+            _encode(builder, field.type, value)
+            # Check if chunk must be built!
+            if next_ is None:
+                build_chunk()
+            elif field.end != next_.address:
+                build_chunk()
+                chunk = next_.address
 
         if values:
             raise FieldNotFoundError()  # TODO
@@ -322,11 +326,14 @@ class ModbusRegisterMapping:
             registers, byteorder=self._byteorder, wordorder=self._wordorder
         )
         result = {}
+        # FIXME This only works if _all_ registers are read!
+        end_of_last_read = self._fields[0].address
         for field in self._fields:
-            if field.name in fields_to_decode:
-                result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
-            # else:
-            #     decoder.skip_bytes(field.size_in_bytes)
+            if field.name not in fields_to_decode:
+                continue
+            decoder.skip_bytes(2 * (field.address - end_of_last_read))
+            result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
+            end_of_last_read = field.end
         return result
 
     def get_field_dimensions(self, field: str) -> tuple[int, int]:
@@ -357,19 +364,14 @@ class ModbusClient:
 
     def read_holding_register(self, field: str) -> _ValueType:
         address, size = self._mapping.get_field_dimensions(field)
-        print(address)
-        print(size)
         result = self._client.read_holding_registers(address, size)
-        print(result.registers)
         d = self._mapping.decode_registers(result.registers, fields_to_decode={field})
-        print(d)
         return d[field]
 
     def read_holding_registers(self) -> dict[str, _ValueType]:
         result = self._client.read_holding_registers(
             self._mapping.address, self._mapping.size
         )
-        print(result.registers)
         return self._mapping.decode_registers(result.registers)
 
     def write_register(self, field: str, value: _ValueType) -> None:

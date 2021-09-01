@@ -42,15 +42,11 @@ class TestModbusClient:
             pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
             mapping.ModbusRegisterMapping(
                 [
-                    mapping.Field("s", "str", size_in_bytes=5, address=2),
+                    mapping.Field("s", "str", size_in_bytes=6, address=2),
                     mapping.Field("x", "i32"),
-                    mapping.Field(
-                        "b", "bits", size_in_bytes=2
-                    ),  # , address=82),  # TODO
+                    mapping.Field("b", "bits", size_in_bytes=2, address=82),
                     mapping.Field("y", "f16"),
                 ],
-                byteorder="<",
-                wordorder=">",
             ),
         )
 
@@ -83,7 +79,7 @@ class TestModbusClient:
         )
         assert client.read_holding_registers() == {
             "x": 12,
-            "s": b"hello",
+            "s": b"hello ",
             "b": bits,
             "y": pytest.approx(3.4, abs=0.001),
         }
@@ -91,4 +87,3 @@ class TestModbusClient:
         # client.write_register("s", "world")
         # assert client.read_holding_register("s") == b"world"
         # assert client.read_holding_register("b") == bits
-        # # assert False
