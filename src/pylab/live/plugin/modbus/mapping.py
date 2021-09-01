@@ -16,6 +16,8 @@ import dataclasses
 
 _ValueType = Union[int, float, str, List[bool]]
 
+_DEFAULT_SLAVE: Final[int] = pymodbus.constants.Defaults.UnitId
+
 _ENCODE_DISPATCH = {
     "str": "add_string",
     "bits": "add_bits",
@@ -64,8 +66,8 @@ _SIZE_IN_BYTES = {
 
 
 class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` values!
-    little = "<"
-    big = ">"
+    little = pymodbus.constants.Endian.Little
+    big = pymodbus.constants.Endian.Big
 
 
 class TypeMismatchError(Exception):
@@ -366,28 +368,34 @@ class ModbusClient:
         self._client = client
         self._mapping = mapping
 
-    def read_holding_register(self, field: str) -> _ValueType:
+    def read_holding_register(
+        self, field: str, unit: Hashable = _DEFAULT_SLAVE
+    ) -> _ValueType:
         address, size = self._mapping.get_field_dimensions(field)
-        result = self._client.read_holding_registers(address, size)
+        result = self._client.read_holding_registers(address, size, unit=unit)
         d = self._mapping.decode_registers(result.registers, fields_to_decode={field})
         return d[field]
 
     def read_holding_registers(
-        self, fields: Optional[Iterable[str]] = None
+        self, fields: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
         result = self._client.read_holding_registers(
-            self._mapping.address, self._mapping.size
+            self._mapping.address, self._mapping.size, unit=unit
         )
         return self._mapping.decode_registers(result.registers, fields)
 
-    def write_register(self, field: str, value: _ValueType) -> None:
-        self.write_registers({field: value})
+    def write_register(
+        self, field: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
+    ) -> None:
+        self.write_registers({field: value}, unit)
 
-    def write_registers(self, values: dict[str, _ValueType]) -> None:
+    def write_registers(
+        self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
+    ) -> None:
         payloads = self._mapping.build_payload(values)
         for payload in payloads:
             self._client.write_registers(
-                payload.address, payload.values, skip_encode=True
+                payload.address, payload.values, skip_encode=True, unit=unit
             )
 
     @property

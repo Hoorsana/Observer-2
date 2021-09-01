@@ -12,7 +12,7 @@ import threading
 from pylab.live.plugin.modbus import mapping
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def server():
     context = pymodbus.datastore.ModbusServerContext(
         slaves={
@@ -97,3 +97,9 @@ class TestModbusClient:
             "x": 34,
             "s": b"hello ",
         }
+
+    def test_multiple_slaves(self, server, client):
+        client.write_register("x", 12, 0)
+        client.write_register("x", 34, 1)
+        assert client.read_holding_register("x", 0) == 12
+        assert client.read_holding_register("x", 1) == 34
