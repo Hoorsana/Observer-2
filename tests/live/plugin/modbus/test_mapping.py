@@ -83,7 +83,6 @@ class TestModbusClient:
             "b": bits,
             "y": pytest.approx(3.4, abs=0.001),
         }
-        # assert client.read_holding_register("b") == bits
-        # client.write_register("s", "world")
-        # assert client.read_holding_register("s") == b"world"
-        # assert client.read_holding_register("b") == bits
+        assert client.read_holding_register("b") == bits
+        client.write_register("s", "world")
+        assert client.read_holding_register("s") == b"world "

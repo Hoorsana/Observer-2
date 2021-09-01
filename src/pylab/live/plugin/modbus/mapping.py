@@ -284,6 +284,7 @@ class ModbusRegisterMapping:
                 result.append(Payload(chunk, builder.build()))
                 builder.reset()
 
+        # FIXME Improve the algorithm!
         next_address = chunk  # Next address must be correct on first pass!
         for field, next_ in itertools.zip_longest(
             self._fields, self._fields[1:], fillvalue=None
@@ -291,7 +292,8 @@ class ModbusRegisterMapping:
             value = values.pop(field.name, None)
             if value is None:
                 build_chunk()
-                chunk = next_.address
+                if next_ is not None:
+                    chunk = next_.address
                 continue
             if field.type in {"str", "bits"} and not field.check_value(value):
                 raise InvalidValueError()  # TODO
@@ -326,11 +328,13 @@ class ModbusRegisterMapping:
             registers, byteorder=self._byteorder, wordorder=self._wordorder
         )
         result = {}
-        # FIXME This only works if _all_ registers are read!
-        end_of_last_read = self._fields[0].address
+        # FIXME Improve the algorithm!
+        end_of_last_read = None
         for field in self._fields:
             if field.name not in fields_to_decode:
                 continue
+            if end_of_last_read is None:
+                end_of_last_read = field.address
             decoder.skip_bytes(2 * (field.address - end_of_last_read))
             result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
             end_of_last_read = field.end
