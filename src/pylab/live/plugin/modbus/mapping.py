@@ -105,10 +105,6 @@ def _decode(
     Returns:
         The decoded element
     """
-    if isinstance(type, tuple):
-        # We expect tuples to hold two 8-bit types, so size (in bytes)
-        # is always 1.
-        return tuple(_decode(decoder, t, size=1) for t in type)
     d = getattr(decoder, _DECODE_DISPATCH[type])
     if type == "str":
         if size is None:
@@ -205,6 +201,24 @@ class Field:
             return len(value) <= self._size_in_bytes
         if self._type == "bits":
             return len(value) // 8 == self._size_in_bytes
+
+    def decode(self, decoder: pymodbus.payload.BinaryPayloadDecoder) -> None:
+        if isinstance(self._type, tuple):
+            # # TODO Check if size is specified:
+            # if self._size is not None:
+            #     # TODO Split result according to sizes
+            # We expect tuples to hold two 8-bit types, so size (in bytes)
+            # is always 1.
+            return tuple(_decode(decoder, t, size=1) for t in self._type)
+        result = _decode(decoder, self._type, self._size_in_bytes)
+        # Trim strings and bit sequences to size:
+        if self._type == "str":
+            return result[:self._size_in_bytes]
+        # # TODO Replace size_in_bytes with size (which may is in bytes
+        # # for "str" and in bits for "bits")
+        # if self._type == "bits":
+        #     return result[self._size]
+        return result
 
     @property
     def name(self) -> str:
@@ -361,7 +375,7 @@ class ModbusRegisterMapping:
             if end_of_last_read is None:
                 end_of_last_read = field.address
             decoder.skip_bytes(2 * (field.address - end_of_last_read))
-            result[field.name] = _decode(decoder, field.type, field.size_in_bytes)
+            result[field.name] = field.decode(decoder)
             end_of_last_read = field.end
         return result
 
