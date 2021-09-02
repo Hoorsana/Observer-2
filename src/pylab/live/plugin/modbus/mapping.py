@@ -155,19 +155,23 @@ class Field:
         self,
         name: str,
         type: str,
-        size_in_bytes: Optional[int] = None,
+        length: Optional[int] = None,
         address: Optional[int] = None,
     ) -> None:
         self._name = name
         self._type = type
-        if size_in_bytes is None:
+        self._length = length
+        if length is None:
             if isinstance(type, tuple):
                 # TODO Assert that all elements of the type are 1 byte large!
                 self._size_in_bytes = len(type)
             else:
                 self._size_in_bytes = _get_size_of_type_in_bytes(type)
         else:
-            self._size_in_bytes = size_in_bytes
+            if type == "str":
+                self._size_in_bytes = length
+            else:  # "bits"
+                self._size_in_bytes = (length + 7) // 8
         self.address = address
 
     def __repr__(self) -> str:

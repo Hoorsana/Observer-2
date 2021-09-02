@@ -43,14 +43,14 @@ class TestModbusClient:
             {
                 0: mapping.ModbusRegisterMapping(
                     [
-                        mapping.Field("s", "str", size_in_bytes=6, address=2),
+                        mapping.Field("s", "str", length=6, address=2),
                         mapping.Field("x", "i32"),
-                        mapping.Field("b", "bits", size_in_bytes=2, address=82),
+                        mapping.Field("b", "bits", length=16, address=82),
                         mapping.Field("y", "f16"),
                     ]
                 ),
                 1: mapping.ModbusRegisterMapping(
-                    [mapping.Field("s", "str", size_in_bytes=6, address=2)]
+                    [mapping.Field("s", "str", length=6, address=2)]
                 ),
             },
             single=False,
