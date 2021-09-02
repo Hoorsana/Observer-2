@@ -50,6 +50,18 @@ class TestModbusClient:
             ),
         )
 
+    @pytest.fixture
+    def client_with_tuples(self):
+        return mapping.ModbusClient(
+            pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
+            mapping.ModbusRegisterMapping(
+                [
+                    mapping.Field("x", "i32", address=2),
+                    mapping.Field("y", ("i16", "i16")),
+                ],
+            ),
+        )
+
     def test_write_register_read_holding_registers(self, server, client):
         bits = [
             False,
@@ -98,8 +110,6 @@ class TestModbusClient:
             "s": b"hello ",
         }
 
-    def test_multiple_slaves(self, server, client):
-        client.write_register("x", 12, 0)
-        client.write_register("x", 34, 1)
-        assert client.read_holding_register("x", 0) == 12
-        assert client.read_holding_register("x", 1) == 34
+    def test_multiple_slaves(self, server, client_with_tuples):
+        client_with_tuples.write_register("y", (1, 2))
+        assert client_with_tuples.read_holding_register("y") == (1, 2)

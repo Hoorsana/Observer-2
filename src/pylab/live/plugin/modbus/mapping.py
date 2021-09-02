@@ -105,6 +105,10 @@ def _decode(
     Returns:
         The decoded element
     """
+    if isinstance(type, tuple):
+        # We expect tuples to hold two 8-bit types, so size (in bytes)
+        # is always 1.
+        return tuple(_decode(decoder, t, size=1) for t in type)
     d = getattr(decoder, _DECODE_DISPATCH[type])
     if type == "str":
         if size is None:
@@ -130,7 +134,13 @@ def _encode(
         type: The type of the element
         value: The value to encode
     """
-    getattr(builder, _ENCODE_DISPATCH[type])(value)
+    if isinstance(type, tuple):
+        assert isinstance(value, tuple)
+        assert len(type) == len(value)
+        for t, v in zip(type, value):
+            _encode(builder, t, v)
+    else:
+        getattr(builder, _ENCODE_DISPATCH[type])(value)
 
 
 _MATCHING_TYPES = {
@@ -165,6 +175,7 @@ class Field:
         else:
             self._size_in_bytes = size_in_bytes
         self.address = address
+        self._position_in_bytes = None
 
     def __repr__(self) -> str:
         return f"field(name={self._name}, type={self._type}, size_in_bytes={self._size_in_bytes}, address={self.address})"
@@ -234,6 +245,8 @@ def _get_size_of_type_in_bytes(type: str) -> int:
     Raises:
         UnknownTypeError
     """
+    if isinstance(type, tuple):
+        return sum(_get_size_of_type_in_bytes(elem) for elem in type)
     if type not in _SIZE_IN_BYTES:
         raise MissingSizeError(f"No size found for type: {type}")
     return _SIZE_IN_BYTES[type]
@@ -241,6 +254,12 @@ def _get_size_of_type_in_bytes(type: str) -> int:
 
 @dataclasses.dataclass
 class Payload:
+    """A chunk of registers for a single write operation.
+
+    Attributes:
+        address: Indicates at what register to write
+        values: The value to write
+    """
     address: int
     values: list[bytes]
 
@@ -269,7 +288,7 @@ class ModbusRegisterMapping:
         Args:
             values: A dict mapping field values to
 
-        Returns: A list of ``Payload`` objects
+        Returns: A list of ``Payload`` objects, one for each 
 
         Note that a highly fragmented payload will result in more items
         in the list, and, thus, a larger amount of IO operations.
