@@ -227,6 +227,9 @@ class Field:
             for t, v in zip(self._type, value):
                 _encode(builder, t, v)
         else:
+            # Pad the string if its smaller than the allocated memory.
+            if self._type == "str":
+                value += (self._size_in_bytes - len(value)) * " "
             _encode(builder, self._type, value)
 
     @property
@@ -345,9 +348,6 @@ class ModbusRegisterMapping:
                 continue
             if field.type in {"str", "bits"} and not field.check_value(value):
                 raise InvalidValueError()  # TODO
-            # Pad the string if its smaller than the allocated memory.
-            if field.type == "str":
-                value += (field.size_in_bytes - len(value)) * " "
             field.encode(builder, value)
             # Check if chunk must be built!
             if next_ is None:
