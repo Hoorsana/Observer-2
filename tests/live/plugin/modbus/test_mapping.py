@@ -43,14 +43,14 @@ class TestModbusClient:
             {
                 0: mapping.ModbusRegisterMapping(
                     [
-                        mapping.Field("s", "str", length=6, address=2),
+                        mapping.Field("s", "str", length=5, address=2),
                         mapping.Field("x", "i32"),
                         mapping.Field("b", "bits", length=16, address=82),
                         mapping.Field("y", "f16"),
                     ]
                 ),
                 1: mapping.ModbusRegisterMapping(
-                    [mapping.Field("s", "str", length=6, address=2)]
+                    [mapping.Field("s", "str", length=5, address=2)]
                 ),
             },
             single=False,
@@ -98,14 +98,14 @@ class TestModbusClient:
         )
         assert client.read_holding_registers() == {
             "x": 12,
-            "s": b"hello ",
+            "s": b"hello",
             "b": bits,
             "y": pytest.approx(3.4, abs=0.001),
         }
 
         assert client.read_holding_register("b") == bits
         client.write_register("s", "world")
-        assert client.read_holding_register("s") == b"world "
+        assert client.read_holding_register("s") == b"world"
         client.write_registers(
             {
                 "x": 34,
@@ -114,14 +114,14 @@ class TestModbusClient:
         )
         assert client.read_holding_registers({"x", "s"}) == {
             "x": 34,
-            "s": b"hello ",
+            "s": b"hello",
         }
 
     def test_multiple_slaves(self, server, client):
         client.write_register("s", "world", unit=0)
         client.write_register("s", "hello", unit=1)
-        assert client.read_holding_register("s", unit=0) == b"world "
-        assert client.read_holding_register("s", unit=1) == b"hello "
+        assert client.read_holding_register("s", unit=0) == b"world"
+        assert client.read_holding_register("s", unit=1) == b"hello"
 
     def test_write_holding_register_read_holding_register_with_tuples(
         self, server, client_with_tuples

@@ -200,7 +200,7 @@ class Field:
         result = _decode(decoder, self._type, self.size_in_bytes)
         # Trim strings and bit sequences to size:
         if self._type == "str":
-            return result[:self.size_in_bytes]
+            return result[:self._length]
         # # TODO Replace size_in_bytes with size (which may is in bytes
         # # for "str" and in bits for "bits")
         # if self._type == "bits":
@@ -242,7 +242,7 @@ class Field:
             else:
                 return _get_size_of_type_in_bytes(self._type)
         if self._type == "str":
-            return self._length
+            return self._length + (self._length % 2)  # Round up to even number!
         return (self._length + 7) // 8
 
     @property
