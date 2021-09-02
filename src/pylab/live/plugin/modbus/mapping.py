@@ -387,25 +387,31 @@ class ModbusClient:
         self,
         client: pymodbus.client.sync.ModbusClientMixin,
         mapping: ModbusRegisterMapping,
+        single: bool = True
     ):
         self._client = client
-        self._mapping = mapping
+        if single:
+            self._mapping = {_DEFAULT_SLAVE: mapping}
+        else:
+            self._mapping = mapping
 
     def read_holding_register(
         self, field: str, unit: Hashable = _DEFAULT_SLAVE
     ) -> _ValueType:
-        address, size = self._mapping.get_field_dimensions(field)
+        mapping = self._mapping[unit]
+        address, size = mapping.get_field_dimensions(field)
         result = self._client.read_holding_registers(address, size, unit=unit)
-        d = self._mapping.decode_registers(result.registers, fields_to_decode={field})
+        d = mapping.decode_registers(result.registers, fields_to_decode={field})
         return d[field]
 
     def read_holding_registers(
         self, fields: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
+        mapping = self._mapping[unit]
         result = self._client.read_holding_registers(
-            self._mapping.address, self._mapping.size, unit=unit
+            mapping.address, mapping.size, unit=unit
         )
-        return self._mapping.decode_registers(result.registers, fields)
+        return mapping.decode_registers(result.registers, fields)
 
     def write_register(
         self, field: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
@@ -415,7 +421,7 @@ class ModbusClient:
     def write_registers(
         self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
     ) -> None:
-        payloads = self._mapping.build_payload(values)
+        payloads = self._mapping[unit].build_payload(values)
         for payload in payloads:
             self._client.write_registers(
                 payload.address, payload.values, skip_encode=True, unit=unit

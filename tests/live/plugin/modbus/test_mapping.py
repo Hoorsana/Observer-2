@@ -40,14 +40,20 @@ class TestModbusClient:
     def client(self):
         return mapping.ModbusClient(
             pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
-            mapping.ModbusRegisterMapping(
-                [
-                    mapping.Field("s", "str", size_in_bytes=6, address=2),
-                    mapping.Field("x", "i32"),
-                    mapping.Field("b", "bits", size_in_bytes=2, address=82),
-                    mapping.Field("y", "f16"),
-                ],
-            ),
+            {
+                0: mapping.ModbusRegisterMapping(
+                    [
+                        mapping.Field("s", "str", size_in_bytes=6, address=2),
+                        mapping.Field("x", "i32"),
+                        mapping.Field("b", "bits", size_in_bytes=2, address=82),
+                        mapping.Field("y", "f16"),
+                    ]
+                ),
+                1: mapping.ModbusRegisterMapping(
+                    [mapping.Field("s", "str", size_in_bytes=6, address=2)]
+                ),
+            },
+            single=False
         )
 
     @pytest.fixture
@@ -110,6 +116,9 @@ class TestModbusClient:
             "x": 34,
             "s": b"hello ",
         }
+
+    def test_multiple_slaves(self, server, client):
+        pass
 
     def test_multiple_slaves(self, server, client_with_tuples):
         bits = [True, False, True, False, False, False, True, True]
