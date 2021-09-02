@@ -57,7 +57,7 @@ class TestModbusClient:
             mapping.ModbusRegisterMapping(
                 [
                     mapping.Field("x", "i32", address=2),
-                    mapping.Field("y", ("i8", "i8")),
+                    mapping.Field("y", ("i8", "i8", "u8", "u8")),
                 ],
             ),
         )
@@ -111,5 +111,5 @@ class TestModbusClient:
         }
 
     def test_multiple_slaves(self, server, client_with_tuples):
-        client_with_tuples.write_register("y", (1, 2))
-        assert client_with_tuples.read_holding_register("y") == (1, 2)
+        client_with_tuples.write_register("y", (1, 2, 3, 4))
+        assert client_with_tuples.read_holding_register("y") == (1, 2, 3, 4)
