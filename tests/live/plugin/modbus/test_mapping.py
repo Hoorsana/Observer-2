@@ -53,7 +53,7 @@ class TestModbusClient:
                     [mapping.Field("s", "str", size_in_bytes=6, address=2)]
                 ),
             },
-            single=False
+            single=False,
         )
 
     @pytest.fixture
@@ -118,9 +118,14 @@ class TestModbusClient:
         }
 
     def test_multiple_slaves(self, server, client):
-        pass
+        client.write_register("s", "world", unit=0)
+        client.write_register("s", "hello", unit=1)
+        assert client.read_holding_register("s", unit=0) == b"world "
+        assert client.read_holding_register("s", unit=1) == b"hello "
 
-    def test_multiple_slaves(self, server, client_with_tuples):
+    def test_write_holding_register_read_holding_register_with_tuples(
+        self, server, client_with_tuples
+    ):
         bits = [True, False, True, False, False, False, True, True]
         client_with_tuples.write_register("z", 5)
         client_with_tuples.write_register("y", (1, "b", bits, 4))
