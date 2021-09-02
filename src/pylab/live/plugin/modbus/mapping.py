@@ -161,17 +161,6 @@ class Field:
         self._name = name
         self._type = type
         self._length = length
-        if length is None:
-            if isinstance(type, tuple):
-                # TODO Assert that all elements of the type are 1 byte large!
-                self._size_in_bytes = len(type)
-            else:
-                self._size_in_bytes = _get_size_of_type_in_bytes(type)
-        else:
-            if type == "str":
-                self._size_in_bytes = length
-            else:  # "bits"
-                self._size_in_bytes = (length + 7) // 8
         self.address = address
 
     def __repr__(self) -> str:
@@ -196,9 +185,9 @@ class Field:
             raise TypeMismatchError()  # TODO
         # TODO Check that type of bit sequence is list[bool].
         if self._type == "str":
-            return len(value) <= self._size_in_bytes
+            return len(value) <= self.size_in_bytes
         if self._type == "bits":
-            return len(value) // 8 == self._size_in_bytes
+            return len(value) // 8 == self.size_in_bytes
 
     def decode(self, decoder: pymodbus.payload.BinaryPayloadDecoder) -> None:
         if isinstance(self._type, tuple):
@@ -208,10 +197,10 @@ class Field:
             # We expect tuples to hold two 8-bit types, so size (in bytes)
             # is always 1.
             return tuple(_decode(decoder, t, size=1) for t in self._type)
-        result = _decode(decoder, self._type, self._size_in_bytes)
+        result = _decode(decoder, self._type, self.size_in_bytes)
         # Trim strings and bit sequences to size:
         if self._type == "str":
-            return result[:self._size_in_bytes]
+            return result[:self.size_in_bytes]
         # # TODO Replace size_in_bytes with size (which may is in bytes
         # # for "str" and in bits for "bits")
         # if self._type == "bits":
@@ -233,7 +222,7 @@ class Field:
         else:
             # Pad the string if its smaller than the allocated memory.
             if self._type == "str":
-                value += (self._size_in_bytes - len(value)) * " "
+                value += (self.size_in_bytes - len(value)) * " "
             _encode(builder, self._type, value)
 
     @property
@@ -246,11 +235,19 @@ class Field:
 
     @property
     def size_in_bytes(self) -> int:
-        return self._size_in_bytes
+        if self._length is None:
+            if isinstance(self._type, tuple):
+                # TODO Assert that all elements of the type are 1 byte large!
+                return len(self._type)
+            else:
+                return _get_size_of_type_in_bytes(self._type)
+        if self._type == "str":
+            return self._length
+        return (self._length + 7) // 8
 
     @property
     def size_in_registers(self) -> int:
-        return (self._size_in_bytes + 1) // 2
+        return (self.size_in_bytes + 1) // 2
 
     @property
     def end(self) -> int:
