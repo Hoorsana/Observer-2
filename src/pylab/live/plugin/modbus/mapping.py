@@ -175,7 +175,6 @@ class Field:
         else:
             self._size_in_bytes = size_in_bytes
         self.address = address
-        self._position_in_bytes = None
 
     def __repr__(self) -> str:
         return f"field(name={self._name}, type={self._type}, size_in_bytes={self._size_in_bytes}, address={self.address})"
