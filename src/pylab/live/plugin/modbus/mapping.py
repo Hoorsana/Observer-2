@@ -130,13 +130,7 @@ def _encode(
         type: The type of the element
         value: The value to encode
     """
-    if isinstance(type, tuple):
-        assert isinstance(value, tuple)
-        assert len(type) == len(value)
-        for t, v in zip(type, value):
-            _encode(builder, t, v)
-    else:
-        getattr(builder, _ENCODE_DISPATCH[type])(value)
+    getattr(builder, _ENCODE_DISPATCH[type])(value)
 
 
 _MATCHING_TYPES = {
@@ -219,6 +213,21 @@ class Field:
         # if self._type == "bits":
         #     return result[self._size]
         return result
+
+    def encode(self, builder: pymodbus.payload.BinaryPayloadDecoder, value: _ValueType) -> None:
+        """Encode a value into a payload builder.
+
+        Args:
+            builder: The builder to encode in
+            value: The value to encode
+        """
+        if isinstance(self._type, tuple):
+            assert isinstance(value, tuple)
+            assert len(self._type) == len(value)
+            for t, v in zip(self._type, value):
+                _encode(builder, t, v)
+        else:
+            _encode(builder, self._type, value)
 
     @property
     def name(self) -> str:
@@ -339,7 +348,7 @@ class ModbusRegisterMapping:
             # Pad the string if its smaller than the allocated memory.
             if field.type == "str":
                 value += (field.size_in_bytes - len(value)) * " "
-            _encode(builder, field.type, value)
+            field.encode(builder, value)
             # Check if chunk must be built!
             if next_ is None:
                 build_chunk()
