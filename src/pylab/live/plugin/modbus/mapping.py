@@ -25,10 +25,10 @@ _ENCODE_DISPATCH = {
     "i16": "add_16bit_int",
     "i32": "add_32bit_int",
     "i64": "add_64bit_int",
-    "u8": "add_8bit_unsigned_int",
-    "u16": "add_16bit_unsigned_int",
-    "u32": "add_32bit_unsigned_int",
-    "u64": "add_64bit_unsigned_int",
+    "u8": "add_8bit_uint",
+    "u16": "add_16bit_uint",
+    "u32": "add_32bit_uint",
+    "u64": "add_64bit_uint",
     "f16": "add_16bit_float",
     "f32": "add_32bit_float",
     "f64": "add_64bit_float",
@@ -41,10 +41,10 @@ _DECODE_DISPATCH = {
     "i16": "decode_16bit_int",
     "i32": "decode_32bit_int",
     "i64": "decode_64bit_int",
-    "u8": "decode_8bit_unsigned_int",
-    "u16": "decode_16bit_unsigned_int",
-    "u32": "decode_32bit_unsigned_int",
-    "u64": "decode_64bit_unsigned_int",
+    "u8": "decode_8bit_uint",
+    "u16": "decode_16bit_uint",
+    "u32": "decode_32bit_uint",
+    "u64": "decode_64bit_uint",
     "f16": "decode_16bit_float",
     "f32": "decode_32bit_float",
     "f64": "decode_64bit_float",
@@ -259,6 +259,7 @@ class Payload:
         address: Indicates at what register to write
         values: The value to write
     """
+
     address: int
     values: list[bytes]
 
@@ -287,7 +288,7 @@ class ModbusRegisterMapping:
         Args:
             values: A dict mapping field values to
 
-        Returns: A list of ``Payload`` objects, one for each 
+        Returns: A list of ``Payload`` objects, one for each
 
         Note that a highly fragmented payload will result in more items
         in the list, and, thus, a larger amount of IO operations.
