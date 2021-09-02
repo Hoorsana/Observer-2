@@ -171,7 +171,11 @@ class Field:
         self._name = name
         self._type = type
         if size_in_bytes is None:
-            self._size_in_bytes = _get_size_of_type_in_bytes(type)
+            if isinstance(type, tuple):
+                # TODO Assert that all elements of the type are 1 byte large!
+                self._size_in_bytes = len(type)
+            else:
+                self._size_in_bytes = _get_size_of_type_in_bytes(type)
         else:
             self._size_in_bytes = size_in_bytes
         self.address = address
