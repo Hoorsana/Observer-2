@@ -57,7 +57,7 @@ class TestModbusClient:
             mapping.ModbusRegisterMapping(
                 [
                     mapping.Field("x", "i32", address=2),
-                    mapping.Field("y", ("i16", "i16")),
+                    mapping.Field("y", ("i8", "i8")),
                 ],
             ),
         )
