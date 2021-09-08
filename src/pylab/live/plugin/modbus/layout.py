@@ -291,7 +291,7 @@ class Str(Variable):
 
     def decode(self, decoder: _PayloadDecoder) -> str:
         result = decoder.decode_string(self._length)
-        return result[: self._length]  # Remove padding!
+        return result[: self._length].decode("utf-8")  # Remove padding!
 
     def encode(self, builder: _PayloadBuilder, value: str) -> None:
         assert len(value) <= self._length  # TODO

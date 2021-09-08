@@ -197,7 +197,7 @@ class TestModbusClient:
             }
         )
         assert client.read_holding_registers() == {
-            "str": b"hello",
+            "str": "hello",
             "i": 12,
             # "struct": {
             #     "CHANGED": 1,
