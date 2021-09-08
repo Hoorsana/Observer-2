@@ -164,15 +164,15 @@ class TestModbusClient:
                     [
                         layout.Str("str", length=5, address=2),
                         layout.Number("i", "i32"),
-                        # layout.Struct(
-                        #     "struct",
-                        #     [
-                        #         layout.Field("CHANGED", "u1"),
-                        #         layout.Field("ELEMENT_TYPE", "u7"),
-                        #         layout.Field("ELEMENT_ID", "u5"),
-                        #     ],
-                        #     address=19
-                        # ),
+                        layout.Struct(
+                            "struct",
+                            [
+                                layout.Field("CHANGED", "u1"),
+                                layout.Field("ELEMENT_TYPE", "u7"),
+                                layout.Field("ELEMENT_ID", "u5"),
+                            ],
+                            # address=19
+                        ),
                         layout.Number("f", "f16"),
                     ]
                 ),
@@ -188,22 +188,22 @@ class TestModbusClient:
             {
                 "str": "hello",
                 "i": 12,
-                # "struct": {
-                #     "CHANGED": 1,
-                #     "ELEMENT_TYPE": 33,
-                #     "ELEMENT_ID": 7,
-                # },
+                "struct": {
+                    "CHANGED": 1,
+                    "ELEMENT_TYPE": 33,
+                    "ELEMENT_ID": 7,
+                },
                 "f": 3.4,
             }
         )
         assert client.read_holding_registers() == {
             "str": "hello",
             "i": 12,
-            # "struct": {
-            #     "CHANGED": 1,
-            #     "ELEMENT_TYPE": 33,
-            #     "ELEMENT_ID": 7,
-            # },
+            "struct": {
+                "CHANGED": 1,
+                "ELEMENT_TYPE": 33,
+                "ELEMENT_ID": 7,
+            },
             "f": pytest.approx(3.4, abs=0.001),
         }
 

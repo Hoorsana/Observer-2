@@ -80,8 +80,10 @@ class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` value
 
 
 def _bitstruct_format_size_in_bytes(fmt: str) -> int:
+    print(fmt)
     tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
     bits = sum(int(t) for t in tokens[1:])
+    print(bits)
     return (bits + 7) // 8
 
 
@@ -274,7 +276,8 @@ class Struct(Variable):
 
     def _format(self) -> str:
         result = "".join(field.format for field in self._fields)
-        padding = sum(field.size_in_bits for field in self._fields) % 16
+        bits = sum(field.size_in_bits for field in self._fields)
+        padding = 16 - (bits % 16)
         if padding != 0:
             result += f"p{padding}"
         return result
@@ -360,9 +363,7 @@ class _PayloadDecoder:
         cf = bitstruct.compile(fmt)
         # It's fine to pass the entire remaining payload, even if it's too large.
         result = cf.unpack(self._decoder._payload[self._decoder._pointer :])
-        size = _bitstruct_format_size_in_bytes(fmt)
-        size = (size + 1) // 2
-        self._decoder._pointer += size
+        self._decoder._pointer += _bitstruct_format_size_in_bytes(fmt)
         return result
 
     def decode_string(self, byte_count: int) -> str:
