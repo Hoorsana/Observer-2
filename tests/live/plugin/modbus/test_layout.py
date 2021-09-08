@@ -2,12 +2,14 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
+import asyncio
 
 import pymodbus.payload
-import pymodbus.client.sync
 import pymodbus.datastore
-import pymodbus.server.sync
+import pymodbus.server.async_io
+import pymodbus.client.asynchronous.tcp
+import pymodbus.client.asynchronous.schedulers
+import pytest
 import threading
 
 from pylab.live.plugin.modbus import layout
@@ -15,7 +17,14 @@ from pylab.live.plugin.modbus import async_io
 
 
 @pytest.fixture(scope="session")
-def server():
+def event_loop(request):
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture(scope="session")
+async def server():
     context = pymodbus.datastore.ModbusServerContext(
         slaves={
             0: pymodbus.datastore.ModbusSlaveContext(),
@@ -23,14 +32,91 @@ def server():
         },
         single=False,
     )
-    server = pymodbus.server.sync.ModbusTcpServer(context, address=("localhost", 5020))
-    t = threading.Thread(target=lambda s: s.serve_forever(), args=(server,))
-    t.start()
+    server = await pymodbus.server.async_io.StartTcpServer(
+        context, address=("localhost", 5020)
+    )
+    task = asyncio.create_task(server.serve_forever())
+    await asyncio.sleep(0.01)  # Make sure that the server is up when the fixture yields
     yield
-    # FIXME It's not clear which of these is correct...
-    server.shutdown()
-    server.server_close()
-    t.join()
+    task.cancel()
+
+
+class TestProtocol:
+    @pytest.fixture
+    def protocol(self, event_loop):
+        _, client = pymodbus.client.asynchronous.tcp.AsyncModbusTCPClient(
+            pymodbus.client.asynchronous.schedulers.ASYNC_IO,
+            port=5020,
+            loop=event_loop,
+        )
+        return async_io.Protocol(
+            client.protocol,
+            {
+                0: layout.RegisterMapping(
+                    [
+                        layout.Str("str", length=5, address=2),
+                        layout.Number("i", "i32"),
+                        layout.Struct(
+                            "struct",
+                            [
+                                layout.Field("CHANGED", "u1"),
+                                layout.Field("ELEMENT_TYPE", "u7"),
+                                layout.Field("ELEMENT_ID", "u5"),
+                            ],
+                            # address=19
+                        ),
+                        layout.Number("f", "f16"),
+                    ]
+                ),
+                1: layout.RegisterMapping([layout.Str("str", length=5, address=2)]),
+            },
+            single=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_write_registers_read_holding_registers(self, server, protocol):
+        await protocol.write_registers(
+            {
+                "str": "hello",
+                "i": 12,
+                "struct": {
+                    "CHANGED": 1,
+                    "ELEMENT_TYPE": 33,
+                    "ELEMENT_ID": 7,
+                },
+                "f": 3.4,
+            }
+        )
+        assert await protocol.read_holding_registers() == {
+            "str": "hello",
+            "i": 12,
+            "struct": {
+                "CHANGED": 1,
+                "ELEMENT_TYPE": 33,
+                "ELEMENT_ID": 7,
+            },
+            "f": pytest.approx(3.4, abs=0.001),
+        }
+        await protocol.write_register("str", "world")
+        assert await protocol.read_holding_register("str") == "world"
+        assert await protocol.read_holding_register("i") == 12
+        assert await protocol.read_holding_register("struct") == {
+            "CHANGED": 1,
+            "ELEMENT_TYPE": 33,
+            "ELEMENT_ID": 7,
+        }
+        assert await protocol.read_holding_register("f") == pytest.approx(3.4, abs=0.001)
+        assert await protocol.read_holding_registers({"i", "str"}) == {
+            "i": 12,
+            "str": "world",
+        }
+
+    @pytest.mark.asyncio
+    async def test_multiple_slaves(self, server, protocol):
+        await protocol.write_register("str", "world", unit=0)
+        await protocol.write_register("str", "hello", unit=1)
+        assert await protocol.read_holding_register("str", unit=0) == "world"
+        assert await protocol.read_holding_register("str", unit=1) == "hello"
 
 
 class TestPayloadBuilder:
@@ -116,7 +202,7 @@ class TestPayloadBuilder:
             ">",
             id="With padding",
         ),
-    ]
+    ],
 )
 def test_encode_decode_struct(fields, values, byteorder, wordorder):
     s = layout.Struct("", fields)
@@ -148,80 +234,3 @@ class TestPayloadDecoder:
         builder = layout._PayloadDecoder(payload, byteorder, wordorder)
         var = layout.Number("", type)
         assert var.decode(builder) == expected
-
-
-class TestModbusRegisterMapping:
-    pass
-
-
-class TestModbusClient:
-    @pytest.fixture
-    def client(self):
-        return async_io.Client(
-            pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
-            {
-                0: layout.RegisterMapping(
-                    [
-                        layout.Str("str", length=5, address=2),
-                        layout.Number("i", "i32"),
-                        layout.Struct(
-                            "struct",
-                            [
-                                layout.Field("CHANGED", "u1"),
-                                layout.Field("ELEMENT_TYPE", "u7"),
-                                layout.Field("ELEMENT_ID", "u5"),
-                            ],
-                            # address=19
-                        ),
-                        layout.Number("f", "f16"),
-                    ]
-                ),
-                1: layout.RegisterMapping(
-                    [layout.Str("str", length=5, address=2)]
-                ),
-            },
-            single=False,
-        )
-
-    def test_write_registers_read_holding_registers(self, server, client):
-        client.write_registers(
-            {
-                "str": "hello",
-                "i": 12,
-                "struct": {
-                    "CHANGED": 1,
-                    "ELEMENT_TYPE": 33,
-                    "ELEMENT_ID": 7,
-                },
-                "f": 3.4,
-            }
-        )
-        assert client.read_holding_registers() == {
-            "str": "hello",
-            "i": 12,
-            "struct": {
-                "CHANGED": 1,
-                "ELEMENT_TYPE": 33,
-                "ELEMENT_ID": 7,
-            },
-            "f": pytest.approx(3.4, abs=0.001),
-        }
-        client.write_register("str", "world")
-        assert client.read_holding_register("str") == "world"
-        assert client.read_holding_register("i") == 12
-        assert client.read_holding_register("struct") == {
-            "CHANGED": 1,
-            "ELEMENT_TYPE": 33,
-            "ELEMENT_ID": 7,
-        }
-        assert client.read_holding_register("f") == pytest.approx(3.4, abs=0.001)
-        assert client.read_holding_registers({"i", "str"}) == {
-            "i": 12,
-            "str": "world",
-        }
-
-    def test_multiple_slaves(self, server, client):
-        client.write_register("str", "world", unit=0)
-        client.write_register("str", "hello", unit=1)
-        assert client.read_holding_register("str", unit=0) == "world"
-        assert client.read_holding_register("str", unit=1) == "hello"
