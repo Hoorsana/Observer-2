@@ -162,7 +162,7 @@ class TestModbusClient:
             {
                 0: layout.RegisterMapping(
                     [
-                        layout.Str("str", length=6, address=2),
+                        layout.Str("str", length=5, address=2),
                         layout.Number("i", "i32"),
                         # layout.Struct(
                         #     "struct",
@@ -183,7 +183,6 @@ class TestModbusClient:
             single=False,
         )
 
-    @pytest.mark.skip
     def test_write_register_read_holding_registers(self, server, client):
         client.write_registers(
             {
@@ -198,7 +197,7 @@ class TestModbusClient:
             }
         )
         assert client.read_holding_registers() == {
-            "str": "hello",
+            "str": b"hello",
             "i": 12,
             # "struct": {
             #     "CHANGED": 1,
