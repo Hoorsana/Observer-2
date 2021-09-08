@@ -274,7 +274,7 @@ class Struct(Variable):
 
     def _format(self) -> str:
         result = "".join(field.format for field in self._fields)
-        padding = sum(field.size_in_bits for field in self._fields) % 8
+        padding = sum(field.size_in_bits for field in self._fields) % 16
         if padding != 0:
             result += f"p{padding}"
         return result
@@ -291,7 +291,7 @@ class Str(Variable):
 
     def decode(self, decoder: _PayloadDecoder) -> str:
         result = decoder.decode_string(self._length)
-        return result[:self._length]  # Remove padding!
+        return result[: self._length]  # Remove padding!
 
     def encode(self, builder: _PayloadBuilder, value: str) -> None:
         assert len(value) <= self._length  # TODO
@@ -341,7 +341,12 @@ class _PayloadDecoder:
         )
 
     @classmethod
-    def from_registers(cls, registers: list[bytes], byteorder: str = Endian.little, wordorder: str = Endian.big) -> cls:
+    def from_registers(
+        cls,
+        registers: list[bytes],
+        byteorder: str = Endian.little,
+        wordorder: str = Endian.big,
+    ) -> cls:
         # FIXME From pymodbus.payload.BinaryPayloadDecoder.fromRegisters.
         payload = b"".join(struct.pack("!H", x) for x in registers)
         return cls(payload, byteorder, wordorder)
@@ -372,31 +377,21 @@ class _PayloadBuilder:
     def __init__(self, byteorder: str = "<", wordorder: str = ">") -> None:
         self._byteorder = byteorder
         self._wordorder = wordorder
-        self._payload = []
-
-    def load(self, payload: list[bytes]) -> None:
-        """Push double byte registers onto payload.
-
-        Args:
-            payload: A list of double byte registers
-
-        Use this to manually add bytes to the payload builder instead of
-        adding them using class methods!
-        """
-        self._payload.extend(payload)
+        self._payload = b""
 
     def reset(self) -> None:
-        self._payload = []
+        self._payload = b""
 
     def build(self) -> list[bytes]:
-        return self._payload
+        registers = len(self._payload) // 2
+        return [self._payload[2 * i : 2 * i + 2] for i in range(registers)]
 
     def add_bitstruct(self, fmt: str, values: list[_ValueType]) -> None:
         # TODO Endianess?
         cf = bitstruct.compile(fmt)
         packed: bytes = cf.pack(*values)
         # Don't use ``_pack``, as we don't want to use word order to unpack!
-        self._payload.extend([packed[2 * i : 2 * i + 2] for i in range(len(packed))])
+        self._payload += packed
 
     def add_builtin(self, type: str, value: int) -> None:
         """
@@ -409,14 +404,15 @@ class _PayloadBuilder:
         fmt = _TYPE_TO_STRUCT.get(type)
         if fmt is None:
             raise UnknownTypeError()  # TODO
-        self._payload.extend(self._pack(fmt, value))
+        for r in self._pack(fmt, value):
+            self._payload += r
 
     def add_string(self, value: str) -> None:
         # FIXME Directly taken from pymodbus.
         byte_string = pymodbus.utilities.make_byte_string(value)
         fmt = self._byteorder + str(len(byte_string)) + "s"
         packed = struct.pack(fmt, byte_string)
-        self._payload.extend([packed[2 * i : 2 * i + 2] for i in range(len(packed)//2)])
+        self._payload += packed
 
     def _pack(self, fmt: str, value: _ValueType) -> bytes:
         """Pack and pad value into format.
