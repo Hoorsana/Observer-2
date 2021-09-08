@@ -1,31 +1,21 @@
 from __future__ import annotations
 
-import pymodbus.payload
-import bitstruct
+import itertools
+import re
 import struct
+from typing import List
 
+import bitstruct
 import pydantic
+import pymodbus.payload
+import pymodbus.utilities
+
 
 _TYPE_TO_STRUCT = {
     # "s8": "b",
     "i16": "h",
     "i32": "i",
     "i64": "l",
-    # "u8": "B",
-    "u16": "H",
-    "u32": "I",
-    "u64": "L",
-    "f16": "e",
-    "f32": "f",
-    "f64": "d",
-    "t": ...,
-}
-
-_BITSTRUCT_TO_STRUCT = {
-    # "s8": "b",
-    "s16": "h",
-    "s32": "i",
-    "s64": "l",
     # "u8": "B",
     "u16": "H",
     "u32": "I",
@@ -67,8 +57,6 @@ _DECODE_DISPATCH = {
     "f64": "decode_64bit_float",
 }
 
-_DEFAULT_SLAVE = 0
-
 
 # types:
 # sX - signed int
@@ -91,9 +79,9 @@ class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` value
     big = ">"
 
 
-def _bitstruct_format_length_in_bytes(fmt: str) -> int:
-    tokens = re.split("[suft][0-9]*", fmt)
-    bits = sum(int(t[1:]) for t in tokens)
+def _bitstruct_format_size_in_bytes(fmt: str) -> int:
+    tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
+    bits = sum(int(t) for t in tokens[1:])
     return (bits + 7) // 8
 
 
@@ -111,17 +99,17 @@ class RegisterMapping:
             variables[0].address = 0
         for current, last in zip(self._variables[1:], self._variables):
             if current.address is None:
-                current.address = last.end
+                current.align_with(last)
             elif current.address < last.end:
                 raise ValueError()  # TODO Conflicting information!
 
-    def build_payload(self, values: dict[str, _ValueType]) -> list[Payload]:
+    def build_payload(self, values: dict[str, _ValueType]) -> list[_Chunk]:
         """Build data for writing ``values`` to register.
 
         Args:
             values: A dict mapping field values to
 
-        Returns: A list of ``Payload`` objects, one for each
+        Returns: A list of ``_Chunk`` objects, one for each
 
         Note that a highly fragmented payload will result in more items
         in the list, and, thus, a larger amount of IO operations.
@@ -133,27 +121,25 @@ class RegisterMapping:
         def build_chunk():
             payload = builder.build()
             if payload:
-                result.append(Payload(chunk, builder.build()))
+                result.append(_Chunk(chunk, builder.build()))
                 builder.reset()
 
         # FIXME Improve the algorithm!
         next_address = chunk  # Next address must be correct on first pass!
-        for field, next_ in itertools.zip_longest(
+        for var, next_ in itertools.zip_longest(
             self._variables, self._variables[1:], fillvalue=None
         ):
-            value = values.pop(field.name, None)
+            value = values.pop(var.name, None)
             if value is None:
                 build_chunk()
                 if next_ is not None:
                     chunk = next_.address
                 continue
-            if field.type in {"str", "bits"} and not field.check_value(value):
-                raise InvalidValueError()  # TODO
-            field.encode(builder, value)
+            var.encode(builder, value)
             # Check if chunk must be built!
             if next_ is None:
                 build_chunk()
-            elif field.end != next_.address:
+            elif next_.touches(var):
                 build_chunk()
                 chunk = next_.address
 
@@ -173,7 +159,7 @@ class RegisterMapping:
         """
         if variables_to_decode is None:
             variables_to_decode = [field.name for field in self._variables]
-        decoder = _PayloadDecoder(
+        decoder = _PayloadDecoder.from_registers(
             registers, byteorder=self._byteorder, wordorder=self._wordorder
         )
         result = {}
@@ -206,87 +192,36 @@ class RegisterMapping:
         return self._variables[0].address
 
 
-class Client:
-    def __init__(
-        self,
-        client: pymodbus.client.sync.ModbusClientMixin,
-        mapping: MemoryLayout,
-        single: bool = True,
-    ):
-        self._client = client
-        if single:
-            self._mapping = {_DEFAULT_SLAVE: mapping}
-        else:
-            self._mapping = mapping
-
-    def read_holding_register(
-        self, field: str, unit: Hashable = _DEFAULT_SLAVE
-    ) -> _ValueType:
-        mapping = self._mapping[unit]
-        address, size = mapping.get_field_dimensions(field)
-        result = self._client.read_holding_registers(address, size, unit=unit)
-        d = mapping.decode_registers(result.registers, fields_to_decode={field})
-        return d[field]
-
-    def read_holding_registers(
-        self, fields: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
-    ) -> dict[str, _ValueType]:
-        mapping = self._mapping[unit]
-        result = self._client.read_holding_registers(
-            mapping.address, mapping.size, unit=unit
-        )
-        return mapping.decode_registers(result.registers, fields)
-
-    def write_register(
-        self, field: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
-    ) -> None:
-        self.write_registers({field: value}, unit)
-
-    def write_registers(
-        self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
-    ) -> None:
-        payloads = self._mapping[unit].build_payload(values)
-        for payload in payloads:
-            self._client.write_registers(
-                payload.address, payload.values, skip_encode=True, unit=unit
-            )
-
-    @property
-    def client(self) -> pymodbus.client.sync.ModbusClientMixin:
-        return self._client
-
-
 class Variable:
     """Represents a variable in memory.
+
+    Attributes:
+        address (int): The address at which the variable is stored
 
     Variables begin and end at register bounds, regardless of their actual size.
     """
 
     def __init__(self, name: str, address: Optional[int] = None) -> None:
         self._name = name
-        self._address = address
+        self.address = address
 
     @property
     def name(self) -> str:
         return self._name
 
     @property
-    def address(self) -> int:
-        return self._address
-
-    @property
     def size_in_registers(self) -> int:
-        return self.size_in_bytes + (self.size_in_bytes % 2)
+        return self.size_in_bytes // 2 + (self.size_in_bytes % 2)
 
     @property
     def end(self) -> int:
-        return self._address + self.size_in_registers
+        return self.address + self.size_in_registers
 
     def touches(self, other: Element) -> bool:
-        return self._address == other.end
+        return self.address == other.end
 
     def align_with(self, other: Element) -> None:
-        self._address = other.end
+        self.address = other.end
 
     @property
     def size_in_bytes(self) -> int:
@@ -320,12 +255,9 @@ class Struct(Variable):
         super().__init__(name, address)
         self._fields = fields
 
-    def _format(self) -> str:
-        result = "".join(field.format for field in self._fields)
-        padding = sum(field.size_in_bits for field in self._fields) % 8
-        if padding != 0:
-            result += f"p{padding}"
-        return result
+    @property
+    def size_in_bytes(self) -> int:
+        return _bitstruct_format_size_in_bytes(self._format())
 
     def decode(self, decoder: _PayloadDecoder) -> dict[str, _ValueType]:
         values = decoder.decode_bitstruct(self._format())
@@ -340,18 +272,32 @@ class Struct(Variable):
         values = [value[field.name] for field in self._fields]
         builder.add_bitstruct(self._format(), values)
 
+    def _format(self) -> str:
+        result = "".join(field.format for field in self._fields)
+        padding = sum(field.size_in_bits for field in self._fields) % 8
+        if padding != 0:
+            result += f"p{padding}"
+        return result
+
 
 class Str(Variable):
     def __init__(self, name: str, length: int, address: Optional[int] = None) -> None:
         super().__init__(name, address)
         self._length = length
 
+    @property
+    def size_in_bytes(self) -> int:
+        return self._length
+
     def decode(self, decoder: _PayloadDecoder) -> str:
         return decoder.decode_string(self._length)
 
     def encode(self, builder: _PayloadBuilder, value: str) -> None:
-        assert len(value) < self._length  # TODO
-        builder.add_string(str)
+        assert len(value) <= self._length  # TODO
+        # Pad the string to an even amount of bytes (so that it cleanly fits into registers)
+        length = self._length + (self._length % 2)
+        value += (length - len(value)) * " "
+        builder.add_string(value)
 
 
 class Number(Variable):
@@ -369,7 +315,20 @@ class Number(Variable):
         return decoder.decode_number(self._type)
 
     def encode(self, builder: _PayloadBuilder, value: _ValueType):
-        builder.add_number(self._type, value)
+        builder.add_builtin(self._type, value)
+
+
+@pydantic.dataclasses.dataclass
+class _Chunk:
+    """A chunk of registers for a single write operation.
+
+    Attributes:
+        address: Indicates at what register to write
+        values: The values to write
+    """
+
+    address: int
+    values: List[bytes]
 
 
 class _PayloadDecoder:
@@ -380,6 +339,12 @@ class _PayloadDecoder:
             payload, byteorder, wordorder
         )
 
+    @classmethod
+    def from_registers(cls, registers: list[bytes], byteorder: str = Endian.little, wordorder: str = Endian.big) -> cls:
+        # FIXME From pymodbus.payload.BinaryPayloadDecoder.fromRegisters.
+        payload = b"".join(struct.pack("!H", x) for x in registers)
+        return cls(payload, byteorder, wordorder)
+
     def decode_number(self, type: str) -> _ValueType:
         d = _DECODE_DISPATCH[type]
         return getattr(self._decoder, d)()
@@ -388,10 +353,14 @@ class _PayloadDecoder:
     def decode_bitstruct(self, fmt: str) -> tuple[_ValueType]:
         cf = bitstruct.compile(fmt)
         # It's fine to pass the entire remaining payload, even if it's too large.
-        return cf.unpack(self._decoder._payload[self._decoder._pointer :])
+        result = cf.unpack(self._decoder._payload[self._decoder._pointer :])
+        size = _bitstruct_format_size_in_bytes(fmt)
+        size = (size + 1) // 2
+        self._decoder._pointer += size
+        return result
 
     def skip_bytes(self, count: int = 1) -> None:
-        pass
+        self._decoder.skip_bytes(count)
 
 
 class _PayloadBuilder:
@@ -424,7 +393,7 @@ class _PayloadBuilder:
         # Don't use ``_pack``, as we don't want to use word order to unpack!
         self._payload.extend([packed[2 * i : 2 * i + 2] for i in range(len(packed))])
 
-    def add_number(self, type: str, value: int) -> None:
+    def add_builtin(self, type: str, value: int) -> None:
         """
 
         Args:
@@ -436,6 +405,12 @@ class _PayloadBuilder:
         if fmt is None:
             raise UnknownTypeError()  # TODO
         self._payload.extend(self._pack(fmt, value))
+
+    def add_string(self, value: str) -> None:
+        # FIXME Directly taken from pymodbus.
+        fmt = self._byteorder + str(len(value)) + "s"
+        packed = struct.pack(fmt, pymodbus.utilities.make_byte_string(value))
+        self._payload.append(packed)
 
     def _pack(self, fmt: str, value: _ValueType) -> bytes:
         """Pack and pad value into format.

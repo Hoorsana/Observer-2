@@ -11,6 +11,7 @@ import pymodbus.server.sync
 import threading
 
 from pylab.live.plugin.modbus import layout
+from pylab.live.plugin.modbus import async_io
 
 
 @pytest.fixture(scope="session")
@@ -77,26 +78,45 @@ class TestPayloadBuilder:
         assert builder.build() == expected
 
 
-def test_encode_decode_struct():
-    byteorder = "<"
-    wordorder = ">"
-    s = layout.Struct(
-        "",
-        [
-            layout.Field("CHANGED", "u1"),
-            layout.Field("ELEMENT_TYPE", "u7"),
-            layout.Field("ELEMENT_ID", "u8"),
-        ],
-    )
+@pytest.mark.parametrize(
+    "fields, values, byteorder, wordorder",
+    [
+        (
+            [
+                layout.Field("CHANGED", "u1"),
+                layout.Field("ELEMENT_TYPE", "u7"),
+                layout.Field("ELEMENT_ID", "u8"),
+            ],
+            {
+                "CHANGED": 1,
+                "ELEMENT_TYPE": 33,
+                "ELEMENT_ID": 7,
+            },
+            "<",
+            ">",
+        ),
+        pytest.param(
+            [
+                layout.Field("CHANGED", "u1"),
+                layout.Field("ELEMENT_TYPE", "u7"),
+                layout.Field("ELEMENT_ID", "u5"),
+            ],
+            {
+                "CHANGED": 1,
+                "ELEMENT_TYPE": 33,
+                "ELEMENT_ID": 7,
+            },
+            "<",
+            ">",
+            id="With padding",
+        ),
+    ]
+)
+def test_encode_decode_struct(fields, values, byteorder, wordorder):
+    s = layout.Struct("", fields)
     builder = layout._PayloadBuilder(byteorder, wordorder)
-    values = {
-        "CHANGED": 1,
-        "ELEMENT_TYPE": 33,
-        "ELEMENT_ID": 7,
-    }
     s.encode(builder, values)
     payload = b"".join(builder.build())
-    print(payload)
     decoder = layout._PayloadDecoder(payload, byteorder, wordorder)
     assert s.decode(decoder) == values
 
@@ -130,72 +150,57 @@ class TestModbusRegisterMapping:
 
 class TestModbusClient:
     pass
-    # @pytest.fixture
-    # def client(self):
-    #     return layout.ModbusClient(
-    #         pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
-    #         {
-    #             0: layout.ModbusRegisterMapping(
-    #                 [
-    #                     layout.Field("s", "str", length=5, address=2),
-    #                     layout.Field("x", "i32"),
-    #                     layout.Field("b", "bits", length=16, address=82),
-    #                     layout.Field("y", "f16"),
-    #                 ]
-    #             ),
-    #             1: layout.ModbusRegisterMapping(
-    #                 [layout.Field("s", "str", length=5, address=2)]
-    #             ),
-    #         },
-    #         single=False,
-    #     )
+    @pytest.fixture
+    def client(self):
+        return async_io.Client(
+            pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
+            {
+                0: layout.RegisterMapping(
+                    [
+                        # layout.Str("str", length=5, address=2),
+                        layout.Number("i", "i32"),
+                        # layout.Struct(
+                        #     "struct",
+                        #     [
+                        #         layout.Field("CHANGED", "u1"),
+                        #         layout.Field("ELEMENT_TYPE", "u7"),
+                        #         layout.Field("ELEMENT_ID", "u5"),
+                        #     ],
+                        #     address=19
+                        # ),
+                        layout.Number("f", "f16"),
+                    ]
+                ),
+                1: layout.RegisterMapping(
+                    [layout.Str("str", length=5, address=2)]
+                ),
+            },
+            single=False,
+        )
 
-    # @pytest.fixture
-    # def client_with_tuples(self):
-    #     return layout.ModbusClient(
-    #         pymodbus.client.sync.ModbusTcpClient(host="localhost", port=5020),
-    #         layout.ModbusRegisterMapping(
-    #             [
-    #                 layout.Field("x", "i32", address=2),
-    #                 layout.Field("y", ("i8", "str", "bits", "u8")),
-    #                 layout.Field("z", "i32"),
-    #             ],
-    #         ),
-    #     )
-
-    # def test_write_register_read_holding_registers(self, server, client):
-    #     bits = [
-    #         False,
-    #         False,
-    #         True,
-    #         False,
-    #         True,
-    #         True,
-    #         False,
-    #         True,
-    #         False,
-    #         True,
-    #         False,
-    #         False,
-    #         False,
-    #         True,
-    #         True,
-    #         True,
-    #     ]
-    #     client.write_registers(
-    #         {
-    #             "x": 12,
-    #             "s": "hello",
-    #             "b": bits,
-    #             "y": 3.4,
-    #         }
-    #     )
-    #     assert client.read_holding_registers() == {
-    #         "x": 12,
-    #         "s": b"hello",
-    #         "b": bits,
-    #         "y": pytest.approx(3.4, abs=0.001),
-    #     }
+    def test_write_register_read_holding_registers(self, server, client):
+        client.write_registers(
+            {
+                # "str": "hello",
+                "i": 12,
+                # "struct": {
+                #     "CHANGED": 1,
+                #     "ELEMENT_TYPE": 33,
+                #     "ELEMENT_ID": 7,
+                # },
+                "f": 3.4,
+            }
+        )
+        assert client.read_holding_registers() == {
+            # "str": "hello",
+            "i": 12,
+            # "struct": {
+            #     "CHANGED": 1,
+            #     "ELEMENT_TYPE": 33,
+            #     "ELEMENT_ID": 7,
+            # },
+            "f": pytest.approx(3.4, abs=0.001),
+        }
 
     #     assert client.read_holding_register("b") == bits
     #     client.write_register("s", "world")
