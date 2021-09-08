@@ -51,6 +51,22 @@ _STRUCT_SIZE = {
     "d": 8,
 }
 
+_DECODE_DISPATCH = {
+    "str": "decode_string",
+    "bits": "decode_bits",
+    "i8": "decode_8bit_int",
+    "i16": "decode_16bit_int",
+    "i32": "decode_32bit_int",
+    "i64": "decode_64bit_int",
+    "u8": "decode_8bit_uint",
+    "u16": "decode_16bit_uint",
+    "u32": "decode_32bit_uint",
+    "u64": "decode_64bit_uint",
+    "f16": "decode_16bit_float",
+    "f32": "decode_32bit_float",
+    "f64": "decode_64bit_float",
+}
+
 _DEFAULT_SLAVE = 0
 
 
@@ -73,6 +89,12 @@ class UnknownTypeError(Exception):
 class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` values!
     little = "<"
     big = ">"
+
+
+def _bitstruct_format_length_in_bytes(fmt: str) -> int:
+    tokens = re.split("[suft][0-9]*", fmt)
+    bits = sum(int(t[1:]) for t in tokens)
+    return (bits + 7) // 8
 
 
 class RegisterMapping:
@@ -286,6 +308,7 @@ class Field:
 
     # TODO Validate that format is correct using pydantic!
 
+    @property
     def size_in_bits(self) -> int:
         return int(self.format[1:])
 
@@ -295,18 +318,18 @@ class Struct(Variable):
         self, name: str, fields: list[Field], address: Optional[int] = None
     ) -> None:
         super().__init__(name, address)
-        self._fields = field
+        self._fields = fields
 
     def _format(self) -> str:
         result = "".join(field.format for field in self._fields)
-        padding = sum(field.size_in_bits for field in fields) % 8
+        padding = sum(field.size_in_bits for field in self._fields) % 8
         if padding != 0:
             result += f"p{padding}"
         return result
 
     def decode(self, decoder: _PayloadDecoder) -> dict[str, _ValueType]:
-        values = decoder.decode_struct(self._format)
-        return dict(zip(self._fields, values))
+        values = decoder.decode_bitstruct(self._format())
+        return dict(zip([f.name for f in self._fields], values))
 
     def encode(
         self,
@@ -315,7 +338,7 @@ class Struct(Variable):
     ) -> None:
         # TODO Error handling!
         values = [value[field.name] for field in self._fields]
-        builder.add_struct(self._format(), values)
+        builder.add_bitstruct(self._format(), values)
 
 
 class Str(Variable):
@@ -353,14 +376,19 @@ class _PayloadDecoder:
     def __init__(
         self, payload: bytes, byteorder: str = "<", wordorder: str = ">"
     ) -> None:
-        self._payload = payload
-        self._byteorder = byteorder
-        self._wordorder = wordorder
+        self._decoder = pymodbus.payload.BinaryPayloadDecoder(
+            payload, byteorder, wordorder
+        )
 
-    def decode_struct(
-        self, compiled_format: bitstruct.CompiledFormat
-    ) -> tuple[_ValueType]:
-        pass
+    def decode_number(self, type: str) -> _ValueType:
+        d = _DECODE_DISPATCH[type]
+        return getattr(self._decoder, d)()
+
+    # TODO Fix public access by reimplementing BinaryPayloadDecoder yourself!
+    def decode_bitstruct(self, fmt: str) -> tuple[_ValueType]:
+        cf = bitstruct.compile(fmt)
+        # It's fine to pass the entire remaining payload, even if it's too large.
+        return cf.unpack(self._decoder._payload[self._decoder._pointer :])
 
     def skip_bytes(self, count: int = 1) -> None:
         pass
@@ -389,7 +417,7 @@ class _PayloadBuilder:
     def build(self) -> list[bytes]:
         return self._payload
 
-    def add_struct(self, fmt: str, values: list[_ValueType]) -> None:
+    def add_bitstruct(self, fmt: str, values: list[_ValueType]) -> None:
         # TODO Endianess?
         cf = bitstruct.compile(fmt)
         packed: bytes = cf.pack(*values)

@@ -32,7 +32,7 @@ def server():
     t.join()
 
 
-class TestNumber:
+class TestPayloadBuilder:
     @pytest.mark.parametrize(
         "type, value, expected, byteorder, wordorder",
         [
@@ -40,15 +40,88 @@ class TestNumber:
             ("i16", 777, [b"\x03\t"], ">", ">"),
             ("i32", 67108864, [b"\x00\x04", b"\x00\x00"], "<", ">"),
             ("i32", 67108864, [b"\x00\x00", b"\x00\x04"], "<", "<"),
-            ("f64", 3.141, [b'\t@', b'\xc4 ', b'\xa5\x9b', b'T\xe3'], "<", ">"),
-            ("f64", 3.141, [b'\xe3T', b'\x9b\xa5', b' \xc4', b'@\t'], ">", "<"),
+            ("f64", 3.141, [b"\t@", b"\xc4 ", b"\xa5\x9b", b"T\xe3"], "<", ">"),
+            ("f64", 3.141, [b"\xe3T", b"\x9b\xa5", b" \xc4", b"@\t"], ">", "<"),
         ],
     )
-    def test_encode_single(self, type, value, expected, byteorder, wordorder):
+    def test_encode_number_single(self, type, value, expected, byteorder, wordorder):
         builder = layout._PayloadBuilder(byteorder=byteorder, wordorder=wordorder)
         var = layout.Number("", type)
         var.encode(builder, value)
         assert builder.build() == expected
+
+    @pytest.mark.parametrize(
+        "payload, expected, byteorder, wordorder",
+        [
+            (
+                [("i16", 777), ("i32", 67108864), ("f64", 3.141)],
+                [
+                    b"\t\x03",
+                    b"\x00\x04",
+                    b"\x00\x00",
+                    b"\t@",
+                    b"\xc4 ",
+                    b"\xa5\x9b",
+                    b"T\xe3",
+                ],
+                "<",
+                ">",
+            ),
+        ],
+    )
+    def test_encode_number_multiple(self, payload, expected, byteorder, wordorder):
+        builder = layout._PayloadBuilder(byteorder, wordorder)
+        for type_, value in payload:
+            var = layout.Number("", type_)
+            var.encode(builder, value)
+        assert builder.build() == expected
+
+
+def test_encode_decode_struct():
+    byteorder = "<"
+    wordorder = ">"
+    s = layout.Struct(
+        "",
+        [
+            layout.Field("CHANGED", "u1"),
+            layout.Field("ELEMENT_TYPE", "u7"),
+            layout.Field("ELEMENT_ID", "u8"),
+        ],
+    )
+    builder = layout._PayloadBuilder(byteorder, wordorder)
+    values = {
+        "CHANGED": 1,
+        "ELEMENT_TYPE": 33,
+        "ELEMENT_ID": 7,
+    }
+    s.encode(builder, values)
+    payload = b"".join(builder.build())
+    print(payload)
+    decoder = layout._PayloadDecoder(payload, byteorder, wordorder)
+    assert s.decode(decoder) == values
+
+
+def test_encode_decode_mixed():
+    byteorder = ">"
+    wordorder = "<"
+
+
+class TestPayloadDecoder:
+    @pytest.mark.parametrize(
+        "type, expected, payload, byteorder, wordorder",
+        [
+            ("i16", 777, b"\t\x03", "<", ">"),
+            ("i16", 777, b"\x03\t", ">", ">"),
+            ("i32", 67108864, b"\x00\x04\x00\x00", "<", ">"),
+            ("i32", 67108864, b"\x00\x00\x00\x04", "<", "<"),
+            ("f64", 3.141, b"\t@\xc4 \xa5\x9bT\xe3", "<", ">"),
+            ("f64", 3.141, b"\xe3T\x9b\xa5 \xc4@\t", ">", "<"),
+        ],
+    )
+    def test_decode_single(self, type, expected, payload, byteorder, wordorder):
+        builder = layout._PayloadDecoder(payload, byteorder, wordorder)
+        var = layout.Number("", type)
+        assert var.decode(builder) == expected
 
 
 class TestModbusRegisterMapping:
