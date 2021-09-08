@@ -225,28 +225,3 @@ class TestModbusClient:
         client.write_register("str", "hello", unit=1)
         assert client.read_holding_register("str", unit=0) == "world"
         assert client.read_holding_register("str", unit=1) == "hello"
-
-    # def test_write_holding_register_read_holding_register_with_tuples(
-    #     self, server, client_with_tuples
-    # ):
-    #     bits = [True, False, True, False, False, False, True, True]
-    #     client_with_tuples.write_register("z", 5)
-    #     client_with_tuples.write_register("y", (1, "b", bits, 4))
-    #     assert client_with_tuples.read_holding_register("y") == (1, b"b", bits, 4)
-    #     assert client_with_tuples.read_holding_register("z") == 5
-
-    # def test_layout(self):
-    #     layout = layout.MemoryLayout(
-    #         [
-    #             layout.variable(
-    #                 "STATE",
-    #                 "struct",
-    #                 [
-    #                     layout.Field("CHANGED", "int", 1),  # TODO bool?
-    #                     layout.Field("ELEMENT_TYPE", "int", 7),  # TODO
-    #                     layout.Field("ELEMENT_ID", "int", 8),
-    #                     layout.Field("VALUE", "float", 16),
-    #                     layout.Field("MESSAGE", "str", 24),
-    #                 ]
-    #             ),
-    #         ]

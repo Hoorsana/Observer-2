@@ -80,10 +80,8 @@ class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` value
 
 
 def _bitstruct_format_size_in_bytes(fmt: str) -> int:
-    print(fmt)
     tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
     bits = sum(int(t) for t in tokens[1:])
-    print(bits)
     return (bits + 7) // 8
 
 
