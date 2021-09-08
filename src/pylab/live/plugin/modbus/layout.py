@@ -290,7 +290,8 @@ class Str(Variable):
         return self._length
 
     def decode(self, decoder: _PayloadDecoder) -> str:
-        return decoder.decode_string(self._length)
+        result = decoder.decode_string(self._length)
+        return result[:self._length]  # Remove padding!
 
     def encode(self, builder: _PayloadBuilder, value: str) -> None:
         assert len(value) <= self._length  # TODO
@@ -359,6 +360,10 @@ class _PayloadDecoder:
         self._decoder._pointer += size
         return result
 
+    def decode_string(self, byte_count: int) -> str:
+        padded = byte_count + (byte_count % 2)
+        return self._decoder.decode_string(padded)
+
     def skip_bytes(self, count: int = 1) -> None:
         self._decoder.skip_bytes(count)
 
@@ -408,9 +413,10 @@ class _PayloadBuilder:
 
     def add_string(self, value: str) -> None:
         # FIXME Directly taken from pymodbus.
-        fmt = self._byteorder + str(len(value)) + "s"
-        packed = struct.pack(fmt, pymodbus.utilities.make_byte_string(value))
-        self._payload.append(packed)
+        byte_string = pymodbus.utilities.make_byte_string(value)
+        fmt = self._byteorder + str(len(byte_string)) + "s"
+        packed = struct.pack(fmt, byte_string)
+        self._payload.extend([packed[2 * i : 2 * i + 2] for i in range(len(packed)//2)])
 
     def _pack(self, fmt: str, value: _ValueType) -> bytes:
         """Pack and pad value into format.
