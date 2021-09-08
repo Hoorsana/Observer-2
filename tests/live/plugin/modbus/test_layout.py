@@ -16,6 +16,7 @@ from pylab.live.plugin.modbus import layout
 from pylab.live.plugin.modbus import async_io
 
 
+# See https://github.com/pytest-dev/pytest-asyncio/issues/68
 @pytest.fixture(scope="session")
 def event_loop(request):
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -23,6 +24,8 @@ def event_loop(request):
     loop.close()
 
 
+# We would like to start a new server for every test, but this results
+# in connectivity issues. Hence, ``scope="session"``.
 @pytest.fixture(scope="session")
 async def server():
     context = pymodbus.datastore.ModbusServerContext(
