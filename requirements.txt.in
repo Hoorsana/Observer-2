@@ -2,6 +2,7 @@
 # 
 # SPDX-License-Identifier: CC0-1.0
 
+bitstruct==8.11.1
 python-can==3.3.4
 cantools==36.2.0
 pytest==5.4.3
