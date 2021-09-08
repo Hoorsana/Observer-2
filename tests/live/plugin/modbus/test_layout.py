@@ -207,19 +207,29 @@ class TestModbusClient:
             "f": pytest.approx(3.4, abs=0.001),
         }
 
-    #     assert client.read_holding_register("b") == bits
-    #     client.write_register("s", "world")
-    #     assert client.read_holding_register("s") == b"world"
-    #     client.write_registers(
-    #         {
-    #             "x": 34,
-    #             "s": "hello",
-    #         }
-    #     )
-    #     assert client.read_holding_registers({"x", "s"}) == {
-    #         "x": 34,
-    #         "s": b"hello",
-    #     }
+        assert client.read_holding_register("str") == "hello"
+        client.write_register("str", "world")
+        assert client.read_holding_register("str") == "world"
+        assert client.read_holding_registers() == {
+            "str": "world",
+            "i": 12,
+            "struct": {
+                "CHANGED": 1,
+                "ELEMENT_TYPE": 33,
+                "ELEMENT_ID": 7,
+            },
+            "f": pytest.approx(3.4, abs=0.001),
+        }
+        client.write_registers(
+            {
+                "i": 34,
+                "str": "hello",
+            }
+        )
+        assert client.read_holding_registers({"i", "str"}) == {
+            "i": 34,
+            "str": "hello",
+        }
 
     # def test_multiple_slaves(self, server, client):
     #     client.write_register("s", "world", unit=0)
