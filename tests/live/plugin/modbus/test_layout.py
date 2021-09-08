@@ -183,7 +183,7 @@ class TestModbusClient:
             single=False,
         )
 
-    def test_write_register_read_holding_registers(self, server, client):
+    def test_write_registers_read_holding_registers(self, server, client):
         client.write_registers(
             {
                 "str": "hello",
@@ -206,36 +206,25 @@ class TestModbusClient:
             },
             "f": pytest.approx(3.4, abs=0.001),
         }
-
-        assert client.read_holding_register("str") == "hello"
         client.write_register("str", "world")
         assert client.read_holding_register("str") == "world"
-        assert client.read_holding_registers() == {
-            "str": "world",
-            "i": 12,
-            "struct": {
-                "CHANGED": 1,
-                "ELEMENT_TYPE": 33,
-                "ELEMENT_ID": 7,
-            },
-            "f": pytest.approx(3.4, abs=0.001),
+        assert client.read_holding_register("i") == 12
+        assert client.read_holding_register("struct") == {
+            "CHANGED": 1,
+            "ELEMENT_TYPE": 33,
+            "ELEMENT_ID": 7,
         }
-        client.write_registers(
-            {
-                "i": 34,
-                "str": "hello",
-            }
-        )
+        assert client.read_holding_register("f") == pytest.approx(3.4, abs=0.001)
         assert client.read_holding_registers({"i", "str"}) == {
-            "i": 34,
-            "str": "hello",
+            "i": 12,
+            "str": "world",
         }
 
-    # def test_multiple_slaves(self, server, client):
-    #     client.write_register("s", "world", unit=0)
-    #     client.write_register("s", "hello", unit=1)
-    #     assert client.read_holding_register("s", unit=0) == b"world"
-    #     assert client.read_holding_register("s", unit=1) == b"hello"
+    def test_multiple_slaves(self, server, client):
+        client.write_register("str", "world", unit=0)
+        client.write_register("str", "hello", unit=1)
+        assert client.read_holding_register("str", unit=0) == "world"
+        assert client.read_holding_register("str", unit=1) == "hello"
 
     # def test_write_holding_register_read_holding_register_with_tuples(
     #     self, server, client_with_tuples
