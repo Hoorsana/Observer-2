@@ -30,8 +30,16 @@ def event_loop(request):
 async def server():
     context = pymodbus.datastore.ModbusServerContext(
         slaves={
-            0: pymodbus.datastore.ModbusSlaveContext(),
-            1: pymodbus.datastore.ModbusSlaveContext(),
+            0: pymodbus.datastore.ModbusSlaveContext(
+                hr=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
+                ir=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
+                zero_mode=True,
+            ),
+            1: pymodbus.datastore.ModbusSlaveContext(
+                hr=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
+                ir=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
+                zero_mode=True,
+            ),
         },
         single=False,
     )
@@ -55,23 +63,43 @@ class TestProtocol:
         return async_io.Protocol(
             client.protocol,
             {
-                0: layout.RegisterMapping(
-                    [
-                        layout.Str("str", length=5, address=2),
-                        layout.Number("i", "i32"),
-                        layout.Struct(
-                            "struct",
-                            [
-                                layout.Field("CHANGED", "u1"),
-                                layout.Field("ELEMENT_TYPE", "u7"),
-                                layout.Field("ELEMENT_ID", "u5"),
-                            ],
-                            # address=19
-                        ),
-                        layout.Number("f", "f16"),
-                    ]
+                0: layout.SlaveContextLayout(
+                    holding_registers=layout.RegisterMapping(
+                        [
+                            layout.Str("str", length=5, address=2),
+                            layout.Number("i", "i32"),
+                            layout.Struct(
+                                "struct",
+                                [
+                                    layout.Field("CHANGED", "u1"),
+                                    layout.Field("ELEMENT_TYPE", "u7"),
+                                    layout.Field("ELEMENT_ID", "u5"),
+                                ],
+                                # address=19
+                            ),
+                            layout.Number("f", "f16"),
+                        ]
+                    ),
+                    input_registers=layout.RegisterMapping(
+                        [
+                            layout.Number("a", "u16"),
+                            layout.Number("b", "u16"),
+                            layout.Number("c", "u16"),
+                        ],
+                        byteorder=">",
+                    ),
                 ),
-                1: layout.RegisterMapping([layout.Str("str", length=5, address=2)]),
+                1: layout.SlaveContextLayout(
+                    registers=layout.RegisterMapping(
+                        [
+                            layout.Number("a", "u16", address=0),
+                            layout.Number("b", "u16"),
+                            layout.Number("c", "u16"),
+                            layout.Str("str", length=5, address=12),
+                        ],
+                        byteorder=">"
+                    )
+                ),
             },
             single=False,
         )
@@ -108,7 +136,9 @@ class TestProtocol:
             "ELEMENT_TYPE": 33,
             "ELEMENT_ID": 7,
         }
-        assert await protocol.read_holding_register("f") == pytest.approx(3.4, abs=0.001)
+        assert await protocol.read_holding_register("f") == pytest.approx(
+            3.4, abs=0.001
+        )
         assert await protocol.read_holding_registers({"i", "str"}) == {
             "i": 12,
             "str": "world",
@@ -120,6 +150,20 @@ class TestProtocol:
         await protocol.write_register("str", "hello", unit=1)
         assert await protocol.read_holding_register("str", unit=0) == "world"
         assert await protocol.read_holding_register("str", unit=1) == "hello"
+
+    @pytest.mark.asyncio
+    async def test_read_holding_registers(self, server, protocol):
+        result = await protocol.read_holding_registers(unit=1)
+        assert result["a"] == 0
+        assert result["b"] == 1
+        assert result["c"] == 2
+
+    @pytest.mark.asyncio
+    async def test_read_input_registers(self, server, protocol):
+        result = await protocol.read_input_registers()
+        assert result["a"] == 0
+        assert result["b"] == 1
+        assert result["c"] == 2
 
 
 class TestPayloadBuilder:

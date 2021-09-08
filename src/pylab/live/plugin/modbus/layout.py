@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
+import dataclasses
 import itertools
 import re
 import struct
-from typing import List
+from typing import List, Optional
 
 import bitstruct
 import pydantic
@@ -467,3 +468,25 @@ def _visit_blocks(
         raise ValueError()  # TODO
 
     return result
+
+
+class SlaveContextLayout:
+
+    def __init__(self, **kwargs) -> None:
+        """
+        """
+        self.holding_registers = None
+        self.input_registers = None
+        self.coils = None
+        self.discrete_input = None
+        if "registers" in kwargs:
+            self.holding_registers = kwargs["registers"]
+            self.input_registers = kwargs["registers"]
+        if "coils" in kwargs:
+            self.coils = kwargs["coils"]
+        if "holding_registers" in kwargs:
+            self.holding_registers = kwargs["holding_registers"]
+        if "input_registers" in kwargs:
+            self.input_registers = kwargs["input_registers"]
+        if "discrete_input" in kwargs:
+            self.discrete_input = kwargs["discrete_input"]
