@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import asyncio
 
 import pymodbus.datastore
@@ -6,7 +10,6 @@ import pymodbus.client.asynchronous.tcp
 import pymodbus.client.asynchronous.schedulers
 import pytest
 
-from pylab.live.plugin.modbus import layout
 from pylab.live.plugin.modbus import async_io
 
 

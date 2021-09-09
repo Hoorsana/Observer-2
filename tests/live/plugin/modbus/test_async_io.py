@@ -1,7 +1,12 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import pytest
 
 from pylab.live.plugin.modbus import async_io
 from pylab.live.plugin.modbus import layout
+from pylab.live.plugin.modbus import registers
 
 
 # FIXME It's slightly awkward that all layouts refer to the slave context of the server in
@@ -13,7 +18,7 @@ def protocol(client):
         # This layout is too large for its context:
         {
             2: layout.SlaveContextLayout(
-                registers=layout.RegisterMapping([layout.Number("a", "i64", address=23)])
+                holding_registers=registers.RegisterMapping([registers.Number("a", "i64", address=23)])
             ),
         },
         single=False

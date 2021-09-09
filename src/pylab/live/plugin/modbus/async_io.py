@@ -29,22 +29,22 @@ class Protocol:
     def __init__(
         self,
         protocol: pymodbus.client.asynchronous.async_io.ModbusClientProtocol,
-        mapping: layout.SlaveContextLayout,
+        slave_layout: layout.SlaveContextLayout,
         single: bool = True,
     ):
         self._protocol = protocol
         if single:
-            self._mapping = {_DEFAULT_SLAVE: mapping}
+            self._slave_layout = {_DEFAULT_SLAVE: slave_layout}
         else:
-            self._mapping = mapping
+            self._slave_layout = slave_layout
 
     # TODO Fix code duplication!
     async def read_input_registers(
         self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
-        mapping = self._mapping[unit].input_registers
+        slave_layout = self._slave_layout[unit].input_registers
         response = await self._protocol.read_input_registers(
-            mapping.address, mapping.size, unit=unit
+            slave_layout.address, slave_layout.size, unit=unit
         )
         # Error handling. FIXME According to pymodbus examples, checking
         # for the function_code is idiomatic, but maybe just checking
@@ -52,7 +52,7 @@ class Protocol:
         if response.function_code != ReadInputRegistersResponse.function_code:
             raise ModbusResponseError(response, "Failed to read from input registers")
             # TODO Add variables and unit to error artifacts?
-        return mapping.decode_registers(response.registers, variables)
+        return slave_layout.decode_registers(response.registers, variables)
 
     async def read_input_register(
         self, var: str, unit: Hashable = _DEFAULT_SLAVE
@@ -69,13 +69,13 @@ class Protocol:
     async def read_holding_registers(
         self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
-        mapping = self._mapping[unit].holding_registers
+        slave_layout = self._slave_layout[unit].holding_registers
         response = await self._protocol.read_holding_registers(
-            mapping.address, mapping.size, unit=unit
+            slave_layout.address, slave_layout.size, unit=unit
         )
         if response.function_code != ReadHoldingRegistersResponse.function_code:
             raise ModbusResponseError(response, "Failed to read from holding registers")
-        return mapping.decode_registers(response.registers, variables)
+        return slave_layout.decode_registers(response.registers, variables)
 
     async def write_register(
         self, field: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
@@ -85,7 +85,7 @@ class Protocol:
     async def write_registers(
         self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
     ) -> None:
-        payloads = self._mapping[unit].holding_registers.build_payload(values)
+        payloads = self._slave_layout[unit].holding_registers.build_payload(values)
         for payload in payloads:
             response = await self._protocol.write_registers(
                 payload.address, payload.values, skip_encode=True, unit=unit

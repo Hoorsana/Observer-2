@@ -7,6 +7,7 @@ import asyncio
 import pytest
 
 from pylab.live.plugin.modbus import layout
+from pylab.live.plugin.modbus import registers
 from pylab.live.plugin.modbus import async_io
 
 
@@ -16,38 +17,38 @@ def protocol(client):
         client.protocol,
         {
             0: layout.SlaveContextLayout(
-                holding_registers=layout.RegisterMapping(
+                holding_registers=registers.RegisterMapping(
                     [
-                        layout.Str("str", length=5, address=2),
-                        layout.Number("i", "i32"),
-                        layout.Struct(
+                        registers.Str("str", length=5, address=2),
+                        registers.Number("i", "i32"),
+                        registers.Struct(
                             "struct",
                             [
-                                layout.Field("CHANGED", "u1"),
-                                layout.Field("ELEMENT_TYPE", "u7"),
-                                layout.Field("ELEMENT_ID", "u5"),
+                                registers.Field("CHANGED", "u1"),
+                                registers.Field("ELEMENT_TYPE", "u7"),
+                                registers.Field("ELEMENT_ID", "u5"),
                             ],
                             address=19
                         ),
-                        layout.Number("f", "f16"),
+                        registers.Number("f", "f16"),
                     ]
                 ),
-                input_registers=layout.RegisterMapping(
+                input_registers=registers.RegisterMapping(
                     [
-                        layout.Number("a", "u16"),
-                        layout.Number("b", "u16"),
-                        layout.Number("c", "u16"),
+                        registers.Number("a", "u16"),
+                        registers.Number("b", "u16"),
+                        registers.Number("c", "u16"),
                     ],
                     byteorder=">",
                 ),
             ),
             1: layout.SlaveContextLayout(
-                registers=layout.RegisterMapping(
+                holding_registers=registers.RegisterMapping(
                     [
-                        layout.Number("a", "u16", address=0),
-                        layout.Number("b", "u16"),
-                        layout.Number("c", "u16"),
-                        layout.Str("str", length=5, address=12),
+                        registers.Number("a", "u16", address=0),
+                        registers.Number("b", "u16"),
+                        registers.Number("c", "u16"),
+                        registers.Str("str", length=5, address=12),
                     ],
                     byteorder=">",
                 )
@@ -133,8 +134,8 @@ class TestPayloadBuilder:
         ],
     )
     def test_encode_number_single(self, type, value, expected, byteorder, wordorder):
-        builder = layout._PayloadBuilder(byteorder=byteorder, wordorder=wordorder)
-        var = layout.Number("", type)
+        builder = registers._PayloadBuilder(byteorder=byteorder, wordorder=wordorder)
+        var = registers.Number("", type)
         var.encode(builder, value)
         assert builder.build() == expected
 
@@ -158,15 +159,15 @@ class TestPayloadBuilder:
         ],
     )
     def test_encode_number_multiple(self, payload, expected, byteorder, wordorder):
-        builder = layout._PayloadBuilder(byteorder, wordorder)
+        builder = registers._PayloadBuilder(byteorder, wordorder)
         for type_, value in payload:
-            var = layout.Number("", type_)
+            var = registers.Number("", type_)
             var.encode(builder, value)
         assert builder.build() == expected
 
     def test_encode_string(self):
-        builder = layout._PayloadBuilder("<", ">")
-        var = layout.Str("", 7)
+        builder = registers._PayloadBuilder("<", ">")
+        var = registers.Str("", 7)
         var.encode(builder, "Hullo")
         assert builder.build() == [b"Hu", b"ll", b"o ", b"  "]
 
@@ -176,9 +177,9 @@ class TestPayloadBuilder:
     [
         (
             [
-                layout.Field("CHANGED", "u1"),
-                layout.Field("ELEMENT_TYPE", "u7"),
-                layout.Field("ELEMENT_ID", "u8"),
+                registers.Field("CHANGED", "u1"),
+                registers.Field("ELEMENT_TYPE", "u7"),
+                registers.Field("ELEMENT_ID", "u8"),
             ],
             {
                 "CHANGED": 1,
@@ -190,9 +191,9 @@ class TestPayloadBuilder:
         ),
         pytest.param(
             [
-                layout.Field("CHANGED", "u1"),
-                layout.Field("ELEMENT_TYPE", "u7"),
-                layout.Field("ELEMENT_ID", "u5"),
+                registers.Field("CHANGED", "u1"),
+                registers.Field("ELEMENT_TYPE", "u7"),
+                registers.Field("ELEMENT_ID", "u5"),
             ],
             {
                 "CHANGED": 1,
@@ -206,11 +207,11 @@ class TestPayloadBuilder:
     ],
 )
 def test_encode_decode_struct(fields, values, byteorder, wordorder):
-    s = layout.Struct("", fields)
-    builder = layout._PayloadBuilder(byteorder, wordorder)
+    s = registers.Struct("", fields)
+    builder = registers._PayloadBuilder(byteorder, wordorder)
     s.encode(builder, values)
     payload = b"".join(builder.build())
-    decoder = layout._PayloadDecoder(payload, byteorder, wordorder)
+    decoder = registers._PayloadDecoder(payload, byteorder, wordorder)
     assert s.decode(decoder) == values
 
 
@@ -232,6 +233,6 @@ class TestPayloadDecoder:
         ],
     )
     def test_decode_single(self, type, expected, payload, byteorder, wordorder):
-        builder = layout._PayloadDecoder(payload, byteorder, wordorder)
-        var = layout.Number("", type)
+        builder = registers._PayloadDecoder(payload, byteorder, wordorder)
+        var = registers.Number("", type)
         assert var.decode(builder) == expected
