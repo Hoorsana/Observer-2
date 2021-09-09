@@ -124,6 +124,10 @@ class Protocol:
             raise ModbusResponseError(response, "Failed to read coils")
         return coil_layout.decode_coils(response.bits, variables)
 
+    async def read_coil(self, variable: str, unit: Hashable = _DEFAULT_SLAVE) -> list[bool]:
+        d = await self.read_coils(unit=unit)
+        return d[variable]
+
     @property
     def protocol(self) -> pymodbus.client.sync.ModbusClientMixin:
         return self._protocol
