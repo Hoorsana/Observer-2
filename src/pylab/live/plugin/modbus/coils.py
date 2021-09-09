@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 from typing import Union, List
 
 _ValueType = Union[List[bool], bool]
@@ -68,10 +69,10 @@ class CoilLayout:
         bits = []
 
         def build_chunk():
+            nonlocal bits
             result.append(Chunk(address, bits))
             bits = []
 
-        next_address = begin
         for var, next_ in itertools.zip_longest(
             self._variables, self._variables[1:], fillvalue=None
         ):
@@ -79,7 +80,7 @@ class CoilLayout:
             if value is None:
                 build_chunk()
                 if next_ is not None:
-                    chunk = next_.address
+                    address = next_.address
                 continue
             if isinstance(value, list):
                 bits.extend(value)
@@ -89,7 +90,7 @@ class CoilLayout:
                 build_chunk()
             elif not next_.touches(var):
                 build_chunk()
-                chunk = next_.address
+                address = next_.address
 
         # If values remain, the corresonding variables are not found in self._variables.
         if values:
