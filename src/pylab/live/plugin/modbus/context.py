@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from pylab.live.plugin.modbus import layout
 
 # FIXME Place in seperate module to avoid duplication?
@@ -13,9 +15,13 @@ class ServerContextWithLayout:
         self,
         context: pymodbus.datastore.context.ModbusServerContext,
         slave_layout: layout.SlaveLayout,
+        single: bool = True,
     ):
         self._context = context
-        self._slave_layout = slave_layout
+        if single:
+            self._slave_layout = {DEFAULT_SLAVE: slave_layout}
+        else:
+            self._slave_layout = slave_layout
 
     # FIXME Race condition if client issues write concurrently?
     def get_input_registers(
