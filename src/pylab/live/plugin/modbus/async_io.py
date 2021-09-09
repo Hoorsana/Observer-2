@@ -95,6 +95,24 @@ class Protocol:
                     response, "Failed to write to holding registers"
                 )
 
+    async def write_coils(
+        self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
+    ) -> None:
+        payloads = self._slave_layout[unit].coils.build_payload(values)
+        for payload in payloads:
+            response = await self._protocol.write_coils(
+                payload.address, payload.values, unit=unit
+            )
+            if response.function_code != WriteMultipleCoilsResponse.function_code:
+                raise ModbusResponseError(
+                    response, "Failed to write to coils"
+                )
+
+    async def write_coil(
+        self, var: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
+    ) -> None:
+        await self.write_coils({var: value}, unit)
+
     @property
     def protocol(self) -> pymodbus.client.sync.ModbusClientMixin:
         return self._protocol
