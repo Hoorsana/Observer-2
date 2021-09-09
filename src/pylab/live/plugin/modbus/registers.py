@@ -172,17 +172,13 @@ class RegisterLayout:
             registers, byteorder=self._byteorder, wordorder=self._wordorder
         )
         result = {}
-        # FIXME Improve the algorithm! (Place the end_of_last_read logic into the _PayloadDecoder
-        # class?)
-        end_of_last_read = None
+        offset = 2 * self.address
         for var in self._variables:
             if var.name not in variables_to_decode:
                 continue
-            if end_of_last_read is None:  # (First pass)
-                end_of_last_read = var.address
-            decoder.skip_bytes(2 * (var.address - end_of_last_read))
+            gap = 2 * var.address - offset - decoder.pointer
+            decoder.skip_bytes(gap)
             result[var.name] = var.decode(decoder)
-            end_of_last_read = var.end
         return result
 
     def get_field_dimensions(self, field: str) -> tuple[int, int]:
@@ -377,6 +373,10 @@ class _PayloadDecoder:
     def decode_string(self, byte_count: int) -> str:
         padded = byte_count + (byte_count % 2)
         return self._decoder.decode_string(padded)
+
+    @property
+    def pointer(self) -> int:
+        return self._decoder._pointer
 
     def skip_bytes(self, count: int = 1) -> None:
         self._decoder.skip_bytes(count)
