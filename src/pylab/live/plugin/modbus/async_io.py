@@ -29,13 +29,9 @@ class Protocol:
         self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
         mapping = self._mapping[unit].input_registers
-        print(mapping.address)
-        print(mapping.size)
-        print(unit)
         result = await self._protocol.read_input_registers(
             mapping.address, mapping.size, unit=unit
         )
-        print(result.registers)
         return mapping.decode_registers(result.registers, variables)
 
     async def read_input_register(
