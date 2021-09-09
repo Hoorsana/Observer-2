@@ -133,7 +133,7 @@ class Protocol:
     async def read_discrete_inputs(
         self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
     ) -> dict[str, list[bool]]:
-        coil_layout = self._slave_layout[unit].coils
+        coil_layout = self._slave_layout[unit].discrete_inputs
         response = await self._protocol.read_discrete_inputs(
             coil_layout.address, coil_layout.size, unit=unit
         )

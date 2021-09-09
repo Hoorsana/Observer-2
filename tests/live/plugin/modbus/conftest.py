@@ -31,7 +31,7 @@ async def server():
                 hr=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
                 ir=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
                 co=pymodbus.datastore.ModbusSequentialDataBlock(0, [0]*100),
-                di=pymodbus.datastore.ModbusSequentialDataBlock(0, [0b10100100]*100),
+                di=pymodbus.datastore.ModbusSequentialDataBlock(0, [1, 0, 1, 0, 0, 1]),
                 zero_mode=True,
             ),
             1: pymodbus.datastore.ModbusSlaveContext(

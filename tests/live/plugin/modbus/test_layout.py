@@ -151,3 +151,11 @@ class TestProtocol:
         # consumes the dict.
         await protocol.write_coils(copy.copy(values))
         assert await protocol.read_coils() == values
+
+    @pytest.mark.asyncio
+    async def test_read_discrete_inputs(self, server, protocol):
+        assert await protocol.read_discrete_inputs() == {
+            "a": 1,
+            "b": [0, 1],
+            "c": [0, 0, 1],
+        }
