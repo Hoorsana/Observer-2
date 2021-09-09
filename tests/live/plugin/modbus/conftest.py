@@ -51,7 +51,7 @@ async def server():
     )
     task = asyncio.create_task(server.serve_forever())
     await asyncio.sleep(0.01)  # Make sure that the server is up when the fixture yields
-    yield
+    yield server
     task.cancel()
 
 

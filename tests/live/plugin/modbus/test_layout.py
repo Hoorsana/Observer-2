@@ -133,6 +133,7 @@ class TestProtocol:
 
     @pytest.mark.asyncio
     async def test_multiple_slaves(self, server, protocol):
+        await protocol.write_registers({"a": 1, "b": 2, "c": 3}, unit=1)
         await protocol.write_register("str", "world", unit=0)
         await protocol.write_register("str", "hello", unit=1)
         assert await protocol.read_holding_register("str", unit=0) == "world"

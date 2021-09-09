@@ -151,6 +151,7 @@ class RegisterLayout:
 
         if values:
             raise FieldNotFoundError()  # TODO
+        print(result)
         return result
 
     def decode_registers(
