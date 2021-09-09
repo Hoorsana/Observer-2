@@ -8,6 +8,7 @@ import pytest
 
 from pylab.live.plugin.modbus import layout
 from pylab.live.plugin.modbus import registers
+from pylab.live.plugin.modbus import coils
 from pylab.live.plugin.modbus import async_io
 
 
@@ -28,7 +29,7 @@ def protocol(client):
                                 registers.Field("ELEMENT_TYPE", "u7"),
                                 registers.Field("ELEMENT_ID", "u5"),
                             ],
-                            address=19
+                            address=19,
                         ),
                         registers.Number("f", "f16"),
                     ]
@@ -40,6 +41,22 @@ def protocol(client):
                         registers.Number("c", "u16"),
                     ],
                     byteorder=">",
+                ),
+                coils=coils.CoilLayout(
+                    [
+                        coils.Variable("x", 3),
+                        coils.Variable("y", 1, address=7),
+                        coils.Variable("z", 5),
+                        coils.Variable("u", 1),
+                        coils.Variable("v", 2),
+                    ]
+                ),
+                discrete_inputs=coils.CoilLayout(
+                    [
+                        coils.Variable("a", 1),
+                        coils.Variable("b", 2),
+                        coils.Variable("c", 3),
+                    ]
                 ),
             ),
             1: layout.SlaveContextLayout(
@@ -61,7 +78,8 @@ def protocol(client):
 class TestProtocol:
     @pytest.mark.asyncio
     async def test_write_registers_read_holding_registers(self, server, protocol):
-        await protocol.write_registers({
+        await protocol.write_registers(
+            {
                 "str": "hello",
                 "i": 12,
                 "struct": {
@@ -98,7 +116,6 @@ class TestProtocol:
             "str": "world",
         }
 
-
     @pytest.mark.asyncio
     async def test_read_holding_registers(self, server, protocol):
         result = await protocol.read_holding_registers(unit=1)
@@ -119,3 +136,21 @@ class TestProtocol:
         await protocol.write_register("str", "hello", unit=1)
         assert await protocol.read_holding_register("str", unit=0) == "world"
         assert await protocol.read_holding_register("str", unit=1) == "hello"
+
+    @pytest.mark.asyncio
+    async def test_write_coils_read_coils(self, server, protocol):
+        values = {
+            "x": [0, 1, 0],
+            "y": 1,
+            "z": [0, 1, 1, 0, 1],
+            "u": 0,
+            "v": [1, 1],
+        }
+        await protocol.write_coils(values)
+        assert await protocol.read_coils() == {
+            "x": [0, 1, 0],
+            "y": [1],
+            "z": [0, 1, 1, 0, 1],
+            "u": [0],
+            "v": [1, 1],
+        }

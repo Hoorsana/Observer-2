@@ -110,18 +110,22 @@ class CoilLayout:
         Returns:
             A ``dict`` mapping variable names to their value
         """
+        print([int(x) for x in coils])
         if variables_to_decode is None:
             variables_to_decode = [x.name for x in self._variables]
         result = {}
-        pointer = 0
-        # TODO Place this logic in an extra class!
-        end_of_last_read = None
         for var in self._variables:
             if var.name not in variables_to_decode:
                 continue
-            if end_of_last_read is None:  # (First pass)
-                end_of_last_read = var.address
-            pointer += var.address - end_of_last_read
-            result[var.name] = coils[pointer : pointer + size]
-            end_of_last_read = var.end
+            result[var.name] = coils[var.address : var.end]
         return result
+
+    @property
+    def size(self) -> int:
+        """Return the total size of the layout in bits."""
+        return self._variables[-1].end - self._variables[0].address
+
+    @property
+    def address(self) -> int:
+        """Return the starting address of the layout."""
+        return self._variables[0].address
