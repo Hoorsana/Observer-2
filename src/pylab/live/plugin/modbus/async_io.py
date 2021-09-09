@@ -15,7 +15,7 @@ from pymodbus.register_write_message import WriteMultipleRegistersResponse
 
 from pylab.live.plugin.modbus import layout
 
-_DEFAULT_SLAVE = 0
+DEFAULT_SLAVE = 0
 
 
 class ModbusResponseError(Exception):
@@ -36,13 +36,13 @@ class Protocol:
     ):
         self._protocol = protocol
         if single:
-            self._slave_layout = {_DEFAULT_SLAVE: slave_layout}
+            self._slave_layout = {DEFAULT_SLAVE: slave_layout}
         else:
             self._slave_layout = slave_layout
 
     # TODO Fix code duplication!
     async def read_input_registers(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
         slave_layout = self._slave_layout[unit].input_registers
         response = await self._protocol.read_input_registers(
@@ -57,19 +57,19 @@ class Protocol:
         return slave_layout.decode_registers(response.registers, variables)
 
     async def read_input_register(
-        self, var: str, unit: Hashable = _DEFAULT_SLAVE
+        self, var: str, unit: Hashable = DEFAULT_SLAVE
     ) -> _ValueType:
         d = await self.read_input_registers(unit=unit)
         return d[var]
 
     async def read_holding_register(
-        self, var: str, unit: Hashable = _DEFAULT_SLAVE
+        self, var: str, unit: Hashable = DEFAULT_SLAVE
     ) -> _ValueType:
         d = await self.read_holding_registers(unit=unit)
         return d[var]
 
     async def read_holding_registers(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
     ) -> dict[str, _ValueType]:
         slave_layout = self._slave_layout[unit].holding_registers
         response = await self._protocol.read_holding_registers(
@@ -80,12 +80,12 @@ class Protocol:
         return slave_layout.decode_registers(response.registers, variables)
 
     async def write_register(
-        self, field: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
+        self, field: str, value: _ValueType, unit: Hashable = DEFAULT_SLAVE
     ) -> None:
         await self.write_registers({field: value}, unit)
 
     async def write_registers(
-        self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
+        self, values: dict[str, _ValueType], unit: Hashable = DEFAULT_SLAVE
     ) -> None:
         payloads = self._slave_layout[unit].holding_registers.build_payload(values)
         for payload in payloads:
@@ -98,7 +98,7 @@ class Protocol:
                 )
 
     async def write_coils(
-        self, values: dict[str, _ValueType], unit: Hashable = _DEFAULT_SLAVE
+        self, values: dict[str, _ValueType], unit: Hashable = DEFAULT_SLAVE
     ) -> None:
         payloads = self._slave_layout[unit].coils.build_payload(values)
         for payload in payloads:
@@ -109,12 +109,12 @@ class Protocol:
                 raise ModbusResponseError(response, "Failed to write to coils")
 
     async def write_coil(
-        self, var: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
+        self, var: str, value: _ValueType, unit: Hashable = DEFAULT_SLAVE
     ) -> None:
         await self.write_coils({var: value}, unit)
 
     async def read_coils(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
     ) -> dict[str, _ValueTypes]:
         coil_layout = self._slave_layout[unit].coils
         response = await self._protocol.read_coils(
@@ -124,8 +124,27 @@ class Protocol:
             raise ModbusResponseError(response, "Failed to read coils")
         return coil_layout.decode_coils(response.bits, variables)
 
-    async def read_coil(self, variable: str, unit: Hashable = _DEFAULT_SLAVE) -> list[bool]:
+    async def read_coil(
+        self, variable: str, unit: Hashable = DEFAULT_SLAVE
+    ) -> list[bool]:
         d = await self.read_coils(unit=unit)
+        return d[variable]
+
+    async def read_discrete_inputs(
+        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
+    ) -> dict[str, list[bool]]:
+        coil_layout = self._slave_layout[unit].coils
+        response = await self._protocol.read_discrete_inputs(
+            coil_layout.address, coil_layout.size, unit=unit
+        )
+        if response.function_code != ReadDiscreteInputsResponse.function_code:
+            raise ModbusResponseError(response, "Failed to read discrete inputs")
+        return coil_layout.decode_coils(response.bits, variables)
+
+    async def read_discrete_input(
+        self, variable: str, unit: Hashable = DEFAULT_SLAVE
+    ) -> list[bool]:
+        d = await self.read_discrete_inputs(unit=unit)
         return d[variable]
 
     @property
