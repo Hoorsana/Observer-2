@@ -34,6 +34,10 @@ async def server():
                 ir=pymodbus.datastore.ModbusSequentialDataBlock(0, list(range(100))),
                 zero_mode=True,
             ),
+            2: pymodbus.datastore.ModbusSlaveContext(
+                hr=pymodbus.datastore.ModbusSequentialDataBlock(0, [0, 1, 2]),
+                zero_mode=True
+            ),
         },
         single=False,
     )
@@ -92,6 +96,10 @@ def protocol(event_loop):
                     ],
                     byteorder=">",
                 )
+            ),
+            # This layout is too large for its context:
+            2: layout.SlaveContextLayout(
+                registers=layout.RegisterMapping([layout.Number("a", "i64", address=23)])
             ),
         },
         single=False,
