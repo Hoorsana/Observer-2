@@ -130,7 +130,6 @@ class RegisterLayout:
                 builder.reset()
 
         # FIXME Improve the algorithm!
-        next_address = chunk  # Next address must be correct on first pass!
         for var, next_ in itertools.zip_longest(
             self._variables, self._variables[1:], fillvalue=None
         ):
