@@ -129,11 +129,11 @@ class RegisterLayout:
                 result.append(_Chunk(chunk, builder.build()))
                 builder.reset()
 
-        # FIXME Improve the algorithm!
+        seen = set()
         for var, next_ in itertools.zip_longest(
             self._variables, self._variables[1:], fillvalue=None
         ):
-            value = values.pop(var.name, None)
+            value = values.get(var.name, None)
             # If we're skipping a variable, we need to finish the chunk.
             if value is None:
                 build_chunk()
@@ -147,10 +147,10 @@ class RegisterLayout:
             elif not next_.touches(var):  # If there's a gap, build the chunk!
                 build_chunk()
                 chunk = next_.address
+            seen.add(var.name)
 
-        if values:
+        if len(seen) != len(values):
             raise FieldNotFoundError()  # TODO
-        print(result)
         return result
 
     def decode_registers(

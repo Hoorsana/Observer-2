@@ -4,7 +4,6 @@
 
 import asyncio
 
-import copy
 import pytest
 
 from pylab.live.plugin.modbus import layout
@@ -148,9 +147,7 @@ class TestProtocol:
             "u": 0,
             "v": [1, 1],
         }
-        # FIXME Copy values because currently, CoilLayout.build_payload
-        # consumes the dict.
-        await protocol.write_coils(copy.copy(values))
+        await protocol.write_coils(values)
         assert await protocol.read_coils() == values
 
     @pytest.mark.asyncio

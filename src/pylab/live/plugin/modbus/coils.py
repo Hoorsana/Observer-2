@@ -63,7 +63,6 @@ class CoilLayout:
 
     # FIXME This has a healthy amount of code duplication with the register layout's analogous
     # function. Maybe use an abstraction for chunking the memory?
-    # FIXME Currently, this consumes ``values``. Fix?
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
         result = []
         address = self._variables[0].address
@@ -74,10 +73,11 @@ class CoilLayout:
             result.append(Chunk(address, bits))
             bits = []
 
+        seen = set()
         for var, next_ in itertools.zip_longest(
             self._variables, self._variables[1:], fillvalue=None
         ):
-            value = values.pop(var.name, None)
+            value = values.get(var.name, None)
             if value is None:
                 build_chunk()
                 if next_ is not None:
@@ -92,9 +92,10 @@ class CoilLayout:
             elif not next_.touches(var):
                 build_chunk()
                 address = next_.address
+            seen.add(var.name)
 
         # If values remain, the corresonding variables are not found in self._variables.
-        if values:
+        if len(seen) != len(values):
             raise VariableNotFoundError()  # TODO
         return result
 
