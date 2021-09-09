@@ -9,6 +9,8 @@ from pymodbus.register_read_message import (
     ReadInputRegistersResponse,
     ReadHoldingRegistersResponse,
 )
+from pymodbus.bit_read_message import ReadCoilsResponse, ReadDiscreteInputsResponse
+from pymodbus.bit_write_message import WriteMultipleCoilsResponse
 from pymodbus.register_write_message import WriteMultipleRegistersResponse
 
 from pylab.live.plugin.modbus import layout
@@ -104,14 +106,23 @@ class Protocol:
                 payload.address, payload.values, unit=unit
             )
             if response.function_code != WriteMultipleCoilsResponse.function_code:
-                raise ModbusResponseError(
-                    response, "Failed to write to coils"
-                )
+                raise ModbusResponseError(response, "Failed to write to coils")
 
     async def write_coil(
         self, var: str, value: _ValueType, unit: Hashable = _DEFAULT_SLAVE
     ) -> None:
         await self.write_coils({var: value}, unit)
+
+    async def read_coils(
+        self, variables: Optional[Iterable[str]] = None, unit: Hashable = _DEFAULT_SLAVE
+    ) -> dict[str, _ValueTypes]:
+        coil_layout = self._slave_layout[unit].coils
+        response = await self._protocol.read_coils(
+            coil_layout.address, coil_layout.size, unit=unit
+        )
+        if response.function_code != ReadCoilsResponse.function_code:
+            raise ModbusResponseError(response, "Failed to read coils")
+        return coil_layout.decode_coils(response.bits, variables)
 
     @property
     def protocol(self) -> pymodbus.client.sync.ModbusClientMixin:
