@@ -27,7 +27,7 @@ def protocol(client):
                                 layout.Field("ELEMENT_TYPE", "u7"),
                                 layout.Field("ELEMENT_ID", "u5"),
                             ],
-                            # address=19
+                            address=19
                         ),
                         layout.Number("f", "f16"),
                     ]
@@ -60,8 +60,7 @@ def protocol(client):
 class TestProtocol:
     @pytest.mark.asyncio
     async def test_write_registers_read_holding_registers(self, server, protocol):
-        await protocol.write_registers(
-            {
+        await protocol.write_registers({
                 "str": "hello",
                 "i": 12,
                 "struct": {
@@ -98,12 +97,6 @@ class TestProtocol:
             "str": "world",
         }
 
-    @pytest.mark.asyncio
-    async def test_multiple_slaves(self, server, protocol):
-        await protocol.write_register("str", "world", unit=0)
-        await protocol.write_register("str", "hello", unit=1)
-        assert await protocol.read_holding_register("str", unit=0) == "world"
-        assert await protocol.read_holding_register("str", unit=1) == "hello"
 
     @pytest.mark.asyncio
     async def test_read_holding_registers(self, server, protocol):
@@ -118,6 +111,13 @@ class TestProtocol:
         assert result["a"] == 0
         assert result["b"] == 1
         assert result["c"] == 2
+
+    @pytest.mark.asyncio
+    async def test_multiple_slaves(self, server, protocol):
+        await protocol.write_register("str", "world", unit=0)
+        await protocol.write_register("str", "hello", unit=1)
+        assert await protocol.read_holding_register("str", unit=0) == "world"
+        assert await protocol.read_holding_register("str", unit=1) == "hello"
 
 
 class TestPayloadBuilder:

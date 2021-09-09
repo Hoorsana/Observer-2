@@ -135,6 +135,7 @@ class RegisterMapping:
             self._variables, self._variables[1:], fillvalue=None
         ):
             value = values.pop(var.name, None)
+            # If we're skipping a variable, we need to finish the chunk.
             if value is None:
                 build_chunk()
                 if next_ is not None:
@@ -142,14 +143,15 @@ class RegisterMapping:
                 continue
             var.encode(builder, value)
             # Check if chunk must be built!
-            if next_ is None:
+            if next_ is None:  # Last chunk must be built
                 build_chunk()
-            elif next_.touches(var):
+            elif not next_.touches(var):  # If there's a gap, build the chunk!
                 build_chunk()
                 chunk = next_.address
 
         if values:
             raise FieldNotFoundError()  # TODO
+        print(result)
         return result
 
     def decode_registers(
