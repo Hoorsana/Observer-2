@@ -162,19 +162,23 @@ class RegisterMapping:
             registers: The registers to decode
             variables_to_decode:
                 The names of the variables that occur in ``registers``
+
+        Returns:
+            A ``dict`` mappingg variable names to their value
         """
         if variables_to_decode is None:
-            variables_to_decode = [field.name for field in self._variables]
+            variables_to_decode = [v.name for v in self._variables]
         decoder = _PayloadDecoder.from_registers(
             registers, byteorder=self._byteorder, wordorder=self._wordorder
         )
         result = {}
-        # FIXME Improve the algorithm!
+        # FIXME Improve the algorithm! (Place the end_of_last_read logic into the _PayloadDecoder
+        # class?)
         end_of_last_read = None
         for var in self._variables:
             if var.name not in variables_to_decode:
                 continue
-            if end_of_last_read is None:
+            if end_of_last_read is None:  # (First pass)
                 end_of_last_read = var.address
             decoder.skip_bytes(2 * (var.address - end_of_last_read))
             result[var.name] = var.decode(decoder)
@@ -223,10 +227,10 @@ class Variable:
     def end(self) -> int:
         return self.address + self.size_in_registers
 
-    def touches(self, other: Element) -> bool:
+    def touches(self, other: Variable) -> bool:
         return self.address == other.end
 
-    def align_with(self, other: Element) -> None:
+    def align_with(self, other: Variable) -> None:
         self.address = other.end
 
     @property
