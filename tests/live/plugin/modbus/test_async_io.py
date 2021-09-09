@@ -18,7 +18,7 @@ def protocol(client):
         # This layout is too large for its context:
         {
             2: layout.SlaveContextLayout(
-                holding_registers=registers.RegisterMapping([registers.Number("a", "i64", address=23)])
+                holding_registers=registers.RegisterLayout([registers.Number("a", "i64", address=23)])
             ),
         },
         single=False

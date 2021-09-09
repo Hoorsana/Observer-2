@@ -17,7 +17,7 @@ def protocol(client):
         client.protocol,
         {
             0: layout.SlaveContextLayout(
-                holding_registers=registers.RegisterMapping(
+                holding_registers=registers.RegisterLayout(
                     [
                         registers.Str("str", length=5, address=2),
                         registers.Number("i", "i32"),
@@ -33,7 +33,7 @@ def protocol(client):
                         registers.Number("f", "f16"),
                     ]
                 ),
-                input_registers=registers.RegisterMapping(
+                input_registers=registers.RegisterLayout(
                     [
                         registers.Number("a", "u16"),
                         registers.Number("b", "u16"),
@@ -43,7 +43,7 @@ def protocol(client):
                 ),
             ),
             1: layout.SlaveContextLayout(
-                holding_registers=registers.RegisterMapping(
+                holding_registers=registers.RegisterLayout(
                     [
                         registers.Number("a", "u16", address=0),
                         registers.Number("b", "u16"),

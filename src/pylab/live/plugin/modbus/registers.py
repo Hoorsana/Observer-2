@@ -90,7 +90,7 @@ def _bitstruct_format_size_in_bytes(fmt: str) -> int:
     return (bits + 7) // 8
 
 
-class RegisterMapping:
+class RegisterLayout:
     def __init__(
         self, variables, byteorder: str = Endian.little, wordorder: str = Endian.big
     ) -> None:
