@@ -170,14 +170,14 @@ class RegisterMapping:
         result = {}
         # FIXME Improve the algorithm!
         end_of_last_read = None
-        for field in self._variables:
-            if field.name not in variables_to_decode:
+        for var in self._variables:
+            if var.name not in variables_to_decode:
                 continue
             if end_of_last_read is None:
-                end_of_last_read = field.address
-            decoder.skip_bytes(2 * (field.address - end_of_last_read))
-            result[field.name] = field.decode(decoder)
-            end_of_last_read = field.end
+                end_of_last_read = var.address
+            decoder.skip_bytes(2 * (var.address - end_of_last_read))
+            result[var.name] = var.decode(decoder)
+            end_of_last_read = var.end
         return result
 
     def get_field_dimensions(self, field: str) -> tuple[int, int]:
