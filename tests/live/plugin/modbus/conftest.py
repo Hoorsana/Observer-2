@@ -51,56 +51,10 @@ async def server():
 
 
 @pytest.fixture
-def protocol(event_loop):
+def client(event_loop):
     _, client = pymodbus.client.asynchronous.tcp.AsyncModbusTCPClient(
         pymodbus.client.asynchronous.schedulers.ASYNC_IO,
         port=5020,
         loop=event_loop,
     )
-    return async_io.Protocol(
-        client.protocol,
-        {
-            0: layout.SlaveContextLayout(
-                holding_registers=layout.RegisterMapping(
-                    [
-                        layout.Str("str", length=5, address=2),
-                        layout.Number("i", "i32"),
-                        layout.Struct(
-                            "struct",
-                            [
-                                layout.Field("CHANGED", "u1"),
-                                layout.Field("ELEMENT_TYPE", "u7"),
-                                layout.Field("ELEMENT_ID", "u5"),
-                            ],
-                            # address=19
-                        ),
-                        layout.Number("f", "f16"),
-                    ]
-                ),
-                input_registers=layout.RegisterMapping(
-                    [
-                        layout.Number("a", "u16"),
-                        layout.Number("b", "u16"),
-                        layout.Number("c", "u16"),
-                    ],
-                    byteorder=">",
-                ),
-            ),
-            1: layout.SlaveContextLayout(
-                registers=layout.RegisterMapping(
-                    [
-                        layout.Number("a", "u16", address=0),
-                        layout.Number("b", "u16"),
-                        layout.Number("c", "u16"),
-                        layout.Str("str", length=5, address=12),
-                    ],
-                    byteorder=">",
-                )
-            ),
-            # This layout is too large for its context:
-            2: layout.SlaveContextLayout(
-                registers=layout.RegisterMapping([layout.Number("a", "i64", address=23)])
-            ),
-        },
-        single=False,
-    )
+    return client
