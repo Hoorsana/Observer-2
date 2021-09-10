@@ -94,7 +94,6 @@ class CoilLayout:
                 address = next_.address
             seen.add(var.name)
 
-        # If values remain, the corresonding variables are not found in self._variables.
         if len(seen) != len(values):
             raise VariableNotFoundError()  # TODO
         return result
