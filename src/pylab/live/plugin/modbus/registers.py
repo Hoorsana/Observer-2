@@ -16,78 +16,9 @@ import pymodbus.payload
 import pymodbus.utilities
 
 
-_TYPE_TO_STRUCT = {
-    # "s8": "b",
-    "i16": "h",
-    "i32": "i",
-    "i64": "l",
-    # "u8": "B",
-    "u16": "H",
-    "u32": "I",
-    "u64": "L",
-    "f16": "e",
-    "f32": "f",
-    "f64": "d",
-    "t": ...,
-}
-
-# See https://docs.python.org/3/library/struct.html
-_STRUCT_SIZE = {
-    "c": 1,
-    "b": 1,
-    "B": 1,
-    "?": 1,
-    "h": 2,
-    "i": 4,
-    "l": 8,
-    "q": 16,
-    "e": 2,
-    "f": 4,
-    "d": 8,
-}
-
-_DECODE_DISPATCH = {
-    "str": "decode_string",
-    "bits": "decode_bits",
-    "i8": "decode_8bit_int",
-    "i16": "decode_16bit_int",
-    "i32": "decode_32bit_int",
-    "i64": "decode_64bit_int",
-    "u8": "decode_8bit_uint",
-    "u16": "decode_16bit_uint",
-    "u32": "decode_32bit_uint",
-    "u64": "decode_64bit_uint",
-    "f16": "decode_16bit_float",
-    "f32": "decode_32bit_float",
-    "f64": "decode_64bit_float",
-}
-
-
-# types:
-# sX - signed int
-# uX - unsigned int
-# b - bool
-# fX - (X=16, 32, 64) float
-# tX - text (ASCII, UTF-8)
-# p/PX - padding
-
-
-# TODO Endianess in structs? -> We need our own PayloadBuilder!
-
-
-class UnknownTypeError(Exception):
-    pass
-
-
 class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` values!
     little = "<"
     big = ">"
-
-
-def _bitstruct_format_size_in_bytes(fmt: str) -> int:
-    tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
-    bits = sum(int(t) for t in tokens[1:])
-    return (bits + 7) // 8
 
 
 class RegisterLayout:
@@ -108,13 +39,13 @@ class RegisterLayout:
             elif current.address < last.end:
                 raise ValueError()  # TODO Conflicting information!
 
-    def build_payload(self, values: dict[str, _ValueType]) -> list[_Chunk]:
+    def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
         """Build data for writing ``values`` to register.
 
         Args:
             values: A dict mapping field values to
 
-        Returns: A list of ``_Chunk`` objects, one for each
+        Returns: A list of ``Chunk`` objects, one for each
 
         Note that a highly fragmented payload will result in more items
         in the list, and, thus, a larger amount of IO operations.
@@ -126,7 +57,7 @@ class RegisterLayout:
         def build_chunk():
             payload = builder.build()
             if payload:
-                result.append(_Chunk(chunk, builder.build()))
+                result.append(Chunk(chunk, builder.build()))
                 builder.reset()
 
         seen = set()
@@ -242,18 +173,6 @@ class Variable:
         pass
 
 
-@pydantic.dataclasses.dataclass
-class Field:
-    name: str
-    format: str
-
-    # TODO Validate that format is correct using pydantic!
-
-    @property
-    def size_in_bits(self) -> int:
-        return int(self.format[1:])
-
-
 class Struct(Variable):
     def __init__(
         self, name: str, fields: list[Field], address: Optional[int] = None
@@ -285,6 +204,18 @@ class Struct(Variable):
         if padding != 0:
             result += f"p{padding}"
         return result
+
+
+@pydantic.dataclasses.dataclass
+class Field:
+    name: str
+    format: str
+
+    # TODO Validate that format is correct using pydantic!
+
+    @property
+    def size_in_bits(self) -> int:
+        return int(self.format[1:])
 
 
 class Str(Variable):
@@ -327,7 +258,7 @@ class Number(Variable):
 
 
 @pydantic.dataclasses.dataclass
-class _Chunk:
+class Chunk:
     """A chunk of registers for a single write operation.
 
     Attributes:
@@ -380,6 +311,10 @@ class _PayloadDecoder:
 
     def skip_bytes(self, count: int = 1) -> None:
         self._decoder.skip_bytes(count)
+
+
+class UnknownTypeError(Exception):
+    pass
 
 
 class _PayloadBuilder:
@@ -445,31 +380,54 @@ class _PayloadBuilder:
         return [struct.pack(self._byteorder + "H", word) for word in unpacked]
 
 
-# ???
-def _visit_blocks(
-    variables: list[Variables], selection: set[str], fn: Callable
-) -> None:
-    """Apply ``fn`` to every chunk."""
-    results = []
-    current = []
+_TYPE_TO_STRUCT = {
+    # "s8": "b",
+    "i16": "h",
+    "i32": "i",
+    "i64": "l",
+    # "u8": "B",
+    "u16": "H",
+    "u32": "I",
+    "u64": "L",
+    "f16": "e",
+    "f32": "f",
+    "f64": "d",
+    "t": ...,
+}
 
-    def finish_chunk():
-        if not current:
-            return
-        result.append(fn(current))
-        current = []
+# See https://docs.python.org/3/library/struct.html
+_STRUCT_SIZE = {
+    "c": 1,
+    "b": 1,
+    "B": 1,
+    "?": 1,
+    "h": 2,
+    "i": 4,
+    "l": 8,
+    "q": 16,
+    "e": 2,
+    "f": 4,
+    "d": 8,
+}
 
-    for var in [x for x in variables if x in selection]:
-        selection.remove(var)
-        if not current:
-            current.append(var)
-        else:
-            if var.touches(current[-1]):
-                finish_chunk()
-            current.append(var)
-    finish_chunk()
+_DECODE_DISPATCH = {
+    "str": "decode_string",
+    "bits": "decode_bits",
+    "i8": "decode_8bit_int",
+    "i16": "decode_16bit_int",
+    "i32": "decode_32bit_int",
+    "i64": "decode_64bit_int",
+    "u8": "decode_8bit_uint",
+    "u16": "decode_16bit_uint",
+    "u32": "decode_32bit_uint",
+    "u64": "decode_64bit_uint",
+    "f16": "decode_16bit_float",
+    "f32": "decode_32bit_float",
+    "f64": "decode_64bit_float",
+}
 
-    if selection:
-        raise ValueError()  # TODO
 
-    return result
+def _bitstruct_format_size_in_bytes(fmt: str) -> int:
+    tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
+    bits = sum(int(t) for t in tokens[1:])
+    return (bits + 7) // 8
