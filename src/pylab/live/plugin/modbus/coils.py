@@ -38,10 +38,12 @@ class Variable:
     def end(self) -> int:
         return self.address + self._size
 
-    def touches(self, other: Variable) -> bool:
+    def succeeds(self, other: Variable) -> bool:
+        """Check if the variable's store succeeds that of ``other``."""
         return self.address == other.end
 
     def align_with(self, other: Variable) -> None:
+        """Set the address of ``self`` so that it succeeds ``other``."""
         self.address = other.end
 
 
@@ -138,7 +140,7 @@ class CoilLayout:
                 bits.append(bool(value))
             if next_ is None:
                 build_chunk()
-            elif not next_.touches(var):
+            elif not next_.succeeds(var):
                 build_chunk()
                 address = next_.address
             seen.add(var.name)

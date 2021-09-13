@@ -70,7 +70,9 @@ class RegisterLayout:
 
         # Raise on duplicate!
         names = [v.name for v in self._variables]
-        duplicates = [value for value, count in collections.Counter(names).items() if count > 1]
+        duplicates = [
+            value for value, count in collections.Counter(names).items() if count > 1
+        ]
         if duplicates:
             raise DuplicateVariableError(duplicates[0])
 
@@ -135,7 +137,7 @@ class RegisterLayout:
             # Check if chunk must be built!
             if next_ is None:  # Last chunk must be built
                 build_chunk()
-            elif not next_.touches(var):  # If there's a gap, build the chunk!
+            elif not next_.succeeds(var):  # If there's a gap, build the chunk!
                 build_chunk()
                 chunk = next_.address
             seen.add(var.name)
@@ -216,6 +218,13 @@ class Variable(abc.ABC):
     """
 
     def __init__(self, name: str, address: Optional[int] = None) -> None:
+        """Args:
+            name: The variable's name
+            address: The variable address in memory (in registers)
+
+        An un-specified address means that the variable's address must
+        be deduced from context later.
+        """
         self._name = name
         self.address = address
 
@@ -231,34 +240,59 @@ class Variable(abc.ABC):
     def end(self) -> int:
         return self.address + self.size_in_registers
 
-    def touches(self, other: Variable) -> bool:
+    def succeeds(self, other: Variable) -> bool:
+        """Check if the variable's store succeeds that of ``other``."""
         return self.address == other.end
 
     def align_with(self, other: Variable) -> None:
+        """Set the address of ``self`` so that it succeeds ``other``."""
         self.address = other.end
 
+    # TODO Is this ever used, except for implementing
+    # ``size_in_registers``?
     @property
     @abc.abstractmethod
     def size_in_bytes(self) -> int:
         pass
 
     @abc.abstractmethod
-    def decode(self, decoder: pymodbus.payload.BinaryPayloadDecoder) -> _ValueType:
+    def decode(self, decoder: _PayloadDecoder) -> _ValueType:
+        """Read data from decoder and return the encoded value."""
         pass
 
     @abc.abstractmethod
-    def encode(
-        self, encoder: pymodbus.payload.BinaryPayloadBuilder, value: _ValueType
-    ) -> list[bytes]:
+    def encode(self, builder: _PayloadBuilder, value: _ValueType) -> None:
+        """Encode value into bytes and add them to payload builder."""
         pass
 
 
 class Struct(Variable):
     def __init__(
-        self, name: str, fields: list[Field], address: Optional[int] = None
+        self,
+        name: str,
+        fields: list[Field],
+        address: Optional[int] = None,
+        endianess: str = Endian.little,
     ) -> None:
+        """Layout an arbitrary amount of bytes into fields.
+
+        Args:
+            name: The name of the struct
+            fields: The fields of the struct
+            address:
+                The address (register) at which the variable is stored
+            endianess:
+                The order in which bits are stored in memory
+
+        Similar to the variables of a register layout, ``fields`` must
+        be non-empty. The ``format`` strings of the fields determine the
+        size of the struct: The struct is always padded to the next
+        register (may be queried using ``size_in_registers``).
+        """
+        # FIXME Fix the problem with endianess described above!
         super().__init__(name, address)
         self._fields = fields
+        self._endianess = endianess
 
     @property
     def size_in_bytes(self) -> int:
@@ -278,7 +312,8 @@ class Struct(Variable):
         builder.add_bitstruct(self._format(), values)
 
     def _format(self) -> str:
-        result = "".join(field.format for field in self._fields)
+        result = self._endianess
+        result += "".join(field.format for field in self._fields)
         bits = sum(field.size_in_bits for field in self._fields)
         padding = 16 - (bits % 16)
         if padding != 0:
@@ -288,6 +323,15 @@ class Struct(Variable):
 
 @pydantic.dataclasses.dataclass
 class Field:
+    """A field of a struct.
+
+    Attributes:
+        name: The name of the field
+        format: The ``bitstruct`` format string
+
+    For details on ``format``, see the documentation of ``bitstruct``.
+    """
+
     name: str
     format: str
 
@@ -333,7 +377,7 @@ class Number(Variable):
         return decoder.decode_number(self._type)
 
     def encode(self, builder: _PayloadBuilder, value: _ValueType):
-        builder.add_builtin(self._type, value)
+        builder.add_number(self._type, value)
 
 
 @pydantic.dataclasses.dataclass
@@ -353,6 +397,17 @@ class _PayloadDecoder:
     def __init__(
         self, payload: bytes, byteorder: str = "<", wordorder: str = ">"
     ) -> None:
+        """File-like object that decodes bytearray payload into values.
+
+        Args:
+            payload: The payload to decode (list of double bytes)
+            byteorder: Byteorder of values
+            wordorder: The wordorder of multi-byte values
+
+        File-like means: The decoder stores an internal pointer.
+        Whenever a ``decode_*`` method is called, the internal pointer
+        is advanced by the size of the decoded value.
+        """
         self._decoder = pymodbus.payload.BinaryPayloadDecoder(
             payload, byteorder, wordorder
         )
@@ -360,10 +415,20 @@ class _PayloadDecoder:
     @classmethod
     def from_registers(
         cls,
-        registers: list[bytes],
+        registers: list[int],
         byteorder: str = Endian.little,
         wordorder: str = Endian.big,
     ) -> cls:
+        """Create a decoder from ``pymodbus`` style register read-out.
+
+        Args:
+            registers: The registers to decode
+            byteorder: Byteorder of values
+            wordorder: The wordorder of multi-byte values
+
+        Basically just converts the big-endian ``int`` values of
+        ``registers`` into a list of double bytes.
+        """
         # FIXME From pymodbus.payload.BinaryPayloadDecoder.fromRegisters.
         payload = b"".join(struct.pack("!H", x) for x in registers)
         return cls(payload, byteorder, wordorder)
@@ -393,44 +458,70 @@ class _PayloadDecoder:
 
 
 class UnknownTypeError(Exception):
-    pass
+    def __init__(self, type: str, msg: Optional[str] = None) -> None:
+        if msg is None:
+            msg = f"Unknown type: {type}"
+        super().__init__(msg)
+        self.type = type
 
 
 class _PayloadBuilder:
     def __init__(self, byteorder: str = "<", wordorder: str = ">") -> None:
+        """File-like object that encodes values into a bytearray.
+
+        Args:
+            byteorder: Byteorder of values
+            wordorder: Wordorder of multi-byte values
+
+        File-like means: Encoded values are appended to an internal
+        ``bytes`` object ("the payload").
+        """
         self._byteorder = byteorder
         self._wordorder = wordorder
         self._payload = b""
 
     def reset(self) -> None:
+        """Clear the payload."""
         self._payload = b""
 
     def build(self) -> list[bytes]:
+        """Split the payload into a list of double-bytes and return
+        it."""
         registers = len(self._payload) // 2
         return [self._payload[2 * i : 2 * i + 2] for i in range(registers)]
 
     def add_bitstruct(self, fmt: str, values: list[_ValueType]) -> None:
-        # TODO Endianess?
+        """Encode a struct.
+
+        Args:
+            fmt: The ``bitstruct`` format to encode according to
+            values: The value to encode (in order specified by ``fmt``)
+        """
         cf = bitstruct.compile(fmt)
         packed: bytes = cf.pack(*values)
         # Don't use ``_pack``, as we don't want to use word order to unpack!
         self._payload += packed
 
-    def add_builtin(self, type: str, value: int) -> None:
-        """
+    def add_number(self, type: str, value: int) -> None:
+        """Add a number to the 
 
         Args:
             type: The type of the number
+            value: The value of the number
 
-        8-bit formats are *not* allowed!
+        Raises:
+            UnknownTypeError: If ``type`` is unknown
+
+        ``type`` may be one of the following: ``"i16"``, ``"i32"``, ``"i64"``, ``"u16"``, ``"u32"``, ``"u64"``, ``"f16"``, ``"f32"``, ``"f64"``. 8-bit formats are *not* allowed!
         """
         fmt = _TYPE_TO_STRUCT.get(type)
         if fmt is None:
-            raise UnknownTypeError()  # TODO
+            raise UnknownTypeError(type)  # TODO
         for r in self._pack(fmt, value):
             self._payload += r
 
     def add_string(self, value: str) -> None:
+        """Encode a string."""
         # FIXME Directly taken from pymodbus.
         byte_string = pymodbus.utilities.make_byte_string(value)
         fmt = self._byteorder + str(len(byte_string)) + "s"
@@ -445,10 +536,10 @@ class _PayloadBuilder:
             value: The value to pack and pad
 
         Returns:
-            A ``bytes`` object of length ?????????
+            The value encoded into a ``bytes`` object
         """
         # Use correct wordorder by formatting in big endian and then
-        # reversing if wordorder is little endian. Based on
+        # reversing if wordorder if little endian. FIXME Based on
         # pymodbus.payload.BinaryPayloadBuilder._pack_words.
         packed = struct.pack("!" + fmt, value)
         size = _STRUCT_SIZE[fmt.lower()]
@@ -471,8 +562,8 @@ _TYPE_TO_STRUCT = {
     "f16": "e",
     "f32": "f",
     "f64": "d",
-    "t": ...,
 }
+
 
 # See https://docs.python.org/3/library/struct.html
 _STRUCT_SIZE = {
@@ -488,6 +579,7 @@ _STRUCT_SIZE = {
     "f": 4,
     "d": 8,
 }
+
 
 _DECODE_DISPATCH = {
     "str": "decode_string",
@@ -507,6 +599,7 @@ _DECODE_DISPATCH = {
 
 
 def _bitstruct_format_size_in_bytes(fmt: str) -> int:
+    """Return the size of a ``bitstruct`` format in bytes."""
     tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
     bits = sum(int(t) for t in tokens[1:])
     return (bits + 7) // 8

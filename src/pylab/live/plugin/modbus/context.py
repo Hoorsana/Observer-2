@@ -100,7 +100,7 @@ class ServerContextLayout:
 
 
 def _bytes_to_16bit_int(b: bytes) -> int:
-    """Convert two bytes integer.
+    """Convert two bytes to integer.
 
     Args:
         b: Sequence of bytes of length at least 2
