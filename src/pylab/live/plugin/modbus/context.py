@@ -8,13 +8,23 @@ from pylab.live.plugin.modbus import layout
 from pylab.live.plugin.modbus._const import DEFAULT_SLAVE
 
 
-class ServerContextWithLayout:
+class ServerContextLayout:
     def __init__(
         self,
         context: pymodbus.datastore.context.ModbusServerContext,
-        slave_layout: layout.SlaveLayout,
+        slave_layout: Union[layout.SlaveLayout, dict[str, layout.SlaveLayout]],
         single: bool = True,
     ):
+        """Server context with a layout for each slave.
+
+        Args:
+            context: The underlying server context
+            slave_layout:
+                A single slave layout or a ``dict`` which maps a unit id
+                to the unit's layout
+            single:
+                Set to ``False`` if multiple slave layouts are specified
+        """
         self._context = context
         if single:
             self._slave_layout = {DEFAULT_SLAVE: slave_layout}
@@ -23,7 +33,7 @@ class ServerContextWithLayout:
 
     # FIXME Race condition if client issues write concurrently?
     def get_input_registers(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit=DEFAULT_SLAVE
     ) -> None:
         slave_layout = self._slave_layout[unit].input_registers
         store = self._context[unit].store["i"]
@@ -31,7 +41,7 @@ class ServerContextWithLayout:
         return slave_layout.decode_registers(registers, variables)
 
     def set_input_registers(
-        self, values: dict[str, _ValueType], unit: Hashable = DEFAULT_SLAVE
+        self, values: dict[str, _ValueType], unit=DEFAULT_SLAVE
     ) -> None:
         payloads = self._slave_layout[unit].input_registers.build_payload(values)
         for payload in payloads:
@@ -42,7 +52,7 @@ class ServerContextWithLayout:
             )
 
     def get_holding_registers(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit=DEFAULT_SLAVE
     ) -> None:
         slave_layout = self._slave_layout[unit].holding_registers
         store = self._context[unit].store["h"]
@@ -50,7 +60,7 @@ class ServerContextWithLayout:
         return slave_layout.decode_registers(registers, variables)
 
     def set_holding_registers(
-        self, values: dict[str, _ValueType], unit: Hashable = DEFAULT_SLAVE
+        self, values: dict[str, _ValueType], unit=DEFAULT_SLAVE
     ) -> None:
         payloads = self._slave_layout[unit].holding_registers.build_payload(values)
         # For some reason, pymodbus stores each register as big-endian
@@ -61,22 +71,20 @@ class ServerContextWithLayout:
             )
 
     def get_coils(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit=DEFAULT_SLAVE
     ) -> None:
         slave_layout = self._slave_layout[unit].coils
         store = self._context[unit].store["c"]
         coils = store.getValues(slave_layout.address, slave_layout.size)
         return slave_layout.decode_coils(coils, variables)
 
-    def set_coils(
-        self, values: dict[str, _ValueType], unit: Hashable = DEFAULT_SLAVE
-    ) -> None:
+    def set_coils(self, values: dict[str, _ValueType], unit=DEFAULT_SLAVE) -> None:
         payloads = self._slave_layout[unit].coils.build_payload(values)
         for payload in payloads:
             self._context[unit].store["c"].setValues(payload.address, payload.values)
 
     def get_discrete_inputs(
-        self, variables: Optional[Iterable[str]] = None, unit: Hashable = DEFAULT_SLAVE
+        self, variables: Optional[Iterable[str]] = None, unit=DEFAULT_SLAVE
     ) -> None:
         slave_layout = self._slave_layout[unit].discrete_inputs
         store = self._context[unit].store["d"]
@@ -84,7 +92,7 @@ class ServerContextWithLayout:
         return slave_layout.decode_coils(coils, variables)
 
     def set_discrete_inputs(
-        self, values: dict[str, _ValueType], unit: Hashable = DEFAULT_SLAVE
+        self, values: dict[str, _ValueType], unit=DEFAULT_SLAVE
     ) -> None:
         payloads = self._slave_layout[unit].discrete_inputs.build_payload(values)
         for payload in payloads:

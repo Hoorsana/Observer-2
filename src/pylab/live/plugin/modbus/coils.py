@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 import itertools
 from typing import Union, List
@@ -52,20 +53,66 @@ class Chunk:
 
 class CoilLayout:
     def __init__(self, variables: list[Variable]) -> None:
+        """Decode and encode boolean payloads according to a specified
+        layout.
+
+        Args:
+            variables: The variables stored in the layout
+
+        Raises:
+            DuplicateVariableError: If two variables have the same name
+            InvalidAddressLayoutError: If two variable stores overlap
+
+        ``variables`` must be non-empty and specified in the order in
+        which they are stored in memory. If ``variables[0].address`` is
+        ``None``, it is assumed to be ``0``. If some other variable's
+        address is ``None``, it is aligned with the previous variable,
+        i.e. its address is set equal to the end of the previous variable.
+        """
         self._variables = variables
 
-        assert variables
+        # Raise on duplicate!
+        names = [v.name for v in self._variables]
+        duplicates = [value for value, count in collections.Counter(names).items() if count > 1]
+        if duplicates:
+            raise DuplicateVariableError(duplicates[0])
+
+        assert variables  # TODO pydantic validation
         if variables[0].address is None:
             variables[0].address = 0
         for current, last in zip(self._variables[1:], self._variables):
             if current.address is None:
                 current.align_with(last)
             elif current.address < last.end:
-                raise ValueError()  # TODO Conflicting information!
+                raise InvalidAddressLayoutError(current, last)
 
     # FIXME This has a healthy amount of code duplication with the register layout's analogous
     # function. Maybe use an abstraction for chunking the memory?
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
+        """Build data for writing new values to memory.
+
+        Args:
+            values: A dict mapping variable names to their new value
+
+        Returns:
+            A list of ``Chunk`` objects, one for each block of bytes to
+            be written to memory
+
+        Raises:
+            VariableNotFoundError:
+                If ``values`` contains a key that does not match any
+                variable of the layout
+
+        ``values.keys()`` must be a subset of the layout's variable
+        names. If not all variables are present, only the provided
+        subset is written.
+
+        The method collects the values into ``Chunk`` objects, each of
+        which contains a block of bits. The chunks are made as large as
+        possible without becoming disconnected. Note that a highly
+        fragmented ``values`` parameter will result in more items in the
+        list, and, thus, a larger amount of IO operations.
+        """
         result = []
         address = self._variables[0].address
         bits = []
@@ -96,8 +143,9 @@ class CoilLayout:
                 address = next_.address
             seen.add(var.name)
 
-        if len(seen) != len(values):
-            raise VariableNotFoundError()  # TODO
+        if len(seen) < len(values):
+            not_found = set(values.keys()) - seen
+            raise VariableNotFoundError(not_found)
         return result
 
     def decode_coils(
@@ -112,10 +160,16 @@ class CoilLayout:
 
         Returns:
             A ``dict`` mapping variable names to their value
+
+        Raises:
+            VariableNotFound:
+                If ``variables_to_decode`` contains an items which does
+                not match any variable of the layout
         """
         if variables_to_decode is None:
             variables_to_decode = [x.name for x in self._variables]
         result = {}
+        seen = set()
         for var in self._variables:
             if var.name not in variables_to_decode:
                 continue
@@ -124,6 +178,11 @@ class CoilLayout:
             if len(value) == 1:
                 value = value[0]
             result[var.name] = value
+            seen.add(var.name)
+
+        if len(seen) < len(variables_to_decode):
+            not_found = set(variables_to_decode) - seen
+            raise VariableNotFoundError(not_found)
         return result
 
     @property

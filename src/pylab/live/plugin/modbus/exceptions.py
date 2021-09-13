@@ -2,12 +2,14 @@ from __future__ import annotations
 
 
 class InvalidAddressLayoutError(Exception):
-    def __init__(self, msg: str, previous: Variable, current: Variable) -> None:
+    def __init__(
+        self, previous: Variable, current: Variable, msg: Optional[str] = None
+    ) -> None:
+        if msg is None:
+            msg = f"Invalid address for variable '{current.name}' specified: {current.address}. Previous variable store ends at {previous.end}. Variable stores must not overlap."
         super().__init__(msg)
-        self._last = last
-        self._current = ...
-        # TODO Check Arjan codes: Should this even have a custom message?
-        "Invalid address layout: Previous variable {self._previous} stored on [{self._previous.address}, {self._previous.end}), next variable stored on [{self._next.address}, {self._previous.end}). Variables must have seperate stores in memory."
+        self.previous = previous
+        self.current = current
 
 
 class VariableNotFoundError(Exception):
@@ -19,4 +21,8 @@ class VariableNotFoundError(Exception):
 
 
 class DuplicateVariableError(Exception):
-    pass
+    def __init__(self, duplicate: str, msg: Optional[str] = None) -> None:
+        if msg is None:
+            msg = f"Duplicate variable name: {duplicate}"
+        super().__init__(msg)
+        self.duplicate = duplicate
