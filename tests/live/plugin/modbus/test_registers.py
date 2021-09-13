@@ -13,6 +13,25 @@ from pylab.live.plugin.modbus.exceptions import (
 
 
 class TestRegisterLayout:
+    @pytest.fixture
+    def layout(self):
+        return registers.RegisterLayout(
+            [
+                registers.Str("str", length=5, address=2),
+                registers.Number("i", "i32"),
+                registers.Struct(
+                    "struct",
+                    [
+                        registers.Field("CHANGED", "u1"),
+                        registers.Field("ELEMENT_TYPE", "u7"),
+                        registers.Field("ELEMENT_ID", "u5"),
+                    ],
+                    address=19,
+                ),
+                registers.Number("f", "f16"),
+            ]
+        )
+
     @pytest.mark.parametrize(
         "variables, exception",
         [
@@ -29,6 +48,10 @@ class TestRegisterLayout:
     def test_init_failure(self, variables, exception):
         with pytest.raises(exception) as e:
             registers.RegisterLayout(variables)
+
+    def test_build_payload_failure(self, layout):
+        with pytest.raises(VariableNotFoundError):
+            layout.build_payload({"str": "hello", "world": "!"})
 
 
 class TestPayloadBuilder:

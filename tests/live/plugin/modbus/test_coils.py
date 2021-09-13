@@ -30,6 +30,10 @@ class TestCoilLayout:
         with pytest.raises(exception) as e:
             coils.CoilLayout(variables)
 
+    def test_build_payload_failure(self, layout):
+        with pytest.raises(VariableNotFoundError):
+            layout.build_payload({"x": [1, 2, 3], "a": 0})
+
     @pytest.fixture
     def layout(self):
         return coils.CoilLayout(
