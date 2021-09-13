@@ -4,11 +4,13 @@ import dataclasses
 import itertools
 from typing import Union, List
 
+from pylab.live.plugin.modbus.exceptions import (
+    InvalidAddressLayoutError,
+    VariableNotFoundError,
+    DuplicateVariableError,
+)
+
 _ValueType = Union[List[bool], bool]
-
-
-class VariableNotFoundError(Exception):
-    pass
 
 
 class Variable:
