@@ -5,9 +5,31 @@
 import pytest
 
 from pylab.live.plugin.modbus import coils
+from pylab.live.plugin.modbus.exceptions import (
+    InvalidAddressLayoutError,
+    VariableNotFoundError,
+    DuplicateVariableError,
+)
 
 
 class TestCoilLayout:
+    @pytest.mark.parametrize(
+        "variables, exception",
+        [
+            (
+                [coils.Variable("foo", 1, 2), coils.Variable("bar", 77, 2)],
+                InvalidAddressLayoutError,
+            ),
+            (
+                [coils.Variable("foo", 2, 2), coils.Variable("foo", 5)],
+                DuplicateVariableError
+            )
+        ]
+    )
+    def test_init_failure(self, variables, exception):
+        with pytest.raises(exception) as e:
+            coils.CoilLayout(variables)
+
     @pytest.fixture
     def layout(self):
         return coils.CoilLayout(
