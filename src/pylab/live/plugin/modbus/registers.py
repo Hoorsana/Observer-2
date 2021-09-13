@@ -16,41 +16,104 @@ import pymodbus.payload
 import pymodbus.utilities
 
 
-class Endian:  # Can't use enum for this, as pymodbus requires raw ``str`` values!
+# Can't use enum for this, as pymodbus requires raw ``str`` values!
+class Endian:
+    """Interface for accessing designators for endianess."""
+
     little = "<"
     big = ">"
 
 
+class InvalidAddressLayoutError(Exception):
+    def __init__(self, msg: str, previous: Variable, current: Variable) -> None:
+        super().__init__(msg)
+        self._last = last
+        self._current = ...
+        # TODO Check Arjan codes: Should this even have a custom message?
+        "Invalid address layout: Previous variable {self._previous} stored on [{self._previous.address}, {self._previous.end}), next variable stored on [{self._next.address}, {self._previous.end}). Variables must have seperate stores in memory."
+
+
+class VariableNotFoundError(Exception):
+    def __init__(self, variables: Iterable[str], msg: Optional[str] = None) -> None:
+        if msg is None:
+            msg = f"Variables not found: {variables}"
+        super().__init__(msg)
+        self.variables = variables
+
+
+class DuplicateVariableError(Exception):
+    pass
+
+
 class RegisterLayout:
     def __init__(
-        self, variables, byteorder: str = Endian.little, wordorder: str = Endian.big
+        self,
+        variables: list[Variables],
+        byteorder: str = Endian.little,
+        wordorder: str = Endian.big,
     ) -> None:
+        """Args:
+            variables: The variables stored in the layout
+            byteorder:
+                The byteorder used to encode variables (see below for
+                details)
+            wordorder:
+                The wordorder used to encode variables which take up
+                more than one byte (see below for details)
+
+        Raises:
+            InvalidAddressLayoutError: If two variable stores overlap
+
+        Variables of type ``Struct`` are exempt from the specified
+        ``byteorder`` and ``wordorder``.
+
+        ``variables`` must be non-empty and specified in the order in
+        which they are stored in memory. If ``variables[0].address`` is
+        ``None``, it is assumed to be ``0``. If some other variable's
+        address is ``None``, it is aligned with the previous variable,
+        i.e. its address is set equal to the end of the previous variable.
+        """
         self._variables = variables
         self._byteorder = byteorder
         self._wordorder = wordorder
+
+        if len(self._variables) != len({v.name for v in self._variables}):
+            raise DuplicateVariableError("")  # TODO
 
         # Deduce implicit addresses.
         assert variables
         if variables[0].address is None:
             variables[0].address = 0
+        assert variables[0].address >= 0
         for current, last in zip(self._variables[1:], self._variables):
             if current.address is None:
                 current.align_with(last)
             elif current.address < last.end:
-                raise ValueError()  # TODO Conflicting information!
+                raise InvalidAddressLayoutError(
+                    "", current, last
+                )  # TODO Conflicting information!
 
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
-        """Build data for writing ``values`` to register.
+        """Build data for writing new values to register.
 
         Args:
-            values: A dict mapping field values to
+            values: A dict mapping variable names to their new value
 
-        Returns: A list of ``Chunk`` objects, one for each
+        Returns:
+            A list of ``Chunk`` objects, one for each block of bytes to
+            be written to memory
 
-        Note that a highly fragmented payload will result in more items
-        in the list, and, thus, a larger amount of IO operations.
+        ``values.keys()`` must be a subset of the layout's variable
+        names. If not all variables are present, only the provided
+        subset is written.
+
+        The method collects the values into ``Chunk`` objects, each of
+        which contains a block of bytes. The chunks are made as large as
+        possible without becoming disconnected. Note that a highly
+        fragmented ``values`` parameter will result in more items in the
+        list, and, thus, a larger amount of IO operations.
         """
-        result = []
+        result: list[Chunk] = []
         builder = _PayloadBuilder(byteorder=self._byteorder, wordorder=self._wordorder)
         chunk = self._variables[0].address  # Begin of current chunk
 
@@ -60,7 +123,7 @@ class RegisterLayout:
                 result.append(Chunk(chunk, builder.build()))
                 builder.reset()
 
-        seen = set()
+        seen = set()  # List of variables comitted to payload.
         for var, next_ in itertools.zip_longest(
             self._variables, self._variables[1:], fillvalue=None
         ):
@@ -80,8 +143,10 @@ class RegisterLayout:
                 chunk = next_.address
             seen.add(var.name)
 
-        if len(seen) != len(values):
-            raise FieldNotFoundError()  # TODO
+        # Raise if a variable was not found.
+        if len(seen) < len(values):
+            not_found = set(values.keys()) - seen
+            raise VariableNotFoundError(not_found)
         return result
 
     def decode_registers(
@@ -95,7 +160,13 @@ class RegisterLayout:
                 The names of the variables that occur in ``registers``
 
         Returns:
-            A ``dict`` mappingg variable names to their value
+            A ``dict`` mapping variable names to their value
+
+        The ``registers`` parameter is a connected block of memory, each
+        integer describes as big-endian (?) byte. It may only be a part
+        of the memory of the layout. If this is the case, then
+        ``variables_to_decode`` must be used to specify the names of the
+        variables which are stored in ``registers``.
         """
         if variables_to_decode is None:
             variables_to_decode = [v.name for v in self._variables]
@@ -104,19 +175,20 @@ class RegisterLayout:
         )
         result = {}
         offset = 2 * self.address
+        seen = set()
         for var in self._variables:
             if var.name not in variables_to_decode:
                 continue
             gap = 2 * var.address - offset - decoder.pointer
             decoder.skip_bytes(gap)
             result[var.name] = var.decode(decoder)
-        return result
+            seen.add(var.name)
 
-    def get_field_dimensions(self, field: str) -> tuple[int, int]:
-        f = next((f for f in self._variables if f.name == field), None)
-        if f is None:
-            raise FieldNotFoundError()  # TODO
-        return f.address, f.size_in_registers
+        if len(seen) < len(variables_to_decode):
+            not_found = set(variables_to_decode) - seen
+            raise VariableNotFoundError(not_found)
+
+        return result
 
     @property
     def size(self) -> int:
@@ -125,7 +197,7 @@ class RegisterLayout:
 
     @property
     def address(self) -> int:
-        """Return the starting address of the layout."""
+        """Return the starting address (register) of the layout."""
         return self._variables[0].address
 
 
@@ -133,9 +205,12 @@ class Variable:
     """Represents a variable in memory.
 
     Attributes:
-        address (int): The address at which the variable is stored
+        address (int):
+            The address (register) at which the variable is stored
 
-    Variables begin and end at register bounds, regardless of their actual size.
+    Variables begin and end at register bounds, regardless of their
+    actual size. For example, a string at address 2 may have length 7
+    bytes, but the _end_ of the variable will be at address 6.
     """
 
     def __init__(self, name: str, address: Optional[int] = None) -> None:
@@ -243,7 +318,6 @@ class Number(Variable):
     def __init__(self, name: str, type: str, address: Optional[int] = None) -> None:
         super().__init__(name, address)
         self._type = type
-        self._address = address
 
     @property
     def size_in_bytes(self) -> int:

@@ -5,9 +5,7 @@
 from __future__ import annotations
 
 from pylab.live.plugin.modbus import layout
-
-# FIXME Place in seperate module to avoid duplication?
-DEFAULT_SLAVE = 0
+from pylab.live.plugin.modbus._const import DEFAULT_SLAVE
 
 
 class ServerContextWithLayout:
