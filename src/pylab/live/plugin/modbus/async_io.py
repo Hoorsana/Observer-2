@@ -18,7 +18,9 @@ from pylab.live.plugin.modbus import layout
 
 
 class ModbusResponseError(Exception):
-    def __init__(self, response: pymodbus.pdu.ExceptionResponse, msg: Optional[str] = None) -> None:
+    def __init__(
+        self, response: pymodbus.pdu.ExceptionResponse, msg: Optional[str] = None
+    ) -> None:
         if msg is None:
             msg = str(response)
         super().__init__(msg)
