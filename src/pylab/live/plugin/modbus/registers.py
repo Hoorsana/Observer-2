@@ -21,6 +21,7 @@ from pylab.live.plugin.modbus.exceptions import (
     InvalidAddressLayoutError,
     VariableNotFoundError,
     DuplicateVariableError,
+    EncodingError,
 )
 
 
@@ -262,7 +263,14 @@ class Variable(abc.ABC):
 
     @abc.abstractmethod
     def encode(self, builder: _PayloadBuilder, value: _ValueType) -> None:
-        """Encode value into bytes and add them to payload builder."""
+        """Encode value into bytes and add them to payload builder.
+
+        Raises:
+            EncodingError: If ``value`` cannot be encoded
+
+        The ``EncodingError`` is raised, for example, if an integer
+        value is too large for the size specified by the variable.
+        """
         pass
 
 
@@ -307,9 +315,11 @@ class Struct(Variable):
         builder: _PayloadBuilder,
         value: dict[str, _ValueType],
     ) -> None:
-        # TODO Error handling!
         values = [value[field.name] for field in self._fields]
-        builder.add_bitstruct(self._format(), values)
+        try:
+            builder.add_bitstruct(self._format(), values)
+        except bitstruct.Error as e:
+            EncodingError(f"Variable '{self._name}': " + str(e))
 
     def _format(self) -> str:
         result = self._endianess
@@ -356,7 +366,8 @@ class Str(Variable):
         return result[: self._length].decode("utf-8")  # Remove padding!
 
     def encode(self, builder: _PayloadBuilder, value: str) -> None:
-        assert len(value) <= self._length  # TODO
+        if len(value) > self._length:
+            raise EncodingError(f"Expected string of length <= {self._length} for variable '{self._name}', received '{value}' (length {len(value)})")
         # Pad the string to an even amount of bytes (so that it cleanly fits into registers)
         length = self._length + (self._length % 2)
         value += (length - len(value)) * " "
@@ -377,7 +388,11 @@ class Number(Variable):
         return decoder.decode_number(self._type)
 
     def encode(self, builder: _PayloadBuilder, value: _ValueType):
-        builder.add_number(self._type, value)
+        # FIXME This should probably be done with a preemptive check instead.
+        try:
+            builder.add_number(self._type, value)
+        except struct.error as e:  # FIXME Apparently, pymodbus doesn't handle these errors
+            raise EncodeError(f"Variable '{self._name}': " + str(e))
 
 
 @pydantic.dataclasses.dataclass
@@ -496,6 +511,9 @@ class _PayloadBuilder:
         Args:
             fmt: The ``bitstruct`` format to encode according to
             values: The value to encode (in order specified by ``fmt``)
+
+        Raises:
+            bitstruct.Error: If encoding fails
         """
         cf = bitstruct.compile(fmt)
         packed: bytes = cf.pack(*values)

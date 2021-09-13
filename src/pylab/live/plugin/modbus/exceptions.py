@@ -30,3 +30,7 @@ class DuplicateVariableError(Exception):
             msg = f"Duplicate variable name: {duplicate}"
         super().__init__(msg)
         self.duplicate = duplicate
+
+
+class EncodingError(Exception):
+    pass
