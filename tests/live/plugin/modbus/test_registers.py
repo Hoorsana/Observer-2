@@ -5,6 +5,30 @@
 import pytest
 
 from pylab.live.plugin.modbus import registers
+from pylab.live.plugin.modbus.exceptions import (
+    InvalidAddressLayoutError,
+    VariableNotFoundError,
+    DuplicateVariableError,
+)
+
+
+class TestRegisterLayout:
+    @pytest.mark.parametrize(
+        "variables, exception",
+        [
+            (
+                [registers.Number("foo", "i64", 2), registers.Number("bar", "i32", 5)],
+                InvalidAddressLayoutError,
+            ),
+            (
+                [registers.Number("foo", "i64", 2), registers.Str("foo", 5)],
+                DuplicateVariableError
+            )
+        ]
+    )
+    def test_init_failure(self, variables, exception):
+        with pytest.raises(exception) as e:
+            registers.RegisterLayout(variables)
 
 
 class TestPayloadBuilder:

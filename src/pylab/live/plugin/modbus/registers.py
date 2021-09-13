@@ -516,7 +516,7 @@ class _PayloadBuilder:
         """
         fmt = _TYPE_TO_STRUCT.get(type)
         if fmt is None:
-            raise UnknownTypeError(type)  # TODO
+            raise UnknownTypeError(type)
         for r in self._pack(fmt, value):
             self._payload += r
 
