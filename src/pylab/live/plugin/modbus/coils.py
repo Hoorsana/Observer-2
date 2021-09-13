@@ -47,7 +47,7 @@ class Variable:
 @dataclasses.dataclass
 class Chunk:
     address: int
-    values: list[bool]
+    values: _ValueType
 
 
 class CoilLayout:
@@ -101,7 +101,7 @@ class CoilLayout:
         return result
 
     def decode_coils(
-        self, coils: list[bool], variables_to_decode: Optional[Iterable[str]] = None
+        self, coils: list[str], variables_to_decode: Optional[Iterable[str]] = None
     ) -> dict[str, _ValueType]:
         """Decode coils into Python types.
 
