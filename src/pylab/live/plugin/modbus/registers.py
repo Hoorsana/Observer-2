@@ -27,7 +27,7 @@ from pylab.live.plugin.modbus.exceptions import (
 
 # Can't use enum for this, as pymodbus requires raw ``str`` values!
 class Endian:
-    """Interface for accessing designators for endianess."""
+    """Interface for accessing designators for endianness."""
 
     little = "<"
     big = ">"
@@ -280,7 +280,7 @@ class Struct(Variable):
         name: str,
         fields: list[Field],
         address: Optional[int] = None,
-        endianess: str = Endian.little,
+        endianness: str = Endian.little,
     ) -> None:
         """Layout an arbitrary amount of bytes into fields.
 
@@ -289,7 +289,7 @@ class Struct(Variable):
             fields: The fields of the struct
             address:
                 The address (register) at which the variable is stored
-            endianess:
+            endianness:
                 The order in which bits are stored in memory
 
         Similar to the variables of a register layout, ``fields`` must
@@ -297,10 +297,9 @@ class Struct(Variable):
         size of the struct: The struct is always padded to the next
         register (may be queried using ``size_in_registers``).
         """
-        # FIXME Fix the problem with endianess described above!
         super().__init__(name, address)
         self._fields = fields
-        self._endianess = endianess
+        self._endianness = endianness
 
     @property
     def size_in_bytes(self) -> int:
@@ -322,7 +321,7 @@ class Struct(Variable):
             EncodingError(f"Variable '{self._name}': " + str(e))
 
     def _format(self) -> str:
-        result = self._endianess
+        result = self._endianness
         result += "".join(field.format for field in self._fields)
         bits = sum(field.size_in_bits for field in self._fields)
         padding = 16 - (bits % 16)
