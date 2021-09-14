@@ -88,6 +88,14 @@ class RegisterLayout:
             elif current.address < last.end:
                 raise InvalidAddressLayoutError(current, last)
 
+    @classmethod
+    def load(cls, data) -> cls:
+        return RegisterLayout(
+            variables=[_create_variable(**v) for v in data['variables']],
+            byteorder=data.get('byteorder'),
+            wordorder=data.get('wordorder'),
+        )
+
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
         """Build data for writing new values to register.
 
@@ -301,6 +309,20 @@ class Struct(Variable):
         self._fields = fields
         self._endianness = endianness
 
+    @classmethod
+    def load(cls, data) -> cls:
+        # This may seem convoluted, but this prevents double-booking
+        # the default values of ``__init__``.
+        kwargs = {
+            "name": data["name"],
+            "fields": [Field(**d) for d in kwargs["fields"]],
+        }
+        if "address" in kwargs:
+            kwargs["address"] = data["address"]
+        if "address" in kwargs:
+            kwargs["endianness"] = data["endianness"]
+        return Struct(**kwargs)
+
     @property
     def size_in_bytes(self) -> int:
         return _bitstruct_format_size_in_bytes(self._format())
@@ -344,7 +366,11 @@ class Field:
     name: str
     format: str
 
-    # TODO Validate that format is correct using pydantic!
+    @pydantic.validator("format")
+    @classmethod
+    def format_must_parse_correctly(cls, v):
+        # TODO Check if ``format`` parses correctly!
+        return v
 
     @property
     def size_in_bits(self) -> int:
@@ -620,3 +646,17 @@ def _bitstruct_format_size_in_bytes(fmt: str) -> int:
     tokens = re.split("[a-z]", fmt)  # ["", "1", "7", "5", "5"]
     bits = sum(int(t) for t in tokens[1:])
     return (bits + 7) // 8
+
+
+_VARIABLE_DISPATCH = {
+    "struct": Struct.load,
+    "str": Str,
+}
+
+
+def _create_variable(type: str, **kwargs) -> Variable:
+    factory = _VARIABLE_DISPATCH.get(type)
+    if factory is None:
+        # Re-use ``type`` parameter for number type.
+        return Number(type=type, **kwargs)
+    return factory(**kwargs)

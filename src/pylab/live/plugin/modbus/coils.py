@@ -92,6 +92,10 @@ class CoilLayout:
             elif current.address < last.end:
                 raise InvalidAddressLayoutError(current, last)
 
+    @classmethod
+    def from_dict(cls, data) -> cls:
+        return CoilLayout([Variable(**v) for v in data])
+
     # FIXME This has a healthy amount of code duplication with the register layout's analogous
     # function. Maybe use an abstraction for chunking the memory?
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
