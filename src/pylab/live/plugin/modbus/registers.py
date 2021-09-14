@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import abc
+import copy
 import collections
 import dataclasses
 import itertools
@@ -90,11 +91,11 @@ class RegisterLayout:
 
     @classmethod
     def load(cls, data) -> cls:
-        return RegisterLayout(
-            variables=[_create_variable(**v) for v in data['variables']],
-            byteorder=data.get('byteorder'),
-            wordorder=data.get('wordorder'),
-        )
+        # This may seem convoluted, but this prevents double-booking
+        # the default values of ``__init__`` and retains misspellings
+        # and extra fields. Note that the method consumes ``data``.
+        data["variables"] = [_create_variable(**v) for v in data["variables"]]
+        return RegisterLayout(**data)
 
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
         """Build data for writing new values to register.
@@ -311,17 +312,8 @@ class Struct(Variable):
 
     @classmethod
     def load(cls, data) -> cls:
-        # This may seem convoluted, but this prevents double-booking
-        # the default values of ``__init__``.
-        kwargs = {
-            "name": data["name"],
-            "fields": [Field(**d) for d in kwargs["fields"]],
-        }
-        if "address" in kwargs:
-            kwargs["address"] = data["address"]
-        if "address" in kwargs:
-            kwargs["endianness"] = data["endianness"]
-        return Struct(**kwargs)
+        data["fields"] = [Field(**d) for d in data["fields"]]
+        return Struct(**data)
 
     @property
     def size_in_bytes(self) -> int:
@@ -392,7 +384,9 @@ class Str(Variable):
 
     def encode(self, builder: _PayloadBuilder, value: str) -> None:
         if len(value) > self._length:
-            raise EncodingError(f"Expected string of length <= {self._length} for variable '{self._name}', received '{value}' (length {len(value)})")
+            raise EncodingError(
+                f"Expected string of length <= {self._length} for variable '{self._name}', received '{value}' (length {len(value)})"
+            )
         # Pad the string to an even amount of bytes (so that it cleanly fits into registers)
         length = self._length + (self._length % 2)
         value += (length - len(value)) * " "
@@ -546,7 +540,7 @@ class _PayloadBuilder:
         self._payload += packed
 
     def add_number(self, type: str, value: int) -> None:
-        """Add a number to the 
+        """Add a number to the
 
         Args:
             type: The type of the number
