@@ -19,10 +19,13 @@ import pymodbus.payload
 import pymodbus.utilities
 
 from pylab.live.plugin.modbus.exceptions import (
+    ModbusBackendException,
+    NoVariablesError,
     InvalidAddressLayoutError,
     VariableNotFoundError,
     DuplicateVariableError,
     EncodingError,
+    NegativeAddressError,
 )
 
 
@@ -78,11 +81,10 @@ class RegisterLayout:
         if duplicates:
             raise DuplicateVariableError(duplicates[0])
 
-        # Deduce implicit addresses.
-        assert variables  # TODO
+        if not variables:
+            raise NoVariablesError("Layout contains no variables")
         if variables[0].address is None:
             variables[0].address = 0
-        assert variables[0].address >= 0
         for current, last in zip(self._variables[1:], self._variables):
             if current.address is None:
                 current.align_with(last)
@@ -91,9 +93,9 @@ class RegisterLayout:
 
     @classmethod
     def load(cls, data) -> cls:
-        # This may seem convoluted, but this prevents double-booking
-        # the default values of ``__init__`` and retains misspellings
-        # and extra fields. Note that the method consumes ``data``.
+        # This may seem convoluted, but this prevents double-booking the
+        # default values of ``__init__`` and retains misspellings and
+        # extra fields. Note that the method consumes/modifies ``data``.
         data["variables"] = [_create_variable(**v) for v in data["variables"]]
         return RegisterLayout(**data)
 
@@ -232,9 +234,14 @@ class Variable(abc.ABC):
             name: The variable's name
             address: The variable address in memory (in registers)
 
+        Raises:
+            NegativeAddressError: If ``address`` is negative
+
         An un-specified address means that the variable's address must
         be deduced from context later.
         """
+        if address is not None and address < 0:
+            raise NegativeAddressError(name, address)
         self._name = name
         self.address = address
 
@@ -491,7 +498,7 @@ class _PayloadDecoder:
         self._decoder.skip_bytes(count)
 
 
-class UnknownTypeError(Exception):
+class UnknownTypeError(ModbusBackendException):
     def __init__(self, type: str, msg: Optional[str] = None) -> None:
         if msg is None:
             msg = f"Unknown type: {type}"

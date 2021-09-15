@@ -10,12 +10,24 @@ import itertools
 from typing import Union, List
 
 from pylab.live.plugin.modbus.exceptions import (
+    ModbusBackendException,
+    NoVariablesError,
     InvalidAddressLayoutError,
     VariableNotFoundError,
     DuplicateVariableError,
+    NegativeAddressError,
 )
 
 _ValueType = Union[List[bool], bool]
+
+
+class InvalidSizeError(ModbusBackendException):
+    def __init__(self, name: str, size: int, msg: Optional[int] = None) -> None:
+        if msg is None:
+            msg = f"Variable '{name}' has invalid size {size}. Coil size must always be positive."
+        super().__init__(msg)
+        self.name = name
+        self.size = size
 
 
 class Variable:
@@ -25,7 +37,18 @@ class Variable:
             name: The variable's name
             size: The size in bits
             address: The address in bits
+
+        Raises:
+            NegativeAddressError: If ``address`` is negative
+            InvalidSizeError: If ``size`` is not postive
+
+        An un-specified address means that the variable's address must
+        be deduced from context later.
         """
+        if address is not None and address < 0:
+            raise NegativeAddressError(name, address)
+        if size <= 0:
+            raise InvalidSizeError(name, size)
         self._name = name
         self._size = size
         self.address = address
@@ -83,7 +106,8 @@ class CoilLayout:
         if duplicates:
             raise DuplicateVariableError(duplicates[0])
 
-        assert variables  # TODO pydantic validation
+        if not variables:
+            raise NoVariablesError("Layout contains no variables")
         if variables[0].address is None:
             variables[0].address = 0
         for current, last in zip(self._variables[1:], self._variables):
