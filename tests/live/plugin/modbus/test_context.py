@@ -12,7 +12,7 @@ from pylab.live.plugin.modbus import registers
 from pylab.live.plugin.modbus import coils
 
 
-class TestServerContextLayout:
+class TestServerContext:
     @pytest.fixture
     def server_context(self):
         return pymodbus.datastore.context.ModbusServerContext(
@@ -72,7 +72,7 @@ class TestServerContextLayout:
 
     @pytest.fixture
     def context(self, server_context, slave_layout):
-        return context.ServerContextLayout(server_context, slave_layout)
+        return context.ServerContext(server_context, slave_layout)
 
     def test_set_input_registers_get_input_registers(self, context):
         values = {"a": 7, "b": 8, "c": 9}

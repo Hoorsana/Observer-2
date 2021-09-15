@@ -4,11 +4,14 @@
 
 from __future__ import annotations
 
+import importlib
+
+from pylab.core import utils
 from pylab.live.plugin.modbus import layout
 from pylab.live.plugin.modbus._const import DEFAULT_SLAVE
 
 
-class ServerContextLayout:
+class ServerContext:
     def __init__(
         self,
         context: pymodbus.datastore.context.ModbusServerContext,
@@ -30,6 +33,22 @@ class ServerContextLayout:
             self._slave_layout = {DEFAULT_SLAVE: slave_layout}
         else:
             self._slave_layout = slave_layout
+        # TODO Check that the keys of _context and _slave_layout are the
+        # same!
+
+    @classmethod
+    def load(cls, context, slave_layout, single=True) -> cls:
+        if single:
+            slave_layout = layout.SlaveContextLayout.load(**slave_layout)
+        else:
+            slave_layout = {
+                k: layout.SlaveContextLayout.load(**v) for k, v in slave_layout
+            }
+        return cls(
+            _load_pymodbus_server_context(context),
+            slave_layout,
+            single,
+        )
 
     # FIXME Race condition if client issues write concurrently?
     def get_input_registers(
@@ -109,3 +128,24 @@ def _bytes_to_16bit_int(b: bytes) -> int:
     """
     assert len(b) > 1
     return 256 * b[0] + b[1]
+
+
+def _load_pymodbus_server_context(data: dict):
+    single = data.get("single", True)
+    if single:
+        data["slaves"] = _load_slave_context(data.pop("slaves"))
+    else:
+        data["slaves"] = {
+            k: _load_slave_context(v) for k, v in data.pop("slaves").items()
+        }
+    factory = utils.getattr_from_module(data.pop("factory"))
+    return factory(**data)
+
+
+def _load_slave_context(data: dict):
+    kwargs = {}
+    for key in KEYS:
+        d = data[key]
+        factory = utils.getattr_from_module(d.pop("factory"))
+        data[key] = factory(**d)
+    return pymodbus.datastore.ModbusSlaveContext(**data)
