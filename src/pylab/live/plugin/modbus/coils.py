@@ -126,8 +126,8 @@ class CoilLayout:
                 raise InvalidAddressLayoutError(current, last)
 
     @classmethod
-    def load(cls, data) -> cls:
-        return CoilLayout([Variable(**v) for v in data])
+    def load(cls, variables) -> cls:
+        return CoilLayout([Variable(**v) for v in variables])
 
     # FIXME This has a healthy amount of code duplication with the register layout's analogous
     # function. Maybe use an abstraction for chunking the memory?
