@@ -92,7 +92,7 @@ class RegisterLayout:
                 raise InvalidAddressLayoutError(current, last)
 
     @classmethod
-    def load(cls, variables, byteorder, wordorder) -> cls:
+    def load(cls, variables, byteorder=Endian.little, wordorder=Endian.big) -> cls:
         variables = [_create_variable(**v) for v in variables]
         return RegisterLayout(variables, byteorder, wordorder)
 

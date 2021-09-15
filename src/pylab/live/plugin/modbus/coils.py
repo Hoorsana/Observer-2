@@ -129,6 +129,12 @@ class CoilLayout:
     def load(cls, variables) -> cls:
         return CoilLayout([Variable(**v) for v in variables])
 
+    def __eq__(self, other: CoilLayout) -> bool:
+        return self._variables == other._variables
+
+    def __repr__(self) -> str:
+        return str(self._variables)
+
     # FIXME This has a healthy amount of code duplication with the register layout's analogous
     # function. Maybe use an abstraction for chunking the memory?
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
