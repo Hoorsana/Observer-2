@@ -29,8 +29,32 @@ class TestRegisterLayout:
                     address=19,
                 ),
                 registers.Number("f", "f16"),
-            ]
+            ],
+            byteorder="<",
+            wordorder=">",
         )
+
+    @pytest.fixture
+    def data(self):
+        return {
+            "variables": [
+                {"name": "str", "type": "str", "length": 5, "address": 5},
+                {"name": "i", "type": "i32"},
+                {
+                    "name": "struct",
+                    "type": "struct",
+                    "fields": [
+                        {"name": "CHANGED", "format": "u1"},
+                        {"name": "ELEMENT_TYPE", "format": "u7"},
+                        {"name": "ELEMENT_ID", "format": "u5"},
+                    ],
+                    "address": 19,
+                },
+                {"name": "f", "type": "f16"},
+            ],
+            "byteorder": "<",
+            "wordorder": ">",
+        }
 
     @pytest.mark.parametrize(
         "variables, exception",
@@ -41,9 +65,9 @@ class TestRegisterLayout:
             ),
             (
                 [registers.Number("foo", "i64", 2), registers.Str("foo", 5)],
-                DuplicateVariableError
-            )
-        ]
+                DuplicateVariableError,
+            ),
+        ],
     )
     def test_init_failure(self, variables, exception):
         with pytest.raises(exception) as e:
@@ -52,6 +76,10 @@ class TestRegisterLayout:
     def test_build_payload_failure(self, layout):
         with pytest.raises(VariableNotFoundError):
             layout.build_payload({"str": "hello", "world": "!"})
+
+    def test_load(self, layout, data):
+        loaded = registers.RegisterLayout.load(**data)
+        assert loaded == layout
 
 
 class TestPayloadBuilder:

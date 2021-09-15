@@ -92,12 +92,16 @@ class RegisterLayout:
                 raise InvalidAddressLayoutError(current, last)
 
     @classmethod
-    def load(cls, data) -> cls:
-        # This may seem convoluted, but this prevents double-booking the
-        # default values of ``__init__`` and retains misspellings and
-        # extra fields. Note that the method consumes/modifies ``data``.
-        data["variables"] = [_create_variable(**v) for v in data["variables"]]
-        return RegisterLayout(**data)
+    def load(cls, variables, byteorder, wordorder) -> cls:
+        variables = [_create_variable(**v) for v in variables]
+        return RegisterLayout(variables, byteorder, wordorder)
+
+    def __eq__(self, other: RegisterLayout) -> bool:
+        return (
+            self._variables == other._variables
+            and self._byteorder == other._byteorder
+            and self._wordorder == other._wordorder
+        )
 
     def build_payload(self, values: dict[str, _ValueType]) -> list[Chunk]:
         """Build data for writing new values to register.
@@ -318,9 +322,16 @@ class Struct(Variable):
         self._endianness = endianness
 
     @classmethod
-    def load(cls, data) -> cls:
-        data["fields"] = [Field(**d) for d in data["fields"]]
-        return Struct(**data)
+    def load(cls, name, fields, address=None, endianness=Endian.little) -> cls:
+        fields = [Field(**d) for d in fields]
+        return Struct(name, fields, address, endianness)
+
+    def __eq__(self, other: Struct) -> None:
+        return (
+            super().__eq__(other)
+            and self._fields == other._fields
+            and self._endianness == other._endianness
+        )
 
     @property
     def size_in_bytes(self) -> int:
@@ -381,6 +392,9 @@ class Str(Variable):
         super().__init__(name, address)
         self._length = length
 
+    def __eq__(self, other: Str) -> bool:
+        return super().__eq__(other) and self._length == other._length
+
     @property
     def size_in_bytes(self) -> int:
         return self._length
@@ -404,6 +418,9 @@ class Number(Variable):
     def __init__(self, name: str, type: str, address: Optional[int] = None) -> None:
         super().__init__(name, address)
         self._type = type
+
+    def __eq__(self, other: Number) -> bool:
+        return super().__eq__(other) and self._type == other._type
 
     @property
     def size_in_bytes(self) -> int:
