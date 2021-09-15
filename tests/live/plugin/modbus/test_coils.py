@@ -22,9 +22,9 @@ class TestCoilLayout:
             ),
             (
                 [coils.Variable("foo", 2, 2), coils.Variable("foo", 5)],
-                DuplicateVariableError
-            )
-        ]
+                DuplicateVariableError,
+            ),
+        ],
     )
     def test_init_failure(self, variables, exception):
         with pytest.raises(exception) as e:
@@ -48,15 +48,24 @@ class TestCoilLayout:
 
     def test_build_payload(self, layout):
         payload = layout.build_payload(
-            {
-                "x": [0, 1, 0],
-                "y": 1,
-                "z": [0, 0, 1, 1, 0],
-                "v": [0, 1]
-            }
+            {"x": [0, 1, 0], "y": 1, "z": [0, 0, 1, 1, 0], "v": [0, 1]}
         )
         assert payload == [
             coils.Chunk(0, [0, 1, 0]),
             coils.Chunk(7, [1, 0, 0, 1, 1, 0]),
-            coils.Chunk(14, [0, 1])
+            coils.Chunk(14, [0, 1]),
         ]
+
+    @pytest.fixture
+    def data(self):
+        return [
+            {"name": "x", "size": 3},
+            {"name": "y", "size": 1, "address": 7},
+            {"name": "z", "size": 5},
+            {"name": "u", "size": 1},
+            {"name": "v", "size": 2},
+        ]
+
+    def test_load(self, layout, data):
+        loaded = coils.CoilLayout.load(data)
+        assert loaded._variables == layout._variables

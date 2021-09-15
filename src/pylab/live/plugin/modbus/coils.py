@@ -53,6 +53,13 @@ class Variable:
         self._size = size
         self.address = address
 
+    def __eq__(self, other: Variable) -> bool:
+        return (
+            self._name == other._name
+            and self._size == other._size
+            and self.address == other.address
+        )
+
     @property
     def name(self) -> str:
         return self._name
@@ -102,7 +109,9 @@ class CoilLayout:
 
         # Raise on duplicate!
         names = [v.name for v in self._variables]
-        duplicates = [value for value, count in collections.Counter(names).items() if count > 1]
+        duplicates = [
+            value for value, count in collections.Counter(names).items() if count > 1
+        ]
         if duplicates:
             raise DuplicateVariableError(duplicates[0])
 
@@ -117,7 +126,7 @@ class CoilLayout:
                 raise InvalidAddressLayoutError(current, last)
 
     @classmethod
-    def from_dict(cls, data) -> cls:
+    def load(cls, data) -> cls:
         return CoilLayout([Variable(**v) for v in data])
 
     # FIXME This has a healthy amount of code duplication with the register layout's analogous
