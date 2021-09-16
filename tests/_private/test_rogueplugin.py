@@ -44,22 +44,15 @@ class TestGlobal:
                     interface=sharedinfos.ElectricalInterface(
                         ports=[
                             sharedinfos.PortInfo(
-                                "val1",
-                                "A0",
-                                min=MIN,
-                                max=MAX,
+                                "val1", "A0", range=infos.RangeInfo(min=MIN, max=MAX)
                             ),
                             sharedinfos.PortInfo(
-                                "val2",
-                                "A1",
-                                min=MIN,
-                                max=MAX,
+                                "val2", "A1", range=infos.RangeInfo(min=MIN, max=MAX)
                             ),
                             sharedinfos.PortInfo(
                                 "sum",
                                 "DAC0",
-                                min=MIN,
-                                max=2 * MAX,
+                                range=infos.RangeInfo(min=MIN, max=2 * MAX),
                             ),
                         ]
                     ),
@@ -78,9 +71,15 @@ class TestGlobal:
                     },
                     interface=sharedinfos.ElectricalInterface(
                         ports=[
-                            sharedinfos.PortInfo("out1", "DAC0", min=MIN, max=MAX),
-                            sharedinfos.PortInfo("out2", "DAC1", min=MIN, max=MAX),
-                            sharedinfos.PortInfo("sum", "A0", min=MIN, max=2 * MAX),
+                            sharedinfos.PortInfo(
+                                "out1", "DAC0", range=infos.RangeInfo(min=MIN, max=MAX)
+                            ),
+                            sharedinfos.PortInfo(
+                                "out2", "DAC1", range=infos.RangeInfo(min=MIN, max=MAX)
+                            ),
+                            sharedinfos.PortInfo(
+                                "sum", "A0", range=infos.RangeInfo(min=MIN, max=2 * MAX)
+                            ),
                         ]
                     ),
                 ),
@@ -167,7 +166,9 @@ class TestDevice:
                     interface=sharedinfos.ElectricalInterface(
                         ports=[
                             sharedinfos.PortInfo(
-                                "port_frontend", "port", min=MIN, max=MAX
+                                "port_frontend",
+                                "port",
+                                range=infos.RangeInfo(min=MIN, max=MAX),
                             ),
                         ]
                     ),

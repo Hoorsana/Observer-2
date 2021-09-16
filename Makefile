@@ -89,7 +89,7 @@ core: venv
 	$(PYTEST) -vv tests/core
 
 .PHONY: quick
-quick: core cli tools shared
+quick: core cli tools shared live modbus private
 
 .PHONY: plugin-fake
 plugin-fake: venv
