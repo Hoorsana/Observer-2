@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import importlib
 
+import pymodbus.datastore
+
 from pylab.core import utils
 from pylab.live.plugin.modbus import layout
 from pylab.live.plugin.modbus._const import DEFAULT_SLAVE
@@ -17,7 +19,7 @@ class ServerContext:
         context: pymodbus.datastore.context.ModbusServerContext,
         slave_layout: Union[layout.SlaveLayout, dict[str, layout.SlaveLayout]],
         single: bool = True,
-    ):
+    ) -> None:
         """Server context with a layout for each slave.
 
         Args:
@@ -37,7 +39,7 @@ class ServerContext:
         # same!
 
     @classmethod
-    def load(cls, context, slave_layout, single=True) -> cls:
+    def load(cls, context, slave_layout, single=True) -> ServerContext:
         if single:
             slave_layout = layout.SlaveContextLayout.load(**slave_layout)
         else:
@@ -144,8 +146,20 @@ def _load_pymodbus_server_context(data: dict):
 
 def _load_slave_context(data: dict):
     kwargs = {}
-    for key in KEYS:
+    for key in _KEYS:
         d = data[key]
         factory = utils.getattr_from_module(d.pop("factory"))
+        # FIXME There's a problem here: Users can't specify large blocks of
+        # data in yaml. Instead, we use the ``value`` field for specifying a
+        # default value which is used to fill a list of size ``length``.
+        # Explicit values can be specified using ``values`` (this is only
+        # really useful for sparse memory. Maybe use `0..100:1` syntax
+        # to specify lists?
+        if "values" not in d:  # No explicit values, use ``value`` and ``length``!
+            d["values"] = d.pop("length") * [d.pop("value")]
         data[key] = factory(**d)
     return pymodbus.datastore.ModbusSlaveContext(**data)
+
+
+_KEYS = {"hr", "ir", "co", "di"}
+# _KEYS = {"holding_registers", "input_registers", "coils", "discrete_inputs"}
