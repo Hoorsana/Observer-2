@@ -10,7 +10,7 @@ import os
 with open("requirements.txt.in", "r") as f:
     requirements = f.read()
 
-requirements = requirements.replace("${GITHUB_TOKEN}", os.environ["GITHUB_TOKEN"])
+requirements = requirements.replace("${PYLAB_GITHUB_ACCESS}", os.environ["PYLAB_GITHUB_ACCESS"])
 
 with open("requirements.txt", "w") as f:
     f.write(requirements)
