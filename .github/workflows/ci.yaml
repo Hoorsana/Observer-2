@@ -27,7 +27,7 @@ jobs:
         pip install -r requirements.txt
         pip install .
       env:
-        GITHUB_TOKEN: ${{ secrets.MALTE_RND_SHH }}
+        PYLAB_GITHUB_ACCESS: git+https://${{ secrets.MALTE_RND_ACCESS_TOKEN }}
     - name: Run tests
       run: |
         pytest -vv tests/core
