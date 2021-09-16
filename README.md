@@ -8,6 +8,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 Staging repos for pylab project
 
+[![CI (install, test)](https://github.com/maltekliemann/pylab/actions/workflows/ci.yaml/badge.svg)](https://github.com/maltekliemann/pylab/actions/workflows/ci.yaml)
+[![REUSE license check](https://github.com/maltekliemann/pylab/actions/workflows/license.yaml/badge.svg)](https://github.com/maltekliemann/pylab/actions/workflows/license.yaml)
 
 ## Documentation
 
