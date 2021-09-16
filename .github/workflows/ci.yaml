@@ -23,8 +23,11 @@ jobs:
         ssh-private-key: ${{ secrets.MALTE_RND_SSH }}
     - name: Install requirements
       run: |
+        ./freeze
         pip install -r requirements.txt
         pip install .
+      env:
+        GITHUB_TOKEN: ${{ secrets.MALTE_RND_SHH }}
     - name: Run tests
       run: |
         pytest -vv tests/core
