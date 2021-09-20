@@ -42,74 +42,74 @@ default: venv
 	make example-limit-flash
 
 .PHONY: private
-private: venv
+private: install
 	$(PYTEST) -vv tests/_private
 
 .PHONY: shared
-shared: venv
+shared: install
 	$(PYTEST) -vv tests/shared
 
 .PHONY: rogueplugin
-rogueplugin: venv
+rogueplugin: install
 	$(PYTEST) -vv tests/_private/test_rogueplugin.py
 
 .PHONY: saleae-flash
-saleae-flash: venv
+saleae-flash: install
 	cd arduino/pulsar && make flash
 	make saleae
 
 .PHONY: saleae-quick
-saleae-quick: venv
+saleae-quick: install
 	$(PYTEST) -vv tests/live/plugin/saleae/test_parser.py
 
 .PHONY: saleae
-saleae: venv
+saleae: install
 	$(PYTEST) -vv tests/live/plugin/saleae/test_logic.py
 	$(PYTEST) -vv tests/live/plugin/saleae/test_parser.py
 
 .PHONY: can
-can: venv
+can: install
 	$(PYTEST) -vv tests/live/plugin/can/
 
 # We need to run pytest directly from the environment in order to test
 # the command line interface (otherwise, we won't use the shell of the
 # virtual environment).
 .PHONY: cli
-cli: venv
+cli: install
 	$(call activate) && \
 	pytest -vv tests/test_pylab_cli.py && \
 	deactivate
 
 .PHONY: tools
-tools: venv
+tools: install
 	$(PYTEST) -vv tests/tools
 
 .PHONY: core
-core: venv
+core: install
 	$(PYTEST) -vv tests/core
 
 .PHONY: quick
 quick: core cli tools shared live modbus private
 
 .PHONY: plugin-fake
-plugin-fake: venv
+plugin-fake: install
 	$(PYTEST) -vv tests/live/plugin/fake/test_fake.py
 
 .PHONY: live
-live: venv
+live: install
 	$(PYTEST) -vv tests/live/test_live.py
 
 .PHONY: live-flash
-live-flash: venv
+live-flash: install
 	cd arduino/adder && make flash
 	make live
 
 .PHONY: simulink
-simulink: venv
+simulink: install
 	$(PYTEST) -vv tests/simulink
 
 .PHONY: modbus
-modbus: venv
+modbus: install
 	$(PYTEST) -vv tests/live/plugin/modbus
 
 # Legacy target; deprecated
@@ -117,26 +117,26 @@ modbus: venv
 example: example-adder
 
 .PHONY: example-adder
-example-adder: venv
+example-adder: install
 	$(call activate) && \
 	cd resources/examples/adder && python freeze && \
 	deactivate
 	$(PYTEST) -vv -s example/test_example_adder.py
 
 .PHONY: example-adder-flash
-example-adder-flash: venv
+example-adder-flash: install
 	cd arduino/adder && make flash
 	make example-adder
 
 .PHONY: example-limit
-example-limit: venv
+example-limit: install
 	$(call activate) && \
 	cd resources/examples/limit_monitoring && python freeze && \
 	deactivate
 	$(PYTEST) -vv -s example/test_example_limit_monitoring.py
 
 .PHONY: example-limit-flash
-example-limit-flash: venv
+example-limit-flash: install
 	cd arduino/limit_monitoring && make flash
 	make example-limit
 
@@ -158,8 +158,7 @@ ifdef PYLAB_MATLAB_PATH
 	python setup.py install && \
 	deactivate
 endif
-	$(PYTHON) setup.py install
-	$(PYTHON) setup.py install_scripts
+	make install
 
 .PHONY: sphinx
 sphinx:
