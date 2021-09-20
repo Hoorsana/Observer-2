@@ -9,10 +9,10 @@ with open("README.md") as readme:
 
 setuptools.setup(
     name="pylab",
-    version="0.6.0",
+    version="0.7.0",
     author="M. Kliemann",
     author_email="mail@maltekliemann.com",
-    description="hardware test automation software",
+    description="Abstraction layer for hardware test software",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="GPL v3.0",
