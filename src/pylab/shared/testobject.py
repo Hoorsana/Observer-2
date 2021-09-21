@@ -77,13 +77,12 @@ class TestObjectBase:
         Args:
             device: The id of the device to find
 
-        Raises:
-            StopIteration: If the device is not found
-
+        Returns:
+            The device (if found) or ``None``
         """
-        return next(elem for elem in self._devices if elem.name == device)
+        return next((elem for elem in self._devices if elem.name == device), None)
 
-    def trace_forward(self, device: str, signal: str) -> tuple[Device, Port]:
+    def trace_forward(self, device: str, signal: str) -> Generator[tuple[Device, Port]]:
         """Return all device/ports connected via outgoing connections.
 
         Args:
@@ -92,18 +91,17 @@ class TestObjectBase:
 
         Returns:
             A generator which holds all matching device/ports
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` is not found
         """
-        return (
-            (device, device.find_port(elem.receiver_port))
-            for elem in self._connections
-            if elem.sender == device and elem.sender_port == signal
-            if (device := self.find_device(elem.receiver))
-        )
+        for c in [
+            c
+            for c in self._connections
+            if c.sender == device and c.sender_port == signal
+        ]:
+            d = self.find_device(c.receiver)
+            p = d.find_port(c.receiver_port)
+            yield (d, p)
 
-    def trace_back(self, device: str, signal: str) -> tuple[Device, Port]:
+    def trace_back(self, device: str, signal: str) -> Generator[tuple[Device, Port]]:
         """Return all device/ports connected via ingoing connections.
 
         Args:
@@ -112,13 +110,12 @@ class TestObjectBase:
 
         Returns:
             A generator which holds all matching device/ports
-
-        Raises:
-            StopIteration: If ``target`` or ``signal`` is not found
         """
-        return (
-            (device, device.find_port(elem.sender_port))
-            for elem in self._connections
-            if elem.receiver == device and elem.receiver_port == signal
-            if (device := self.find_device(elem.sender))
-        )
+        for c in [
+            c
+            for c in self._connections
+            if c.receiver == device and c.receiver_port == signal
+        ]:
+            d = self.find_device(c.sender)
+            p = d.find_port(c.sender_port)
+            yield (d, p)

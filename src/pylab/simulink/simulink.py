@@ -135,6 +135,7 @@ def create(info: infos.TestInfo, details: Details) -> Test:
     pull = [test_object.create_logging_request(each) for each in info.logging]
     code = _head()
     code += test_object.setup()
+    print(code)
 
     logging = [test_object.start_logging(each) for each in info.logging]
     code += sum([each.execute() for each in logging], [])
@@ -591,6 +592,7 @@ class TestObject(testobject.TestObjectBase):
         super().__init__(
             [Device.from_details(each) for each in details.devices], details.connections
         )
+        print(details.connections)
         self._targets = targets
 
     @property
@@ -626,18 +628,37 @@ class TestObject(testobject.TestObjectBase):
         """Create a ``Command`` objects which initiates logging by
         configuring the logger.
         """
+        print(info)
         # FIXME Why is this a _Command_? Shouldn't it just be a code block?
-        gen = self.trace_forward(info.target, info.signal)
-        device, port = None, None
-        while device is None:
-            device, port = next(
-                (device, port)
-                for device, port in gen
-                if hasattr(device.block, "log_signal")
-            )
         var = _unpack_log_entry(info)
-        code = device.block.log_signal(var, port.channel, info.period)
+        period = info.period
         what = str(info)
+
+        this_port = self.find_device(info.target).find_port(info.signal)
+        if "input" in this_port.flags:
+            print("Input")
+            # If we're trying to log an input, then try to log the source instead.
+            device, port = next(self.trace_back(info.target, info.signal))
+            target = device.name
+            signal = port.signal
+            print(target)
+            print(signal)
+        else:
+            print("output")
+            target = info.target
+            signal = info.signal
+
+        device, port = next(
+            (
+                (device, port)
+                for device, port in self.trace_forward(target, signal)
+                if hasattr(device.block, "log_signal")
+            ),
+            (None, None),
+        )
+        if device is None:
+            raise 
+        code = device.block.log_signal(var, port.channel, period)
         return Command(None, code, what)
 
     def create_command(self, command_info: infos.CommandInfo, offset: float) -> Command:
@@ -726,7 +747,6 @@ def _load_details(path: str, data: dict) -> Details:
         if isinstance(inf, str):
             interface_path = loader.find_relative_path(path, inf)
             elem["interface"] = privateutils.yaml_safe_load_from_file(interface_path)
-    print(data)
     return Details(**data)
 
 

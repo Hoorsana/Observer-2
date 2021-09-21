@@ -123,6 +123,10 @@ example-adder: install
 	deactivate
 	$(PYTEST) -vv -s example/test_example_adder.py
 
+.PHONY: ball
+ball: install
+	$(PYTEST) -vv example/test_example_ball_and_beam.py
+
 .PHONY: example-adder-flash
 example-adder-flash: install
 	cd arduino/adder && make flash
@@ -175,5 +179,5 @@ clean:
 
 .PHONY: install
 install:
-	python setup.py install
-	python setup.py install_scripts
+	$(PYTHON) setup.py install
+	$(PYTHON) setup.py install_scripts
