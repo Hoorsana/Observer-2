@@ -128,6 +128,7 @@ def test_functional():
     ]
 
 
+@pytest.mark.skip
 def test_pcan():
     report = workflow.run_from_files(
         driver=live,
@@ -135,5 +136,3 @@ def test_pcan():
         details="resources/tests/live/plugin/can/pcan_details.yml",
     )
     results = reports.results["pcan0-dev.pcan0-signal"]
-    print(results)
-    assert False
