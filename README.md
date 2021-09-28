@@ -144,7 +144,8 @@ sudo cangw -A -s vcan1 -d vcan2 -e
 
 (The middle device `vcan1` will serve as a passthru.)
 
-Run `make can` to test.
+Run `make can` to test. Run `vcan.sh` to go through the steps above
+automatically.
 
 ~~Furthermore, to run the tests that involve the PCAN-Dongle, you must
 install the driver and API:~~
