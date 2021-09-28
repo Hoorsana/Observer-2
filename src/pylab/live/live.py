@@ -701,8 +701,11 @@ class _LoggingRequest(AbstractFuture):
         self._info = info
         self._device = device
         self._port = port
-        self._transform = transform.AffineMap.affine_range_transform(port.range, signal.range)
         self._future: AbstractFuture = None
+        if port.range is not None:
+            self._transform = transform.AffineMap.affine_range_transform(port.range, signal.range)
+        else:
+            self._transform = None
 
     def begin(self) -> AbstractFuture:
         """Begin logging the signal.
