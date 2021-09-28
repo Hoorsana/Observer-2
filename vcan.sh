@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 sudo modprobe vcan
 sudo modprobe can-gw
 sudo apt-get install can-utils
