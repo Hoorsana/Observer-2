@@ -20,6 +20,10 @@ def getattr_from_module(attr: str) -> Any:
     guess which part of ``attr`` is ``'fully.qualified.module'`` and
     which is ``'path.to.member'``.
 
+    Note that it is not possible to get an attribute from the calling
+    module by using ``getattr_from_module("value")``, for example. The
+    path should always be the full path to the object.
+
     Args:
         attr: The attribute
 
