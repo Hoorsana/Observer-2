@@ -12,33 +12,6 @@ from pylab.core.typing import ArrayLike
 _T = TypeVar("T")
 
 
-def module_getattr(attr: str) -> Any:
-    """Get attribute from module by string.
-
-    The string must be the name of a fully qualified module member, e.g.
-    ``'fully.qualified.module.member'``
-
-    Args:
-        attr: A fully qualified name of a member of a python module
-
-    Returns:
-        The module member
-
-    Raises:
-        ModuleNotFoundError: If the module is not found
-
-        AttributeError:
-            If the module doesn't contain the specified attribute
-
-    Example:
-        >>> ValidationInfo = module_getattr('pylab.core.infos.ValidationInfo')
-    """
-    # FIXME Raise an error on incorrect ``attr``!
-    [module, last] = attr.rsplit(".", 1)
-    module = importlib.import_module(module)
-    return getattr(module, last)
-
-
 def getattr_from_module(attr: str) -> Any:
     """Get attribute from module by string.
 
@@ -55,6 +28,9 @@ def getattr_from_module(attr: str) -> Any:
 
     Raises:
         AttributeError: If guessing fails
+
+    Example:
+        >>> ValidationInfo = getattr_from_module('pylab.core.infos.ValidationInfo')
     """
     tokens = attr.split(".")
     try:
