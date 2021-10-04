@@ -575,9 +575,9 @@ class Device:
     @classmethod
     def from_details(cls, details: DeviceDetails) -> Device:
         if "." in details.type:
-            type_ = utils.module_getattr(details.type)
+            type_ = utils.getattr_from_module(details.type)
         else:  # No absolute path specified, use local block module!
-            type_ = utils.module_getattr(BLOCKS + "." + details.type)
+            type_ = utils.getattr_from_module(BLOCKS + "." + details.type)
         block = type_(details.name, **details.data)
         return Device(details.name, block, details.interface)
 
@@ -670,9 +670,9 @@ class TestObject(testobject.TestObjectBase):
         time = command_info.time + offset
 
         if "." in command_info.command:
-            factory = utils.module_getattr(command_info.command)
+            factory = utils.getattr_from_module(command_info.command)
         else:
-            factory = utils.module_getattr(COMMANDS + "." + command_info.command)
+            factory = utils.getattr_from_module(COMMANDS + "." + command_info.command)
         code, what = factory(self, command_info, time)
 
         return Command(time, code, what)
