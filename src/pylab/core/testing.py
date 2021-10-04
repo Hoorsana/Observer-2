@@ -100,7 +100,7 @@ def load_info(info: infos.AssertionInfo) -> list[Dispatcher]:
     """
     # FIXME code-duplication: simulink.simulink.Device.from_details
     if "." in info.type:
-        type_ = utils.module_getattr(info.type)
+        type_ = utils.getattr_from_module(info.type)
     else:  # No absolute path specified, use local block module!
         type_ = globals()[info.type]
     return type_.create_with_dispatcher(info.data, info.args)
