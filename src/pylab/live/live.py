@@ -313,7 +313,7 @@ def _create_command(info: infos.CommandInfo, offset: float) -> AbstractCommand:
             The starting point of the phase that the command belongs to
     """
     if "." in info.command:
-        type_ = coreutility.module_getattr(info.command)
+        type_ = coreutility.getattr_from_module(info.command)
     else:
         type_ = globals()[info.command]
     return type_(
