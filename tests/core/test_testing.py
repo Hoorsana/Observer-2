@@ -33,7 +33,7 @@ class TestLoadInfo:
         type_mock = mocker.Mock()
         type_mock.create_with_dispatcher = mocker.Mock(return_value="assertion")
         mock = mocker.Mock(return_value=type_mock)
-        mocker.patch("pylab.core.utils.module_getattr", mock)
+        mocker.patch("pylab.core.utils.getattr_from_module", mock)
         info = infos.AssertionInfo(
             type="this.module.does.exist", data={"foo": "bar"}, args={"spam": "eggs"}
         )
@@ -48,7 +48,7 @@ class TestLoadInfo:
             data={"foo": "bar"},
             args={"spam": "eggs"},
         )
-        with pytest.raises(ModuleNotFoundError):
+        with pytest.raises(AttributeError):
             testing.load_info(info)
 
 

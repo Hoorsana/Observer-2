@@ -31,7 +31,7 @@ class InvalidSizeError(ModbusBackendException):
 
 
 class Variable:
-    def __init__(self, name: str, size: int, address: Optional[int] = None) -> None:
+    def __init__(self, name: str, size: int = 1, address: Optional[int] = None) -> None:
         """
         Args:
             name: The variable's name
