@@ -19,61 +19,56 @@ To build the documentation run `make sphinx`. The docs are then found in
 
 ## Technical notes
 
+### Setting up the virtual environment
+
+- Set the environment variable `PYLAB_GITHUB_ACCESS` equal to
+  `"git+https://${GITHUB_TOKEN}"`, where `${GITHUB_TOKEN}` is your
+  GitHub auth token. This is required for automated access to a private
+  repository: `rogue`, which is used for mocking up live devices.
+- Run `make venv` to create a virtual environment. This is required for
+  all testing. Furthermore, the `requirements.txt` is created from
+  `requirements.txt.in` by freezing the GitHub access token.
+- If you want to use the `simulink` package, you must also do the
+  following:
+  + Make sure that `MATLABPATH` includes
+    `src/pylab/simulink/_resources`.
+  + Set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB
+    installation in order for pylab to find the `setup.py` of the MATLAB
+    engine. If you don't set the variable, the MATLAB engine will not be
+    installed to the virtual envrionment.
+
+
 ### Testing
 
-Run `make` to test. Before doing so, make sure that `MATLABPATH`
-includes `src/pylab/simulink/_resources` if you want to test
-MATLAB/Simulink.
+Run `make [TARGET]` to test. See [Makefile](Makefile) for a list of
+possbile targets.
 
-The following targets are available for make:
-
-- `core`
-- `tools`
-- `cli` (commandline)
-- `quick` (runs `core`, `tools`, `cli`)
-- `simulink`
-- `live`
-- `live-flash`
-- `example` (`example-adder`)
-- `example-adder`
-- `example-adder-flash`
-- `example-limit`
-- `example-limit-flash`
-- `saleae`
-- `saleae-flash`
-
-Running the `live` and `example-adder` test requires two Arduino Due
-boards. The GPIO board must run the [Controllino
+Running the `example-*` targets requires the `simulink` (including all
+dependencies described above) and two Arduino Due boards. The GPIO board
+must run the [Controllino
 implementation](git@bitbucket.org:8tronix/testcenter-arduinodue-gpio.git),
 the target must run the source in `arduino/adder` (execute `make flash`
 in `arduino/adder`). The serial numbers of these device must be stored
 in the environment variables `PYLAB_USB_SERIAL_NUMBER_CONTROLLINO` and
-`PYLAB_USB_SERIAL_NUMBER_DEVICE`, respectively. Furthermore, the devices
-must be connected as follows: `controllino.DAC0-target.A0`,
-`controllino.DAC1-target.A1`, `target.DAC1-controllino.A0` or
-`target.DAC0-controllino.A0`.
+`PYLAB_USB_SERIAL_NUMBER_DEVICE`, respectively.
 
-Another example, `example-limit`, uses the same setup, but requires the
-connections `controllino.DAC1-target.A1` and
-`target.D40-controllino.D30`. Before running the test, run `make flash`
-in `arduino/limit_monitoring`.
+Furthermore, for `example-adder`, the devices must be connected as
+follows: 
+    - `controllino.DAC0 -> target.A0`
+    - `controllino.DAC1 -> target.A1`
+    - `target.DAC1 -> controllino.A0` or `target.DAC0 -> controllino.A0`
 
-Both examples can be run _with flashing_ by calling `example-*-flash`.
+`example-limit`, uses the same setup, but requires the following
+connections:
+    - `controllino.DAC1-target.A1`
+    - `target.D40-controllino.D30`
+
+Finally, the DUT board must be flashed with the correct software. Both
+examples can be run _with flashing_ by calling `example-*-flash`.
 
 Note that `resources/examples/adder/arduino_details.yml` is created from
 `arduino_details.yml.in` by entering the USB serial numbers stored in
 the environment variables using the `freeze` script.
-
-
-#### Testing `simulink`
-
-You must set `PYLAB_MATLAB_PATH` equal to the directory of your MATLAB
-installation in order for pylab to find the `setup.py` of the MATLAB
-engine. If you don't set the variable, the MATLAB engine will not be
-installed to the virtual envrionment.
-
-You must also define the environment variable `MATLABPATH` to include
-`resources/tests/simulink`.
 
 
 #### Testing `live.plugin.saleae`
