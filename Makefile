@@ -148,7 +148,7 @@ example-limit-flash: install
 # engine if available
 .PHONY: venv
 venv:
-	./freeze
+	python freeze
 	pip install virtualenv
 ifeq ($(OS), Windows_NT)
 	if NOT exist $(VENV) virtualenv $(VENV)
