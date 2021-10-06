@@ -21,4 +21,4 @@ Twisted==21.7.0
 sphinx_rtd_theme
 ${PYLAB_GITHUB_ACCESS}@github.com/maltekliemann/rogue@0.1.7
 ${PYLAB_GITHUB_ACCESS}@github.com/ppannuto/python-saleae@877178f67618cdb3355054eae3666d99dce36aaa
-${PYLAB_GITHUB_ACCESS}@github.com/maltekliemann/controllino@0.1.1
+# ${PYLAB_GITHUB_ACCESS}@github.com/maltekliemann/controllino@0.1.1
