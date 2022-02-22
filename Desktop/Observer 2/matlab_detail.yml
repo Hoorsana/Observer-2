@@ -1,0 +1,120 @@
+prelude:
+    'prelude.m'
+devices:
+  - name: Beobachter
+    type: Model
+    interface:
+      ports:
+        - signal: U(t)
+          channel: 1
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+        - signal: Y
+          channel: 2
+          range:
+            min: -2
+            max: 2
+          flags:
+            - input
+            - analog
+        - signal: Yhat
+          channel: 1
+          range:
+            min: -1
+            max: 1
+          flags:
+            - output
+            - analog
+        - signal: Uhat
+          channel: 2
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - output
+            - analog
+
+    data:
+      filename: 'Beobachter.slx'
+
+  - name: ZRM
+    type: Model
+    interface:
+      ports:
+        - signal: U(t)
+          channel: 1
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+        - signal: Uhat
+          channel: 2
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+        - signal: Y
+          channel: 1
+          range:
+            min: -2
+            max: 2
+          flags:
+            - output
+            - analog
+        - signal: Alpha
+          channel: 2
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - output
+            - analog
+    data:
+      filename: 'ZRM.slx'
+      params:
+       x0: 0.3 
+  - name: gpio
+    type: MiniGenerator
+    interface: ./mini_generator.yml
+  - name: logger
+    type: MiniLogger
+    interface:
+      ports:
+        - signal: Y
+          channel: 1
+          range:
+            min: -2
+            max: 2
+          flags:
+            - input
+            - analog
+  - name: logger2
+    type: MiniLogger
+    interface:
+      ports:
+        - signal: Alpha
+          channel: 1
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+
+connections:
+  - [gpio, U(t), ZRM, U(t)]
+  - [Beobachter, Uhat, ZRM, Uhat]
+  - [gpio, U(t), Beobachter, U(t)]
+  - [ZRM, Y, Beobachter, Y]
+  - [ZRM, Y, logger, Y]
+  - [ZRM, Alpha, logger2, Alpha]
+
+

@@ -1,0 +1,46 @@
+targets:
+  - name: ZRM
+    signals:
+      - name: U(t)
+        flags:
+          - input
+          - analog
+        range:
+          min: -3.14
+          max: 3.14
+      - name: Uhat
+        flags:
+          - input
+          - analog
+        range:
+          min: -3.14
+          max: 3.14 
+      - name: Y
+        flags:
+          - output
+          - analog
+        range:
+          min: -2
+          max: 2
+      - name: Alpha
+        flags:
+          - output
+          - analog
+        range:
+          min: -3.14
+          max: 3.14
+
+logging:
+  - target: ZRM
+    signal: Y
+    period: 0.1
+  - target: ZRM
+    signal: Alpha
+    period: 0.1   
+
+phases:
+  - description: ok
+    duration: 10
+    commands: []
+    
+    

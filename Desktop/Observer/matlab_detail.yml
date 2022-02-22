@@ -1,0 +1,108 @@
+devices:
+  - name: Beobachter
+    type: Model
+    interface:
+      ports:
+        - signal: U(t)
+          channel: 1
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+        - signal: Y(t)
+          channel: 2
+          range:
+            min: -1
+            max: 1
+          flags:
+            - input
+            - analog
+        - signal: Yhat
+          channel: 1
+          range:
+            min: -1
+            max: 1
+          flags:
+            - output
+            - analog
+        - signal: x_hat(t)*K
+          channel: 2
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - output
+            - analog
+    data:
+      filename: 'Beobachter.slx'
+      params: 
+        A: [0, 1; 0, 0]
+        B: [0, 7.007]
+        C: [1, 0]
+        L: [40, 300]
+        K: [0.4281, 0.5708]
+  - name: ZRM
+    type: Model
+    interface:
+      ports:
+        - signal: U(t)
+          channel: 1
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+        - signal: x_hat(t)*K
+          channel: 2
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - input
+            - analog
+        - signal: Y(t)
+          channel: 1
+          range:
+            min: -1
+            max: 1
+          flags:
+            - output
+            - analog
+        - signal: Alpha(t)
+          channel: 2
+          range:
+            min: -3.14
+            max: 3.14
+          flags:
+            - output
+            - analog
+    data:
+      filename: 'ZRM.slx'
+      params:
+       x0: 0.3
+        
+  - name: gpio
+    type: MiniGenerator
+    interface: ./mini_generator.yml
+  - name: logger
+    type: MiniLogger
+    interface:
+      ports:
+        - signal: Yhat
+          channel: 1
+          range:
+            min: -1
+            max: 1
+          flags:
+            - input
+            - analog
+
+connections:
+  - [gpio, U(t), ZRM, U(t)]
+  - [Beobachter, x_hat(t)*K, ZRM, x_hat(t)*K]
+  - [gpio, U(t), Beobachter, U(t)]
+  - [ZRM, Y(t), Beobachter, Y(t)]
+  - [Beobachter, Yhat, logger, Yhat]

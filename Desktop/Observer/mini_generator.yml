@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2021 Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH
+# 
+# SPDX-License-Identifier: CC0-1.0
+
+ports:
+  - signal: U(t)
+    channel: 1
+    range:
+      min: -3.14
+      max: 3.14
+    flags:
+      - output
+      - analog
